@@ -1,0 +1,131 @@
+/* ---- Theme tokens -------------------------------------------------------- */
+:root,
+[data-theme='parchment'] {
+  --bg: #f4ecd8;
+  --surface: #fbf6e9;
+  --surface-2: #efe4c8;
+  --text: #2c2418;
+  --muted: #7a6c4f;
+  --border: #d8c9a3;
+  --accent: #8a4b2f;
+  --accent-text: #fff;
+  --shadow: 0 1px 3px rgba(60, 40, 10, 0.18);
+  --radius: 10px;
+}
+
+[data-theme='dark'] {
+  --bg: #16181d;
+  --surface: #1e2128;
+  --surface-2: #272b34;
+  --text: #e6e8ee;
+  --muted: #9aa3b2;
+  --border: #333947;
+  --accent: #c9803a;
+  --accent-text: #16181d;
+  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
+  --radius: 10px;
+}
+
+[data-theme='contrast'] {
+  --bg: #000;
+  --surface: #0a0a0a;
+  --surface-2: #161616;
+  --text: #fff;
+  --muted: #cfcfcf;
+  --border: #fff;
+  --accent: #ffd400;
+  --accent-text: #000;
+  --shadow: none;
+  --radius: 4px;
+}
+
+[data-theme='neon'] {
+  --bg: #0b0f1a;
+  --surface: #121a2c;
+  --surface-2: #1a2540;
+  --text: #d7f7ff;
+  --muted: #6fa8c7;
+  --border: #25406b;
+  --accent: #18e0c8;
+  --accent-text: #04121a;
+  --shadow: 0 0 12px rgba(24, 224, 200, 0.25);
+  --radius: 12px;
+}
+
+/* ---- Base ---------------------------------------------------------------- */
+* { box-sizing: border-box; }
+html, body, #root { height: 100%; margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+}
+a { color: var(--accent); }
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  border-radius: var(--radius);
+  padding: 0.45rem 0.8rem;
+}
+button.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
+button:hover { filter: brightness(1.05); }
+input, select, textarea {
+  font: inherit; color: var(--text);
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); padding: 0.4rem 0.6rem;
+}
+
+/* ---- App shell ----------------------------------------------------------- */
+.shell { display: flex; height: 100%; }
+.rail {
+  width: 240px; flex: 0 0 240px;
+  background: var(--surface); border-right: 1px solid var(--border);
+  display: flex; flex-direction: column; transition: margin-left 0.2s ease;
+}
+.rail .brand { padding: 1rem; font-weight: 700; border-bottom: 1px solid var(--border); }
+.rail nav { overflow-y: auto; padding: 0.5rem; }
+.rail nav a {
+  display: flex; gap: 0.6rem; align-items: center;
+  padding: 0.5rem 0.7rem; border-radius: var(--radius);
+  color: var(--text); text-decoration: none;
+}
+.rail nav a.active { background: var(--surface-2); font-weight: 600; }
+.rail nav a:hover { background: var(--surface-2); }
+
+.main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
+.topbar {
+  display: flex; align-items: center; gap: 0.75rem;
+  padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface);
+}
+.burger { display: none; }
+.content { padding: 1.25rem; overflow: auto; flex: 1; }
+
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem;
+}
+.grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.muted { color: var(--muted); }
+.row { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+
+/* ---- Mobile -------------------------------------------------------------- */
+.scrim { display: none; }
+@media (max-width: 760px) {
+  .burger { display: inline-flex; }
+  .rail {
+    position: fixed; z-index: 30; top: 0; bottom: 0; left: 0;
+    margin-left: -260px; box-shadow: var(--shadow);
+  }
+  .rail.open { margin-left: 0; }
+  .scrim.show { display: block; position: fixed; inset: 0; z-index: 20; background: rgba(0,0,0,0.4); }
+}
+
+/* ---- Print --------------------------------------------------------------- */
+@media print {
+  .rail, .topbar, .no-print { display: none !important; }
+  .content { padding: 0; overflow: visible; }
+  body { background: #fff; color: #000; }
+}
