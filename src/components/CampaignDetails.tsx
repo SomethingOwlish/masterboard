@@ -6,6 +6,7 @@
 import { useState } from 'react'
 import type { Campaign } from '../model/types'
 import { useCampaign } from '../store/campaign'
+import { ImageField } from './ImageField'
 import { SystemSelect } from './SystemSelect'
 
 export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaign; finishedCount: number }) {
@@ -13,16 +14,10 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
   const [editTitle, setEditTitle] = useState(false)
   const [titleDraft, setTitleDraft] = useState(campaign.name)
   const [editCover, setEditCover] = useState(false)
-  const [coverDraft, setCoverDraft] = useState(campaign.cover ?? '')
 
   const saveTitle = () => {
     void rename(titleDraft)
     setEditTitle(false)
-  }
-
-  const saveCover = () => {
-    void update({ cover: coverDraft.trim() || undefined })
-    setEditCover(false)
   }
 
   const numberOrUndefined = (raw: string): number | undefined => {
@@ -40,7 +35,7 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
           ) : (
             <span className="overview-cover overview-cover-empty" aria-hidden>🎲</span>
           )}
-          <button className="cover-change" onClick={() => { setCoverDraft(campaign.cover ?? ''); setEditCover((v) => !v) }}>
+          <button className="cover-change" onClick={() => setEditCover((v) => !v)}>
             Change
           </button>
         </div>
@@ -76,17 +71,13 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
 
       {editCover && (
         <div className="field" style={{ marginTop: '0.5rem' }}>
-          <label htmlFor="cd-cover">Cover image URL</label>
-          <div className="row" style={{ gap: '0.4rem' }}>
-            <input
-              id="cd-cover"
-              value={coverDraft}
-              onChange={(e) => setCoverDraft(e.target.value)}
-              placeholder="https://… (Imgur upload arrives in Batch 7)"
-              style={{ flex: 1 }}
-            />
-            <button className="primary" onClick={saveCover}>Save</button>
-          </div>
+          <label>Cover image</label>
+          <ImageField
+            value={campaign.cover}
+            variant="cover"
+            glyph="🎲"
+            onChange={(cover) => void update({ cover })}
+          />
         </div>
       )}
 

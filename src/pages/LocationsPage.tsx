@@ -8,6 +8,8 @@ import { useParams } from 'react-router-dom'
 import { Drawer } from '../components/Drawer'
 import { TagEditor } from '../components/TagEditor'
 import { ConnectionsEditor } from '../components/ConnectionsEditor'
+import { ImageField } from '../components/ImageField'
+import { EntityTaskButton } from '../components/EntityTaskButton'
 import { makeLocation } from '../model/defaults'
 import { useEntityPool } from '../store/entities'
 import { useLocations } from '../store/locations'
@@ -119,11 +121,12 @@ export function LocationsPage() {
             />
           </div>
           <div className="field">
-            <label>Image URL</label>
-            <input
-              value={editing.image ?? ''}
-              placeholder="https://… (Imgur upload arrives in B7)"
-              onChange={(e) => void update(editing.id, { image: e.target.value || undefined })}
+            <label>Image</label>
+            <ImageField
+              value={editing.image}
+              variant="thumb"
+              glyph="📍"
+              onChange={(image) => void update(editing.id, { image })}
             />
           </div>
 
@@ -132,6 +135,9 @@ export function LocationsPage() {
 
           <h3 className="section-title" style={{ marginTop: '1rem' }}>Connections</h3>
           <ConnectionsEditor entityId={editing.id} entities={entities} />
+
+          <h3 className="section-title" style={{ marginTop: '1rem' }}>Tasks</h3>
+          <EntityTaskButton campaignId={campaignId} entityId={editing.id} entityName={editing.name} kind="location" />
         </Drawer>
       )}
     </div>

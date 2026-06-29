@@ -30,7 +30,7 @@ export function CampaignOverview() {
         <div className="overview-col">
           <NextSessionPlanner plan={campaign.nextSession} />
           <CharacterBlock campaignId={campaign.id} characters={characters} />
-          <SourcePanel sites={campaign.settings.sourceSites} />
+          <SourcePanel campaignId={campaign.id} sites={campaign.settings.sourceSites} />
         </div>
         <div className="overview-col">
           <RecapLog recaps={recaps} />

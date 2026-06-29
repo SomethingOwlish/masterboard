@@ -128,8 +128,12 @@ export function SettingsPage() {
         <h2 style={{ marginTop: 0, fontSize: '1.05rem' }}>Images (Imgur)</h2>
         <div className="field">
           <label htmlFor="imgur">Imgur client ID</label>
-          <input id="imgur" value={form.imgurClientId} onChange={onField('imgurClientId')} placeholder="optional until Batch 7" />
-          <small className="muted">Used for portrait / cover uploads. Wiring lands in Batch 7.</small>
+          <input id="imgur" value={form.imgurClientId} onChange={onField('imgurClientId')} placeholder="e.g. 1a2b3c4d5e6f7g8" />
+          <small className="muted">
+            Enables one-click portrait / cover / image uploads. Register a free app at
+            api.imgur.com (OAuth2 without a callback URL) and paste its Client ID. Without it, image
+            fields fall back to pasting a URL.
+          </small>
         </div>
         <div className="row">
           <button className="primary" onClick={saveAll}>Save</button>
