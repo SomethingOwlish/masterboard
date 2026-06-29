@@ -217,6 +217,65 @@ button.ghost { border-color: transparent; background: transparent; padding: 0.2r
 .sync-badge.syncing { color: var(--accent); }
 .sync-badge.error { color: crimson; border-color: crimson; }
 
+/* ---- Entity cards (Characters / NPCs) ------------------------------------ */
+.entity-grid { grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.entity-card { text-align: left; display: flex; flex-direction: column; gap: 0.5rem; align-items: stretch; }
+.entity-card:hover { border-color: var(--accent); }
+.entity-card.is-dead { opacity: 0.6; }
+.entity-head { display: flex; gap: 0.6rem; align-items: center; }
+.entity-title { min-width: 0; }
+.entity-title strong { display: block; }
+
+/* ---- Drawer -------------------------------------------------------------- */
+.drawer-scrim { position: fixed; inset: 0; z-index: 50; background: rgba(0, 0, 0, 0.4); display: flex; justify-content: flex-end; }
+.drawer {
+  width: 100%; max-width: 440px; height: 100%;
+  background: var(--surface); border-left: 1px solid var(--border);
+  display: flex; flex-direction: column; box-shadow: var(--shadow);
+}
+.drawer-head { display: flex; align-items: center; justify-content: space-between; padding: 0.85rem 1rem; border-bottom: 1px solid var(--border); }
+.drawer-body { padding: 1rem; overflow-y: auto; flex: 1; }
+.drawer-foot { display: flex; justify-content: space-between; gap: 0.5rem; padding: 0.75rem 1rem; border-top: 1px solid var(--border); }
+
+/* ---- Fields editor ------------------------------------------------------- */
+.fields-editor { display: flex; flex-direction: column; gap: 0.6rem; }
+.field-row { display: flex; flex-direction: column; gap: 0.3rem; }
+.field-row-head { display: flex; gap: 0.4rem; align-items: center; }
+.field-row-head select { flex: 0 0 auto; }
+
+/* ---- Connections editor -------------------------------------------------- */
+.conn-list { list-style: none; margin: 0 0 0.6rem; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
+.conn-item { display: flex; gap: 0.4rem; align-items: center; }
+.conn-label { flex: 1; min-width: 0; }
+.conn-add { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.conn-add select, .conn-add input[type='text'], .conn-add input:not([type]) { flex: 1; min-width: 8rem; }
+
+/* ---- Boards (Relations / Chronology) ------------------------------------- */
+.board-content { display: flex; flex-direction: column; }
+.board-canvas { position: relative; flex: 1; min-height: 420px; height: calc(100vh - 230px); margin-top: 0.75rem; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.rf-node { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface); padding: 0.4rem 0.7rem; color: var(--text); font-size: 0.85rem; }
+.rf-pc { border-left: 4px solid var(--accent); }
+.rf-npc { border-left: 4px solid var(--muted); }
+.edge-inspector { position: absolute; top: 0.75rem; right: 0.75rem; z-index: 5; width: 220px; display: flex; flex-direction: column; gap: 0.5rem; }
+
+/* ---- Chronology ---------------------------------------------------------- */
+.chrono-board { display: flex; gap: 0.75rem; overflow-x: auto; flex: 1; min-height: 420px; height: calc(100vh - 230px); margin-top: 0.75rem; padding-bottom: 0.5rem; align-items: flex-start; }
+.chrono-col { flex: 0 0 260px; display: flex; flex-direction: column; max-height: 100%; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); }
+.chrono-col.fixed { border-color: var(--accent); position: sticky; left: 0; z-index: 2; }
+.chrono-col.minimized { flex-basis: 44px; }
+.chrono-col-head { display: flex; gap: 0.3rem; align-items: center; padding: 0.5rem; border-bottom: 1px solid var(--border); }
+.chrono-col-name { flex: 1; min-width: 0; font-weight: 600; }
+.chrono-col-actions { display: flex; gap: 0.1rem; }
+.chrono-col-min { writing-mode: vertical-rl; height: 100%; width: 100%; border: none; background: transparent; padding: 0.5rem 0; }
+.chrono-col-min-name { font-weight: 600; }
+.chrono-events { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.5rem; overflow-y: auto; }
+.chrono-event { border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface-2); padding: 0.5rem 0.6rem; cursor: pointer; }
+.chrono-event:hover { border-color: var(--accent); }
+.chrono-event.dragging { opacity: 0.4; }
+.chrono-event-date { font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.chrono-event-body { margin: 0.3rem 0 0; font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.chrono-add { margin-top: 0.25rem; border-style: dashed; }
+
 /* ---- Print --------------------------------------------------------------- */
 @media print {
   .rail, .topbar, .no-print { display: none !important; }
