@@ -183,6 +183,12 @@ export function SessionPlanner() {
     )
   }
 
+  // Pin tldraw's theme to the app's instead of letting it follow the OS — only
+  // "parchment" is a light theme; dark / contrast / neon are dark. Otherwise the
+  // board would flip dark on a machine in OS dark mode, clashing with the app.
+  const appTheme = document.documentElement.getAttribute('data-theme')
+  const colorScheme = appTheme && appTheme !== 'parchment' ? 'dark' : 'light'
+
   return (
     <div className="planner-page">
       <div className="planner-head no-print">
@@ -238,7 +244,7 @@ export function SessionPlanner() {
         </aside>
 
         <div className="planner-canvas">
-          <Tldraw key={current.id} onMount={handleMount} />
+          <Tldraw key={current.id} colorScheme={colorScheme} onMount={handleMount} />
         </div>
       </div>
     </div>
