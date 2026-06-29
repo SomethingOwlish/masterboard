@@ -34,6 +34,11 @@ const TOKEN_COLOR: Record<string, TLDefaultColorStyle> = {
 }
 const GLYPH: Record<string, string> = { ...KIND_GLYPH, event: '📜' }
 
+// tldraw disables its editor on production deploys (https + non-localhost) when
+// no license key is present. Supply one (free watermarked key from tldraw.dev)
+// via this build-time env var so the board works on GitHub Pages. Unset locally.
+const TLDRAW_LICENSE_KEY = import.meta.env.VITE_TLDRAW_LICENSE_KEY || undefined
+
 interface PaletteItem {
   id: string
   name: string
@@ -282,6 +287,7 @@ export function SessionPlanner() {
         <div className="planner-canvas">
           <Tldraw
             key={`${current.id}:${recoverKey}`}
+            licenseKey={TLDRAW_LICENSE_KEY}
             colorScheme={colorScheme}
             components={components}
             onMount={handleMount}
