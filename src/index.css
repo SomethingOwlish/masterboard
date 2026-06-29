@@ -310,6 +310,12 @@ button.ghost { border-color: transparent; background: transparent; padding: 0.2r
 .palette-item { display: block; width: 100%; text-align: left; margin-bottom: 0.25rem; padding: 0.3rem 0.5rem; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .palette-item:hover { border-color: var(--accent); }
 .planner-canvas { position: relative; flex: 1; min-width: 0; }
+.planner-canvas-fallback {
+  position: absolute; inset: 0; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 0.75rem; text-align: center;
+  padding: 2rem; background: var(--surface); color: var(--text);
+}
+.planner-canvas-fallback p { max-width: 32rem; margin: 0; }
 .planner-canvas .tl-container { position: absolute; inset: 0; }
 @media (max-width: 760px) {
   .planner-palette { flex-basis: 150px; }
