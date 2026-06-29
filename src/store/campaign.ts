@@ -4,7 +4,7 @@
 
 import { create } from 'zustand'
 import { newId } from '../model/ids'
-import type { Campaign, Character, NextSessionPlan, SessionRecap } from '../model/types'
+import type { Campaign, CampaignSettings, Character, NextSessionPlan, SessionRecap } from '../model/types'
 import { data } from '../storage/data'
 import { useActivity } from './activity'
 
@@ -27,6 +27,8 @@ interface CampaignState {
   rename: (name: string) => Promise<void>
   /** Patch top-level campaign meta (description, system, cover, counters, …). */
   update: (patch: Partial<Campaign>) => Promise<void>
+  /** Patch nested campaign settings (Misc kinds, storage overrides, …). */
+  updateSettings: (patch: Partial<CampaignSettings>) => Promise<void>
 
   addRecap: (input: { title: string; realDate: string; body: string }) => Promise<void>
   editRecap: (id: string, patch: Partial<SessionRecap>) => Promise<void>
@@ -105,6 +107,15 @@ export const useCampaign = create<CampaignState>((set, get) => ({
     if ('playerCount' in patch) logActivity(campaign.id, 'Set player count', String(next.playerCount ?? 0))
     if ('plannedSessions' in patch)
       logActivity(campaign.id, 'Set planned sessions', String(next.plannedSessions ?? 0))
+  },
+
+  updateSettings: async (patch) => {
+    const { campaign } = get()
+    if (!campaign) return
+    const next = { ...campaign, settings: { ...campaign.settings, ...patch } }
+    set({ campaign: next })
+    await data.writeCampaign(next)
+    if ('miscKinds' in patch) logActivity(campaign.id, 'Updated Misc kinds', (patch.miscKinds ?? []).join(', '))
   },
 
   addRecap: async ({ title, realDate, body }) => {

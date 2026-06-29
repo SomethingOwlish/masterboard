@@ -9,7 +9,9 @@ import type {
   CampaignSummary,
   ModuleId,
   RelationsDoc,
+  SessionDoc,
   SessionRecap,
+  SessionsIndex,
   TimelineDoc,
 } from '../model/types'
 import { useConfig } from '../store/config'
@@ -47,8 +49,12 @@ export const data = {
 
   async deleteCampaignFiles(id: string): Promise<void> {
     const g = gm()
+    // Remove each session document before the sessions index that lists them.
+    const sessionsIndex = await this.readSessionsIndex(id)
+    await Promise.all(sessionsIndex.sessions.map((s) => repo.remove(paths.sessionDoc(g, id, s.id))))
     const mods: ModuleId[] = [
-      'campaign', 'log', 'characters', 'npcs', 'locations', 'misc', 'relations', 'timeline', 'activity',
+      'campaign', 'log', 'characters', 'npcs', 'locations', 'misc', 'relations',
+      'timeline', 'activity', 'sessions', 'tasks', 'rules',
     ]
     await Promise.all(mods.map((m) => repo.remove(paths.module(g, id, m))))
   },
@@ -102,5 +108,28 @@ export const data = {
 
   async writeTimeline(id: string, doc: TimelineDoc): Promise<void> {
     await repo.write(paths.module(gm(), id, 'timeline'), doc)
+  },
+
+  async readSessionsIndex(id: string): Promise<SessionsIndex> {
+    const doc = (await repo.read(paths.module(gm(), id, 'sessions'))) as SessionsIndex | null
+    return doc && Array.isArray(doc.sessions)
+      ? { sessions: doc.sessions, nextSeq: typeof doc.nextSeq === 'number' ? doc.nextSeq : doc.sessions.length + 1 }
+      : { sessions: [], nextSeq: 1 }
+  },
+
+  async writeSessionsIndex(id: string, index: SessionsIndex): Promise<void> {
+    await repo.write(paths.module(gm(), id, 'sessions'), index)
+  },
+
+  async readSession(id: string, sessionId: string): Promise<SessionDoc | null> {
+    return (await repo.read(paths.sessionDoc(gm(), id, sessionId))) as SessionDoc | null
+  },
+
+  async writeSession(id: string, doc: SessionDoc): Promise<void> {
+    await repo.write(paths.sessionDoc(gm(), id, doc.id), doc)
+  },
+
+  async removeSession(id: string, sessionId: string): Promise<void> {
+    await repo.remove(paths.sessionDoc(gm(), id, sessionId))
   },
 }

@@ -2,16 +2,15 @@
 // drawer for the custom-field engine, tags, portrait, and connections. Creating a
 // character opens its drawer immediately so every edit autosaves through the store.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Drawer } from '../components/Drawer'
 import { FieldsEditor } from '../components/FieldsEditor'
 import { TagEditor } from '../components/TagEditor'
-import { ConnectionsEditor, type EntityRef } from '../components/ConnectionsEditor'
+import { ConnectionsEditor } from '../components/ConnectionsEditor'
 import { makeCharacter } from '../model/defaults'
 import { useCampaign } from '../store/campaign'
-import { useNpcs } from '../store/npcs'
-import { useRelations } from '../store/relations'
+import { useEntityPool } from '../store/entities'
 
 export function CharactersPage() {
   const { campaignId } = useParams()
@@ -20,28 +19,13 @@ export function CharactersPage() {
   const updateCharacter = useCampaign((s) => s.updateCharacter)
   const deleteCharacter = useCampaign((s) => s.deleteCharacter)
 
-  const npcs = useNpcs((s) => s.npcs)
-  const loadNpcs = useNpcs((s) => s.load)
-  const loadRelations = useRelations((s) => s.load)
-
   const [openId, setOpenId] = useState<string | null>(null)
 
-  // NPCs + relations power the connections editor inside the drawer.
-  useEffect(() => {
-    if (campaignId) {
-      void loadNpcs(campaignId)
-      void loadRelations(campaignId)
-    }
-  }, [campaignId, loadNpcs, loadRelations])
+  // The cross-module pool (PCs/NPCs/Locations/Misc) + relations power the
+  // connections editor inside the drawer.
+  const entities = useEntityPool(campaignId)
 
   const editing = characters.find((c) => c.id === openId) ?? null
-  const entities = useMemo<EntityRef[]>(
-    () => [
-      ...characters.map((c) => ({ id: c.id, name: c.name })),
-      ...npcs.map((n) => ({ id: n.id, name: n.name })),
-    ],
-    [characters, npcs],
-  )
 
   async function create() {
     const c = makeCharacter()

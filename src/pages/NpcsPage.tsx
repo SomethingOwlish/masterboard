@@ -1,16 +1,15 @@
 // NPC board (M4 / B3): like Characters, plus a Dead toggle (dead → greyed + skull)
 // and filtering by tag and alive/dead state.
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Drawer } from '../components/Drawer'
 import { FieldsEditor } from '../components/FieldsEditor'
 import { TagEditor } from '../components/TagEditor'
-import { ConnectionsEditor, type EntityRef } from '../components/ConnectionsEditor'
+import { ConnectionsEditor } from '../components/ConnectionsEditor'
 import { makeNpc } from '../model/defaults'
-import { useCampaign } from '../store/campaign'
 import { useNpcs } from '../store/npcs'
-import { useRelations } from '../store/relations'
+import { useEntityPool } from '../store/entities'
 
 type AliveFilter = 'all' | 'alive' | 'dead'
 
@@ -18,33 +17,18 @@ export function NpcsPage() {
   const { campaignId } = useParams()
   const npcs = useNpcs((s) => s.npcs)
   const loading = useNpcs((s) => s.loading)
-  const loadNpcs = useNpcs((s) => s.load)
   const add = useNpcs((s) => s.add)
   const update = useNpcs((s) => s.update)
   const remove = useNpcs((s) => s.remove)
-
-  const characters = useCampaign((s) => s.characters)
-  const loadRelations = useRelations((s) => s.load)
 
   const [openId, setOpenId] = useState<string | null>(null)
   const [tagFilter, setTagFilter] = useState('')
   const [alive, setAlive] = useState<AliveFilter>('all')
 
-  useEffect(() => {
-    if (campaignId) {
-      void loadNpcs(campaignId)
-      void loadRelations(campaignId)
-    }
-  }, [campaignId, loadNpcs, loadRelations])
+  // The pool loads NPCs (+ PCs/Locations/Misc + relations) for this campaign.
+  const entities = useEntityPool(campaignId)
 
   const editing = npcs.find((n) => n.id === openId) ?? null
-  const entities = useMemo<EntityRef[]>(
-    () => [
-      ...characters.map((c) => ({ id: c.id, name: c.name })),
-      ...npcs.map((n) => ({ id: n.id, name: n.name })),
-    ],
-    [characters, npcs],
-  )
   const allTags = useMemo(() => [...new Set(npcs.flatMap((n) => n.tags))].sort(), [npcs])
   const shown = npcs.filter(
     (n) =>
