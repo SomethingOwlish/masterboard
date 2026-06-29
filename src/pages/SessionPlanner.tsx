@@ -5,7 +5,7 @@
 // scene's members. The whole canvas persists as a snapshot in SessionDoc.canvas, and
 // scenes are derived from the frames on every save so Print (B9) can read them.
 
-import { useCallback, useEffect, useRef } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import {
   Tldraw,
@@ -14,6 +14,7 @@ import {
   loadSnapshot,
   toRichText,
   type Editor,
+  type TLComponents,
   type TLDefaultColorStyle,
   type TLShape,
 } from 'tldraw'
@@ -37,6 +38,17 @@ interface PaletteItem {
   id: string
   name: string
   kind: string
+}
+
+// Persist only the document portion of a tldraw snapshot — never the session
+// (camera, selection, instance state). Session state is tied to one editor
+// instance and travels badly across reopen/duplicate, and can crash the renderer.
+// Accepts old full `{document, session}` snapshots too, returning their document.
+function documentOf(canvas: unknown): unknown {
+  if (canvas && typeof canvas === 'object' && 'document' in (canvas as Record<string, unknown>)) {
+    return (canvas as { document: unknown }).document
+  }
+  return canvas
 }
 
 /** Read the frames on the canvas as Scenes, with their contained tokens as members. */
@@ -88,7 +100,7 @@ export function SessionPlanner() {
     const editor = editorRef.current
     if (!editor) return
     try {
-      void saveCurrent({ canvas: getSnapshot(editor.store), scenes: deriveScenes(editor) })
+      void saveCurrent({ canvas: getSnapshot(editor.store).document, scenes: deriveScenes(editor) })
     } catch (e) {
       console.warn('[masterboard] session save skipped:', e)
     }
@@ -103,10 +115,10 @@ export function SessionPlanner() {
   const handleMount = useCallback(
     (editor: Editor) => {
       editorRef.current = editor
-      const snapshot = useSessions.getState().current?.canvas
-      if (snapshot) {
+      const doc = documentOf(useSessions.getState().current?.canvas)
+      if (doc) {
         try {
-          loadSnapshot(editor.store, snapshot as Parameters<typeof loadSnapshot>[1])
+          loadSnapshot(editor.store, doc as Parameters<typeof loadSnapshot>[1])
         } catch (e) {
           console.warn('[masterboard] failed to load session canvas:', e)
         }
@@ -128,6 +140,30 @@ export function SessionPlanner() {
       editorRef.current = null
     },
     [persist],
+  )
+
+  // Recovery: if tldraw can't render a saved board, drop the snapshot and remount
+  // a blank canvas (bumping recoverKey) instead of leaving a dead black void.
+  const [recoverKey, setRecoverKey] = useState(0)
+  const resetBoard = useCallback(() => {
+    void saveCurrent({ canvas: null, scenes: [] })
+    setRecoverKey((k) => k + 1)
+  }, [saveCurrent])
+
+  const components = useMemo<TLComponents>(
+    () => ({
+      ErrorFallback: () => (
+        <div className="planner-canvas-fallback">
+          <p><strong>This board couldn't be opened.</strong></p>
+          <p className="muted">
+            Its saved drawing looks corrupted. Resetting clears the drawing only — your linked
+            characters, NPCs, locations and events are unaffected.
+          </p>
+          <button className="primary" onClick={resetBoard}>Reset board to blank</button>
+        </div>
+      ),
+    }),
+    [resetBoard],
   )
 
   function dropToken(item: PaletteItem) {
@@ -244,7 +280,12 @@ export function SessionPlanner() {
         </aside>
 
         <div className="planner-canvas">
-          <Tldraw key={current.id} colorScheme={colorScheme} onMount={handleMount} />
+          <Tldraw
+            key={`${current.id}:${recoverKey}`}
+            colorScheme={colorScheme}
+            components={components}
+            onMount={handleMount}
+          />
         </div>
       </div>
     </div>
