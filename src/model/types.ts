@@ -132,6 +132,18 @@ export interface Relation {
   directed: boolean
 }
 
+/** Saved board position for an entity node on the Relation board. */
+export interface NodePosition {
+  x: number
+  y: number
+}
+
+/** Persisted shape of relations.json: the social graph + saved node layout. */
+export interface RelationsDoc {
+  relations: Relation[]
+  positions: Record<ID, NodePosition>
+}
+
 // In-world chronology (multi-column timeline).
 export interface ChronoColumn {
   id: ID
@@ -147,7 +159,14 @@ export interface ChronoEvent {
   date: string
   title: string
   body?: string
+  order: number // position within its column; lexical-by-date on insert, drag overrides
   links: Link[]
+}
+
+/** Persisted shape of timeline.json. */
+export interface TimelineDoc {
+  columns: ChronoColumn[]
+  events: ChronoEvent[]
 }
 
 /** Reverse-chronological recap of a past session (campaign chronology as prose). */

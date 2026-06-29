@@ -31,6 +31,10 @@ interface CampaignState {
   addRecap: (input: { title: string; realDate: string; body: string }) => Promise<void>
   editRecap: (id: string, patch: Partial<SessionRecap>) => Promise<void>
   deleteRecap: (id: string) => Promise<void>
+
+  addCharacter: (c: Character) => Promise<void>
+  updateCharacter: (id: string, patch: Partial<Character>) => Promise<void>
+  deleteCharacter: (id: string) => Promise<void>
 }
 
 function nextSeq(recaps: SessionRecap[]): number {
@@ -135,6 +139,33 @@ export const useCampaign = create<CampaignState>((set, get) => ({
     await data.writeRecaps(campaign.id, next)
     await persistLastPlayed(campaign, next)
     if (target) logActivity(campaign.id, 'Deleted recap', `#${target.seq} · ${target.title}`)
+  },
+
+  addCharacter: async (c) => {
+    const { campaign, characters } = get()
+    if (!campaign) return
+    const next = [...characters, c]
+    set({ characters: next })
+    await data.writeModuleArray(campaign.id, 'characters', next)
+    logActivity(campaign.id, 'Added character', c.name || '(unnamed)')
+  },
+
+  updateCharacter: async (id, patch) => {
+    const { campaign, characters } = get()
+    if (!campaign) return
+    const next = characters.map((c) => (c.id === id ? { ...c, ...patch } : c))
+    set({ characters: next })
+    await data.writeModuleArray(campaign.id, 'characters', next)
+  },
+
+  deleteCharacter: async (id) => {
+    const { campaign, characters } = get()
+    if (!campaign) return
+    const target = characters.find((c) => c.id === id)
+    const next = characters.filter((c) => c.id !== id)
+    set({ characters: next })
+    await data.writeModuleArray(campaign.id, 'characters', next)
+    if (target) logActivity(campaign.id, 'Deleted character', target.name || '(unnamed)')
   },
 }))
 

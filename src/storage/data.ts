@@ -3,7 +3,15 @@
 // (purely-local use before GitHub is configured) we file everything under
 // `local`, so configuring sync later is a matter of pointing at a repo.
 
-import type { ActivityEntry, Campaign, CampaignSummary, ModuleId, SessionRecap } from '../model/types'
+import type {
+  ActivityEntry,
+  Campaign,
+  CampaignSummary,
+  ModuleId,
+  RelationsDoc,
+  SessionRecap,
+  TimelineDoc,
+} from '../model/types'
 import { useConfig } from '../store/config'
 import { paths } from './paths'
 import { repo } from './repository'
@@ -39,7 +47,9 @@ export const data = {
 
   async deleteCampaignFiles(id: string): Promise<void> {
     const g = gm()
-    const mods: ModuleId[] = ['campaign', 'log', 'characters', 'npcs', 'locations', 'misc']
+    const mods: ModuleId[] = [
+      'campaign', 'log', 'characters', 'npcs', 'locations', 'misc', 'relations', 'timeline', 'activity',
+    ]
     await Promise.all(mods.map((m) => repo.remove(paths.module(g, id, m))))
   },
 
@@ -65,5 +75,32 @@ export const data = {
   async readModuleArray<T>(id: string, mod: ModuleId): Promise<T[]> {
     const list = (await repo.read(paths.module(gm(), id, mod))) as T[] | null
     return Array.isArray(list) ? list : []
+  },
+
+  /** Generic JSON-array module writer (characters, npcs, …). */
+  async writeModuleArray<T>(id: string, mod: ModuleId, items: T[]): Promise<void> {
+    await repo.write(paths.module(gm(), id, mod), items)
+  },
+
+  async readRelations(id: string): Promise<RelationsDoc> {
+    const doc = (await repo.read(paths.module(gm(), id, 'relations'))) as RelationsDoc | null
+    return doc && Array.isArray(doc.relations)
+      ? { relations: doc.relations, positions: doc.positions ?? {} }
+      : { relations: [], positions: {} }
+  },
+
+  async writeRelations(id: string, doc: RelationsDoc): Promise<void> {
+    await repo.write(paths.module(gm(), id, 'relations'), doc)
+  },
+
+  async readTimeline(id: string): Promise<TimelineDoc> {
+    const doc = (await repo.read(paths.module(gm(), id, 'timeline'))) as TimelineDoc | null
+    return doc && Array.isArray(doc.columns)
+      ? { columns: doc.columns, events: Array.isArray(doc.events) ? doc.events : [] }
+      : { columns: [], events: [] }
+  },
+
+  async writeTimeline(id: string, doc: TimelineDoc): Promise<void> {
+    await repo.write(paths.module(gm(), id, 'timeline'), doc)
   },
 }
