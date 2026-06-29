@@ -48,12 +48,24 @@ export class GitHubStorageAdapter implements StorageAdapter {
     }
   }
 
+  // GitHub error responses carry a human-readable `message` (e.g. "Resource not
+  // accessible by personal access token", "Branch main not found"). Surface it so
+  // sync failures are diagnosable instead of a bare status code.
+  private async detail(res: Response): Promise<string> {
+    try {
+      const body = (await res.json()) as { message?: string }
+      return body.message ? `${res.status} ${body.message}` : `${res.status} ${res.statusText}`
+    } catch {
+      return `${res.status} ${res.statusText}`
+    }
+  }
+
   async read(path: string): Promise<Json | null> {
     const res = await fetch(`${this.url(path)}?ref=${encodeURIComponent(this.cfg.branch)}`, {
       headers: this.headers(),
     })
     if (res.status === 404) return null
-    if (!res.ok) throw new Error(`GitHub read ${path}: ${res.status} ${res.statusText}`)
+    if (!res.ok) throw new Error(`Read ${path}: ${await this.detail(res)}`)
     const body = (await res.json()) as { content?: string; sha: string; encoding?: string }
     if (body.sha) this.shaCache.set(path, body.sha)
     if (body.content == null) return null
@@ -67,7 +79,7 @@ export class GitHubStorageAdapter implements StorageAdapter {
       headers: this.headers(),
     })
     if (res.status === 404) return undefined
-    if (!res.ok) throw new Error(`GitHub sha ${path}: ${res.status} ${res.statusText}`)
+    if (!res.ok) throw new Error(`Sha ${path}: ${await this.detail(res)}`)
     const body = (await res.json()) as { sha: string }
     this.shaCache.set(path, body.sha)
     return body.sha
@@ -86,7 +98,7 @@ export class GitHubStorageAdapter implements StorageAdapter {
         ...(sha ? { sha } : {}),
       }),
     })
-    if (!res.ok) throw new Error(`GitHub write ${path}: ${res.status} ${res.statusText}`)
+    if (!res.ok) throw new Error(`Write ${path}: ${await this.detail(res)}`)
     const body = (await res.json()) as { content?: { sha: string } }
     if (body.content?.sha) this.shaCache.set(path, body.content.sha)
   }
@@ -100,7 +112,7 @@ export class GitHubStorageAdapter implements StorageAdapter {
       body: JSON.stringify({ message: `masterboard: delete ${path}`, sha, branch: this.cfg.branch }),
     })
     if (!res.ok && res.status !== 404) {
-      throw new Error(`GitHub delete ${path}: ${res.status} ${res.statusText}`)
+      throw new Error(`Delete ${path}: ${await this.detail(res)}`)
     }
     this.shaCache.delete(path)
   }
@@ -110,21 +122,41 @@ export class GitHubStorageAdapter implements StorageAdapter {
       headers: this.headers(),
     })
     if (res.status === 404) return []
-    if (!res.ok) throw new Error(`GitHub list ${prefix}: ${res.status} ${res.statusText}`)
+    if (!res.ok) throw new Error(`List ${prefix}: ${await this.detail(res)}`)
     const body = (await res.json()) as Array<{ name: string }> | { name: string }
     return Array.isArray(body) ? body.map((e) => e.name) : []
   }
 
-  /** Cheap connectivity/credential probe used by Settings. */
+  /** Connectivity/credential probe used by Settings. Also checks that the token
+   *  can WRITE (the repo `permissions.push` flag) and that the target branch
+   *  exists — the two things that otherwise only fail later, mid-sync. */
   async verify(): Promise<{ ok: boolean; message: string }> {
     try {
       const res = await fetch(`https://api.github.com/repos/${this.cfg.owner}/${this.cfg.repo}`, {
         headers: this.headers(),
       })
-      if (res.ok) return { ok: true, message: `Connected to ${this.cfg.owner}/${this.cfg.repo}` }
-      if (res.status === 404) return { ok: false, message: 'Repo not found or token lacks access' }
-      if (res.status === 401) return { ok: false, message: 'Bad token (401 Unauthorized)' }
-      return { ok: false, message: `GitHub ${res.status} ${res.statusText}` }
+      if (res.status === 404) return { ok: false, message: 'Repo not found, or the token has no access to it.' }
+      if (res.status === 401) return { ok: false, message: 'Bad token (401 Unauthorized).' }
+      if (!res.ok) return { ok: false, message: await this.detail(res) }
+
+      const repo = (await res.json()) as { permissions?: { push?: boolean }; default_branch?: string }
+      if (repo.permissions && repo.permissions.push === false) {
+        return { ok: false, message: 'Token can read but not write. Set its Contents permission to "Read and write".' }
+      }
+
+      // Confirm the configured branch exists (empty repos have none yet).
+      const branchRes = await fetch(
+        `https://api.github.com/repos/${this.cfg.owner}/${this.cfg.repo}/branches/${encodeURIComponent(this.cfg.branch)}`,
+        { headers: this.headers() },
+      )
+      if (branchRes.status === 404) {
+        const hint = repo.default_branch && repo.default_branch !== this.cfg.branch
+          ? ` The repo's default branch is "${repo.default_branch}".`
+          : ' If the repo is empty, add a commit (e.g. a README) so the branch exists.'
+        return { ok: false, message: `Branch "${this.cfg.branch}" not found.${hint}` }
+      }
+
+      return { ok: true, message: `Connected to ${this.cfg.owner}/${this.cfg.repo} — read/write OK.` }
     } catch (err) {
       return { ok: false, message: err instanceof Error ? err.message : 'Network error' }
     }

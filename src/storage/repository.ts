@@ -19,19 +19,30 @@ class Repository {
   private latest = new Map<string, Json>()
   private listeners = new Set<(s: SyncState) => void>()
   private state: SyncState = 'idle'
+  private lastError: string | null = null
 
   onSync(fn: (s: SyncState) => void): () => void {
     this.listeners.add(fn)
     return () => this.listeners.delete(fn)
   }
 
-  private setState(s: SyncState) {
+  private setState(s: SyncState, error?: unknown) {
     this.state = s
+    if (s === 'error') {
+      this.lastError = error instanceof Error ? error.message : error ? String(error) : 'Unknown error'
+      console.warn('[masterboard] sync error:', this.lastError)
+    } else if (s === 'idle') {
+      this.lastError = null
+    }
     for (const fn of this.listeners) fn(s)
   }
 
   getState(): SyncState {
     return this.state
+  }
+
+  getError(): string | null {
+    return this.lastError
   }
 
   private online(): boolean {
@@ -47,8 +58,8 @@ class Repository {
           await this.idb.write(path, data) // mirror into the working copy
           return data
         }
-      } catch {
-        this.setState('error')
+      } catch (e) {
+        this.setState('error', e)
         // fall through to the local working copy
       }
     }
@@ -67,8 +78,8 @@ class Repository {
     if (!remote) return
     try {
       await remote.remove(path)
-    } catch {
-      this.setState('error')
+    } catch (e) {
+      this.setState('error', e)
     }
   }
 
@@ -78,8 +89,8 @@ class Repository {
       try {
         const names = await remote.list(prefix)
         if (names.length) return names
-      } catch {
-        this.setState('error')
+      } catch (e) {
+        this.setState('error', e)
       }
     }
     return this.idb.list(prefix)
@@ -113,8 +124,8 @@ class Repository {
     try {
       await remote.write(path, data)
       this.setState('idle')
-    } catch {
-      this.setState('error')
+    } catch (e) {
+      this.setState('error', e)
     }
   }
 

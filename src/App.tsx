@@ -2,6 +2,7 @@ import { createBrowserRouter, Navigate } from 'react-router-dom'
 import { Hub } from './pages/Hub'
 import { CampaignLayout } from './pages/CampaignLayout'
 import { CampaignOverview } from './pages/CampaignOverview'
+import { ActivityLog } from './pages/ActivityLog'
 import { SettingsPage } from './pages/SettingsPage'
 import { ModulePlaceholder } from './pages/ModulePlaceholder'
 import { MODULES } from './modules'
@@ -15,6 +16,7 @@ const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 // renders the placeholder until its batch lands.
 const MODULE_ELEMENTS: Record<string, ReactElement> = {
   overview: <CampaignOverview />,
+  activity: <ActivityLog />,
   settings: <SettingsPage />,
 }
 

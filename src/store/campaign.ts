@@ -6,6 +6,11 @@ import { create } from 'zustand'
 import { newId } from '../model/ids'
 import type { Campaign, Character, NextSessionPlan, SessionRecap } from '../model/types'
 import { data } from '../storage/data'
+import { useActivity } from './activity'
+
+function logActivity(campaignId: string, action: string, detail?: string): void {
+  void useActivity.getState().log(campaignId, action, detail)
+}
 
 interface CampaignState {
   id: string | null
@@ -62,6 +67,9 @@ export const useCampaign = create<CampaignState>((set, get) => ({
     const next = { ...campaign, nextSession: { ...campaign.nextSession, ...patch } }
     set({ campaign: next })
     await data.writeCampaign(next)
+    // Only log discrete changes; agenda/notes typing is intentionally not logged.
+    if ('date' in patch) logActivity(campaign.id, 'Set next-session date', patch.date || '(cleared)')
+    if ('attendees' in patch) logActivity(campaign.id, 'Updated attendees', `${patch.attendees?.length ?? 0} player(s)`)
   },
 
   rename: async (name) => {
@@ -73,6 +81,7 @@ export const useCampaign = create<CampaignState>((set, get) => ({
     set({ campaign: next })
     await data.writeCampaign(next)
     await data.patchSummary(campaign.id, { name: trimmed })
+    logActivity(campaign.id, 'Renamed campaign', `→ "${trimmed}"`)
   },
 
   update: async (patch) => {
@@ -85,6 +94,13 @@ export const useCampaign = create<CampaignState>((set, get) => ({
     if ('name' in patch || 'cover' in patch) {
       await data.patchSummary(campaign.id, { name: next.name, cover: next.cover })
     }
+    // Log discrete meta changes; free-text fields (description) are excluded to
+    // avoid one entry per keystroke.
+    if ('cover' in patch) logActivity(campaign.id, 'Changed cover image')
+    if ('system' in patch) logActivity(campaign.id, 'Set game system', next.system || '(none)')
+    if ('playerCount' in patch) logActivity(campaign.id, 'Set player count', String(next.playerCount ?? 0))
+    if ('plannedSessions' in patch)
+      logActivity(campaign.id, 'Set planned sessions', String(next.plannedSessions ?? 0))
   },
 
   addRecap: async ({ title, realDate, body }) => {
@@ -96,24 +112,29 @@ export const useCampaign = create<CampaignState>((set, get) => ({
     await data.writeRecaps(campaign.id, next)
     // The most recent recap's date is the campaign's "last played".
     await persistLastPlayed(campaign, next)
+    logActivity(campaign.id, 'Added recap', `#${recap.seq} · ${title}`)
   },
 
   editRecap: async (id, patch) => {
     const { campaign, recaps } = get()
     if (!campaign) return
+    const target = recaps.find((r) => r.id === id)
     const next = recaps.map((r) => (r.id === id ? { ...r, ...patch } : r))
     set({ recaps: next })
     await data.writeRecaps(campaign.id, next)
     await persistLastPlayed(campaign, next)
+    if (target) logActivity(campaign.id, 'Edited recap', `#${target.seq} · ${patch.title ?? target.title}`)
   },
 
   deleteRecap: async (id) => {
     const { campaign, recaps } = get()
     if (!campaign) return
+    const target = recaps.find((r) => r.id === id)
     const next = recaps.filter((r) => r.id !== id)
     set({ recaps: next })
     await data.writeRecaps(campaign.id, next)
     await persistLastPlayed(campaign, next)
+    if (target) logActivity(campaign.id, 'Deleted recap', `#${target.seq} · ${target.title}`)
   },
 }))
 

@@ -201,6 +201,16 @@ button.ghost { border-color: transparent; background: transparent; padding: 0.2r
 
 .source-list { list-style: none; margin: 0.5rem 0 0; padding: 0; display: flex; flex-direction: column; gap: 0.4rem; }
 
+/* ---- Activity log -------------------------------------------------------- */
+.activity-list { list-style: none; margin: 1rem 0 0; padding: 0; display: flex; flex-direction: column; }
+.activity-item {
+  display: flex; gap: 0.75rem; align-items: baseline;
+  padding: 0.5rem 0; border-bottom: 1px solid var(--border);
+}
+.activity-time { flex: 0 0 auto; font-size: 0.8rem; font-variant-numeric: tabular-nums; min-width: 9.5rem; }
+.activity-body { min-width: 0; }
+.activity-action { font-weight: 600; }
+
 /* ---- Sync badge ---------------------------------------------------------- */
 .sync-badge { font-size: 0.78rem; padding: 0.15rem 0.5rem; border-radius: 999px; border: 1px solid var(--border); }
 .sync-badge.local, .sync-badge.offline { color: var(--muted); }
