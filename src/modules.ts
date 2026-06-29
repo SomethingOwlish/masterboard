@@ -20,6 +20,7 @@ export const MODULES: ModuleDef[] = [
   { id: 'misc', label: 'Misc', path: 'misc', icon: '🎲', blurb: 'Notes, items & custom objects' },
   { id: 'tasks', label: 'Tasks', path: 'tasks', icon: '✅', blurb: 'Task tracker' },
   { id: 'rules', label: 'Rules', path: 'rules', icon: '📖', blurb: 'Mechanics & house rules' },
+  { id: 'activity', label: 'Log', path: 'log', icon: '📓', blurb: 'Changelog of edits in this campaign' },
   { id: 'print', label: 'Print', path: 'print', icon: '🖨️', blurb: 'Compile a printable session sheet' },
   { id: 'settings', label: 'Settings', path: 'settings', icon: '⚙️', blurb: 'Storage, sources, theme' },
 ]

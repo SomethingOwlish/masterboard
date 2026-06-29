@@ -6,6 +6,7 @@ import { create } from 'zustand'
 import { makeCampaign, type NewCampaignInput } from '../model/defaults'
 import type { Campaign, CampaignSummary } from '../model/types'
 import { data } from '../storage/data'
+import { useActivity } from './activity'
 
 function nowIso(): string {
   return new Date().toISOString()
@@ -42,6 +43,7 @@ export const useCampaigns = create<CampaignsState>((set, get) => ({
     const next = [...get().campaigns, summarize(campaign)]
     await data.saveCampaignsIndex(next)
     set({ campaigns: next })
+    await useActivity.getState().log(campaign.id, 'Created campaign', campaign.name)
     return campaign
   },
 

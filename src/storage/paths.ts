@@ -16,6 +16,7 @@ const MODULE_FILE: Record<ModuleId, string> = {
   tasks: 'tasks.json',
   rules: 'rules.md',
   sessions: 'sessions/index.json',
+  activity: 'activity.json',
 }
 
 export const paths = {

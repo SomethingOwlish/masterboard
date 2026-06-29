@@ -36,6 +36,7 @@ export type ModuleId =
   | 'tasks'
   | 'rules'
   | 'sessions'
+  | 'activity'
 
 export interface SourceSite {
   id: ID
@@ -174,6 +175,14 @@ export interface SessionDoc {
   seq: number
   canvas: unknown // tldraw snapshot
   scenes: Scene[]
+}
+
+/** One entry in a campaign's activity log (changelog of edits in the app). */
+export interface ActivityEntry {
+  id: ID
+  at: string // ISO timestamp
+  action: string // short human-readable summary, e.g. "Added recap"
+  detail?: string // optional specifics, e.g. the recap title
 }
 
 export interface Task {

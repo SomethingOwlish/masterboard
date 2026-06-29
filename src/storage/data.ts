@@ -3,7 +3,7 @@
 // (purely-local use before GitHub is configured) we file everything under
 // `local`, so configuring sync later is a matter of pointing at a repo.
 
-import type { Campaign, CampaignSummary, ModuleId, SessionRecap } from '../model/types'
+import type { ActivityEntry, Campaign, CampaignSummary, ModuleId, SessionRecap } from '../model/types'
 import { useConfig } from '../store/config'
 import { paths } from './paths'
 import { repo } from './repository'
@@ -50,6 +50,15 @@ export const data = {
 
   async writeRecaps(id: string, recaps: SessionRecap[]): Promise<void> {
     await repo.write(paths.module(gm(), id, 'log'), recaps)
+  },
+
+  async readActivity(id: string): Promise<ActivityEntry[]> {
+    const list = (await repo.read(paths.module(gm(), id, 'activity'))) as ActivityEntry[] | null
+    return Array.isArray(list) ? list : []
+  },
+
+  async writeActivity(id: string, entries: ActivityEntry[]): Promise<void> {
+    await repo.write(paths.module(gm(), id, 'activity'), entries)
   },
 
   /** Generic JSON-array module reader used by simple list modules. */

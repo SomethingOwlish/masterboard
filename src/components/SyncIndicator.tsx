@@ -20,6 +20,19 @@ export function SyncIndicator() {
 
   if (!isConnected) return <span className="sync-badge local" title="Saved in this browser only">Local</span>
 
+  if (state === 'error') {
+    const detail = repo.getError() ?? 'Unknown error'
+    return (
+      <button
+        className="sync-badge error"
+        title={detail}
+        onClick={() => alert(`Sync error:\n\n${detail}\n\nYour work is still saved locally. Check Settings → Test connection.`)}
+      >
+        Sync error ⓘ
+      </button>
+    )
+  }
+
   return (
     <span className={`sync-badge ${state}`} title="GitHub sync status">
       {LABEL[state]}
