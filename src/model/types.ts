@@ -196,6 +196,20 @@ export interface SessionDoc {
   scenes: Scene[]
 }
 
+/** Lightweight entry in sessions/index.json (the full doc lives in <id>.json). */
+export interface SessionMeta {
+  id: ID
+  name: string
+  realDate: string
+  seq: number
+}
+
+/** Persisted shape of sessions/index.json: the session list + next sequence no. */
+export interface SessionsIndex {
+  sessions: SessionMeta[]
+  nextSeq: number
+}
+
 /** One entry in a campaign's activity log (changelog of edits in the app). */
 export interface ActivityEntry {
   id: ID

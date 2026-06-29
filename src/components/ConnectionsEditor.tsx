@@ -3,12 +3,10 @@
 // shared relations store, so edits appear instantly on the Relation board too.
 
 import { useState } from 'react'
+import { KIND_GLYPH, type EntityRef } from '../store/entities'
 import { useRelations } from '../store/relations'
 
-export interface EntityRef {
-  id: string
-  name: string
-}
+export type { EntityRef }
 
 export function ConnectionsEditor({ entityId, entities }: { entityId: string; entities: EntityRef[] }) {
   const relations = useRelations((s) => s.relations)
@@ -20,7 +18,11 @@ export function ConnectionsEditor({ entityId, entities }: { entityId: string; en
   const [label, setLabel] = useState('')
   const [directed, setDirected] = useState(false)
 
-  const nameOf = (id: string) => entities.find((e) => e.id === id)?.name ?? '(unknown)'
+  const entityOf = (id: string) => entities.find((e) => e.id === id)
+  const nameOf = (id: string) => {
+    const e = entityOf(id)
+    return e ? `${KIND_GLYPH[e.kind]} ${e.name}` : '(unknown)'
+  }
   const mine = relations.filter((r) => r.fromId === entityId || r.toId === entityId)
   const targets = entities.filter((e) => e.id !== entityId)
 
@@ -66,7 +68,7 @@ export function ConnectionsEditor({ entityId, entities }: { entityId: string; en
             <option value="">Link to…</option>
             {targets.map((e) => (
               <option key={e.id} value={e.id}>
-                {e.name || '(unnamed)'}
+                {KIND_GLYPH[e.kind]} {e.name || '(unnamed)'}
               </option>
             ))}
           </select>

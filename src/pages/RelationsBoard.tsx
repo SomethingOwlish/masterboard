@@ -1,6 +1,7 @@
-// Relation board (M5 / B4): React Flow graph of every PC + NPC. Drag between nodes
-// to connect; select an edge to label it, set direction, or delete. Node positions
-// persist to relations.json. Clicking a node opens that entity's module.
+// Relation board (M5 / B4, extended in B6): React Flow graph of every linkable
+// entity — PCs, NPCs, Locations, Misc. Drag between nodes to connect; select an
+// edge to label it, set direction, or delete. Node positions persist to
+// relations.json. Clicking a node opens that entity's module.
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
@@ -18,13 +19,12 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { NodePosition } from '../model/types'
-import { useCampaign } from '../store/campaign'
-import { useNpcs } from '../store/npcs'
+import { KIND_GLYPH, KIND_MODULE, useEntityPool, type EntityKind } from '../store/entities'
 import { useRelations } from '../store/relations'
 
 interface NodeData extends Record<string, unknown> {
   label: string
-  kind: 'pc' | 'npc'
+  kind: EntityKind
 }
 type FlowNode = Node<NodeData>
 
@@ -40,13 +40,10 @@ export function RelationsBoard() {
   const { campaignId } = useParams()
   const navigate = useNavigate()
 
-  const characters = useCampaign((s) => s.characters)
-  const npcs = useNpcs((s) => s.npcs)
-  const loadNpcs = useNpcs((s) => s.load)
+  const entities = useEntityPool(campaignId)
 
   const relations = useRelations((s) => s.relations)
   const positions = useRelations((s) => s.positions)
-  const loadRelations = useRelations((s) => s.load)
   const addRelation = useRelations((s) => s.addRelation)
   const updateRelation = useRelations((s) => s.updateRelation)
   const removeRelation = useRelations((s) => s.removeRelation)
@@ -57,41 +54,29 @@ export function RelationsBoard() {
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null)
   const rf = useRef<ReactFlowInstance<FlowNode, Edge> | null>(null)
 
-  useEffect(() => {
-    if (campaignId) {
-      void loadNpcs(campaignId)
-      void loadRelations(campaignId)
-    }
-  }, [campaignId, loadNpcs, loadRelations])
-
   const kindOf = useMemo(() => {
-    const m = new Map<string, 'pc' | 'npc'>()
-    characters.forEach((c) => m.set(c.id, 'pc'))
-    npcs.forEach((n) => m.set(n.id, 'npc'))
+    const m = new Map<string, EntityKind>()
+    entities.forEach((e) => m.set(e.id, e.kind))
     return m
-  }, [characters, npcs])
+  }, [entities])
 
-  // Drop relations/positions pointing at deleted entities once both lists load.
+  // Drop relations/positions pointing at deleted entities once the pool loads.
   useEffect(() => {
     if (kindOf.size > 0) void pruneMissing(new Set(kindOf.keys()))
   }, [kindOf, pruneMissing])
 
   // Rebuild nodes when the entity set changes, preserving live drag positions.
   useEffect(() => {
-    const entities = [
-      ...characters.map((c) => ({ id: c.id, name: c.name || '(unnamed)', kind: 'pc' as const })),
-      ...npcs.map((n) => ({ id: n.id, name: n.name || '(unnamed)', kind: 'npc' as const })),
-    ]
     setNodes((prev) => {
       const live = new Map(prev.map((n) => [n.id, n.position]))
       return entities.map((e, i) => ({
         id: e.id,
         position: live.get(e.id) ?? positions[e.id] ?? circleLayout(i, entities.length),
-        data: { label: e.name, kind: e.kind },
+        data: { label: `${KIND_GLYPH[e.kind]} ${e.name}`, kind: e.kind },
         className: `rf-node rf-${e.kind}`,
       }))
     })
-  }, [characters, npcs, positions])
+  }, [entities, positions])
 
   const edges: Edge[] = useMemo(
     () =>
@@ -138,8 +123,7 @@ export function RelationsBoard() {
   }
 
   const selected = relations.find((r) => r.id === selectedEdge) ?? null
-  const nameOf = (id: string) =>
-    characters.find((c) => c.id === id)?.name ?? npcs.find((n) => n.id === id)?.name ?? '(unknown)'
+  const nameOf = (id: string) => entities.find((e) => e.id === id)?.name ?? '(unknown)'
 
   if (nodes.length === 0) {
     return (
@@ -147,7 +131,9 @@ export function RelationsBoard() {
         <h1 style={{ marginTop: 0 }}>
           <span aria-hidden>🕸️</span> Relations
         </h1>
-        <p className="muted">Add some Characters or NPCs first — they'll appear here as nodes to connect.</p>
+        <p className="muted">
+          Add some Characters, NPCs, Locations, or Misc objects first — they'll appear here as nodes to connect.
+        </p>
       </div>
     )
   }
@@ -173,9 +159,10 @@ export function RelationsBoard() {
           onConnect={onConnect}
           onEdgeClick={(_, edge) => setSelectedEdge(edge.id)}
           onPaneClick={() => setSelectedEdge(null)}
-          onNodeClick={(_, node) =>
-            navigate(`/campaign/${campaignId}/${kindOf.get(node.id) === 'pc' ? 'characters' : 'npcs'}`)
-          }
+          onNodeClick={(_, node) => {
+            const kind = kindOf.get(node.id)
+            if (kind) navigate(`/campaign/${campaignId}/${KIND_MODULE[kind]}`)
+          }}
           onInit={(inst) => (rf.current = inst)}
           fitView
           fitViewOptions={{ maxZoom: 1, padding: 0.25 }}

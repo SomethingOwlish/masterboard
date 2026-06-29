@@ -7,7 +7,10 @@ import type {
   Character,
   ChronoColumn,
   Field,
+  Location,
+  Misc,
   NPC,
+  SessionDoc,
   ThemeId,
 } from './types'
 
@@ -49,6 +52,19 @@ export function makeCharacter(name = ''): Character {
 
 export function makeNpc(name = ''): NPC {
   return { id: newId('npc'), name: name.trim(), fields: [], tags: [], dead: false, links: [] }
+}
+
+export function makeLocation(name = ''): Location {
+  return { id: newId('loc'), name: name.trim(), tags: [], links: [] }
+}
+
+export function makeMisc(kind: string, name = ''): Misc {
+  return { id: newId('misc'), kind, name: name.trim(), fields: [], tags: [], links: [] }
+}
+
+/** A blank session document. Canvas starts empty; tldraw seeds it on first mount. */
+export function makeSession(name: string, realDate: string, seq: number): SessionDoc {
+  return { id: newId('sess'), name: name.trim(), realDate, seq, canvas: null, scenes: [] }
 }
 
 /** The default, undeletable "Campaign" chronology column (DESIGN.md M6). */

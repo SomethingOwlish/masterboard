@@ -276,6 +276,45 @@ button.ghost { border-color: transparent; background: transparent; padding: 0.2r
 .chrono-event-body { margin: 0.3rem 0 0; font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
 .chrono-add { margin-top: 0.25rem; border-style: dashed; }
 
+.rf-pc { border-left: 4px solid var(--accent); }
+.rf-npc { border-left: 4px solid var(--muted); }
+.rf-location { border-left: 4px solid #3a8f5a; }
+.rf-misc { border-left: 4px solid #c98a3a; }
+
+/* ---- Entity snippets (Locations / Misc cards) ---------------------------- */
+.entity-snippet { margin: 0; font-size: 0.85rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+.loc-thumb { width: 100%; height: 110px; object-fit: cover; border-radius: var(--radius); }
+.loc-thumb-empty { display: flex; align-items: center; justify-content: center; background: var(--surface-2); font-size: 2rem; }
+
+/* ---- Misc groups --------------------------------------------------------- */
+.misc-groups { display: flex; flex-direction: column; gap: 1.5rem; margin-top: 1rem; }
+.misc-group-title { margin: 0; font-size: 1.1rem; text-transform: capitalize; }
+.misc-group .grid { margin-top: 0.5rem; }
+
+/* ---- Sessions list ------------------------------------------------------- */
+.session-card { display: flex; flex-direction: column; gap: 0.5rem; padding: 0.75rem; }
+.session-open { text-align: left; display: flex; flex-direction: column; gap: 0.2rem; border: none; background: transparent; padding: 0; }
+.session-open:hover { color: var(--accent); }
+.session-seq { font-size: 0.78rem; color: var(--muted); font-variant-numeric: tabular-nums; }
+.session-actions { gap: 0.4rem; }
+
+/* ---- Session planner ----------------------------------------------------- */
+.planner-page { display: flex; flex-direction: column; height: calc(100dvh - 54px); }
+.planner-head { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); background: var(--surface); }
+.planner-name { font-weight: 600; min-width: 10rem; }
+.planner-body { flex: 1; display: flex; min-height: 0; }
+.planner-palette { flex: 0 0 210px; overflow-y: auto; padding: 0.6rem; border-right: 1px solid var(--border); background: var(--surface); }
+.palette-group { margin-bottom: 0.75rem; }
+.palette-title { margin: 0 0 0.3rem; font-size: 0.85rem; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+.palette-empty { margin: 0; font-size: 0.8rem; }
+.palette-item { display: block; width: 100%; text-align: left; margin-bottom: 0.25rem; padding: 0.3rem 0.5rem; font-size: 0.85rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.palette-item:hover { border-color: var(--accent); }
+.planner-canvas { position: relative; flex: 1; min-width: 0; }
+.planner-canvas .tl-container { position: absolute; inset: 0; }
+@media (max-width: 760px) {
+  .planner-palette { flex-basis: 150px; }
+}
+
 /* ---- Print --------------------------------------------------------------- */
 @media print {
   .rail, .topbar, .no-print { display: none !important; }
