@@ -35,9 +35,13 @@ const TOKEN_COLOR: Record<string, TLDefaultColorStyle> = {
 const GLYPH: Record<string, string> = { ...KIND_GLYPH, event: '📜' }
 
 // tldraw disables its editor on production deploys (https + non-localhost) when
-// no license key is present. Supply one (free watermarked key from tldraw.dev)
-// via this build-time env var so the board works on GitHub Pages. Unset locally.
-const TLDRAW_LICENSE_KEY = import.meta.env.VITE_TLDRAW_LICENSE_KEY || undefined
+// no license key is present. Supply one via VITE_TLDRAW_LICENSE_KEY, falling back
+// to the trial key below. NOTE: this trial EXPIRES 2026-10-07 — after that the
+// board will blank again unless a new key is set or tldraw is replaced with a
+// free-forever canvas. The key is domain-scoped and public, safe to ship.
+const TLDRAW_LICENSE_KEY =
+  import.meta.env.VITE_TLDRAW_LICENSE_KEY ||
+  'tldraw-2026-10-07/WyJJczFhSm1IOSIsWyIqIl0sMTYsIjIwMjYtMTAtMDciXQ.2znVWM2jiGkJA9jIkNDou3LUGZdRtzmMVt4DFiCyoQGAoPk5tIs5jWEIKVrExsDb/Cnw/k4RjIsgtpjaPnWtMg'
 
 interface PaletteItem {
   id: string
