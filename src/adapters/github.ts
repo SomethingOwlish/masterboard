@@ -33,8 +33,27 @@ function isMarkdown(path: string): boolean {
 
 export class GitHubStorageAdapter implements StorageAdapter {
   private shaCache = new Map<string, string>()
+  // One in-flight mutation per path. The Contents API is sha-versioned, so two
+  // overlapping PUT/DELETEs to the same file race on a stale sha and 409. The
+  // Session planner saves often, so chain writes per path to keep them ordered.
+  private chains = new Map<string, Promise<unknown>>()
 
   constructor(private cfg: GitHubConfig) {}
+
+  /** Run `op` after any pending mutation for `path` settles, serializing writes. */
+  private serialize<T>(path: string, op: () => Promise<T>): Promise<T> {
+    const prev = this.chains.get(path) ?? Promise.resolve()
+    const next = prev.then(op, op)
+    // Keep the chain alive but never let a rejection poison the next link.
+    this.chains.set(
+      path,
+      next.then(
+        () => undefined,
+        () => undefined,
+      ),
+    )
+    return next
+  }
 
   private url(path: string): string {
     return `https://api.github.com/repos/${this.cfg.owner}/${this.cfg.repo}/contents/${encodeURI(path)}`
@@ -85,10 +104,8 @@ export class GitHubStorageAdapter implements StorageAdapter {
     return body.sha
   }
 
-  async write(path: string, data: Json): Promise<void> {
-    const text = isMarkdown(path) ? String(data ?? '') : JSON.stringify(data, null, 2)
-    const sha = await this.resolveSha(path)
-    const res = await fetch(this.url(path), {
+  private putContents(path: string, text: string, sha: string | undefined): Promise<Response> {
+    return fetch(this.url(path), {
       method: 'PUT',
       headers: { ...this.headers(), 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -98,23 +115,38 @@ export class GitHubStorageAdapter implements StorageAdapter {
         ...(sha ? { sha } : {}),
       }),
     })
-    if (!res.ok) throw new Error(`Write ${path}: ${await this.detail(res)}`)
-    const body = (await res.json()) as { content?: { sha: string } }
-    if (body.content?.sha) this.shaCache.set(path, body.content.sha)
   }
 
-  async remove(path: string): Promise<void> {
-    const sha = await this.resolveSha(path)
-    if (!sha) return // already gone
-    const res = await fetch(this.url(path), {
-      method: 'DELETE',
-      headers: { ...this.headers(), 'Content-Type': 'application/json' },
-      body: JSON.stringify({ message: `masterboard: delete ${path}`, sha, branch: this.cfg.branch }),
+  write(path: string, data: Json): Promise<void> {
+    return this.serialize(path, async () => {
+      const text = isMarkdown(path) ? String(data ?? '') : JSON.stringify(data, null, 2)
+      let res = await this.putContents(path, text, await this.resolveSha(path))
+      // 409/422 = the cached sha is stale (a prior write landed first). Refetch
+      // the live sha and retry once — last-write-wins, never a stuck conflict.
+      if (res.status === 409 || res.status === 422) {
+        this.shaCache.delete(path)
+        res = await this.putContents(path, text, await this.resolveSha(path))
+      }
+      if (!res.ok) throw new Error(`Write ${path}: ${await this.detail(res)}`)
+      const body = (await res.json()) as { content?: { sha: string } }
+      if (body.content?.sha) this.shaCache.set(path, body.content.sha)
     })
-    if (!res.ok && res.status !== 404) {
-      throw new Error(`Delete ${path}: ${await this.detail(res)}`)
-    }
-    this.shaCache.delete(path)
+  }
+
+  remove(path: string): Promise<void> {
+    return this.serialize(path, async () => {
+      const sha = await this.resolveSha(path)
+      if (!sha) return // already gone
+      const res = await fetch(this.url(path), {
+        method: 'DELETE',
+        headers: { ...this.headers(), 'Content-Type': 'application/json' },
+        body: JSON.stringify({ message: `masterboard: delete ${path}`, sha, branch: this.cfg.branch }),
+      })
+      if (!res.ok && res.status !== 404) {
+        throw new Error(`Delete ${path}: ${await this.detail(res)}`)
+      }
+      this.shaCache.delete(path)
+    })
   }
 
   async list(prefix: string): Promise<string[]> {
