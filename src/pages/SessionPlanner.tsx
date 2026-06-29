@@ -72,6 +72,7 @@ export function SessionPlanner() {
 
   const editorRef = useRef<Editor | null>(null)
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const unlistenRef = useRef<(() => void) | null>(null)
 
   useEffect(() => {
     if (campaignId && sessionId) void open(campaignId, sessionId)
@@ -81,15 +82,23 @@ export function SessionPlanner() {
     if (campaignId) void loadChrono(campaignId)
   }, [campaignId, loadChrono])
 
+  // Snapshot + derive the current canvas, swallowing any error so a transient
+  // tldraw/store state can never bubble into React and tear the editor down.
+  const persist = useCallback(() => {
+    const editor = editorRef.current
+    if (!editor) return
+    try {
+      void saveCurrent({ canvas: getSnapshot(editor.store), scenes: deriveScenes(editor) })
+    } catch (e) {
+      console.warn('[masterboard] session save skipped:', e)
+    }
+  }, [saveCurrent])
+
   // Debounced persist of the canvas snapshot + derived scenes.
   const scheduleSave = useCallback(() => {
     if (saveTimer.current) clearTimeout(saveTimer.current)
-    saveTimer.current = setTimeout(() => {
-      const editor = editorRef.current
-      if (!editor) return
-      void saveCurrent({ canvas: getSnapshot(editor.store), scenes: deriveScenes(editor) })
-    }, 700)
-  }, [saveCurrent])
+    saveTimer.current = setTimeout(persist, 700)
+  }, [persist])
 
   const handleMount = useCallback(
     (editor: Editor) => {
@@ -103,19 +112,22 @@ export function SessionPlanner() {
         }
       }
       // Persist only document (shape) changes the user makes — not camera moves.
-      editor.store.listen(scheduleSave, { source: 'user', scope: 'document' })
+      // Keep the unsubscribe so we can detach on unmount (no leaked listeners).
+      unlistenRef.current = editor.store.listen(scheduleSave, { source: 'user', scope: 'document' })
     },
     [scheduleSave],
   )
 
-  // Flush any pending save when leaving the planner.
+  // Detach the store listener and flush one final save when leaving the planner.
   useEffect(
     () => () => {
       if (saveTimer.current) clearTimeout(saveTimer.current)
-      const editor = editorRef.current
-      if (editor) void saveCurrent({ canvas: getSnapshot(editor.store), scenes: deriveScenes(editor) })
+      unlistenRef.current?.()
+      unlistenRef.current = null
+      persist()
+      editorRef.current = null
     },
-    [saveCurrent],
+    [persist],
   )
 
   function dropToken(item: PaletteItem) {
