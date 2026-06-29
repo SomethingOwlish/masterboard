@@ -321,6 +321,38 @@ button.ghost { border-color: transparent; background: transparent; padding: 0.2r
   .planner-palette { flex-basis: 150px; }
 }
 
+/* ---- Images (B7) --------------------------------------------------------- */
+.image-field { display: flex; flex-direction: column; gap: 0.4rem; }
+.image-field-row { display: flex; align-items: center; gap: 0.6rem; }
+.image-field-actions { display: flex; gap: 0.4rem; flex-wrap: wrap; }
+.image-field-url { width: 100%; }
+.image-field-error { margin: 0; color: crimson; font-size: 0.85rem; }
+
+/* ---- Connected sites + imports (B8) -------------------------------------- */
+.source-row { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+.source-label { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.source-add { display: flex; flex-wrap: wrap; gap: 0.4rem; margin-top: 0.6rem; }
+.source-add input { flex: 1; min-width: 8rem; }
+.button-link {
+  display: inline-flex; align-items: center; padding: 0.35rem 0.6rem;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  background: var(--surface); color: var(--text); text-decoration: none; font-size: 0.9rem;
+}
+.button-link:hover { filter: brightness(1.05); }
+.import-dialog { max-width: 460px; max-height: 85vh; overflow-y: auto; }
+
+/* ---- Tasks (B8) ---------------------------------------------------------- */
+.tasks-board {
+  display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 1rem;
+}
+.tasks-col { display: flex; flex-direction: column; gap: 0.5rem; }
+.tasks-col-title { font-size: 0.95rem; margin: 0 0 0.25rem; }
+.task-card { text-align: left; align-items: stretch; gap: 0.3rem; }
+.task-ext { font-size: 0.8rem; color: var(--accent); }
+@media (max-width: 760px) {
+  .tasks-board { grid-template-columns: 1fr; }
+}
+
 /* ---- Print --------------------------------------------------------------- */
 @media print {
   .rail, .topbar, .no-print { display: none !important; }

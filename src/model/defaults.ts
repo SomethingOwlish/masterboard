@@ -7,10 +7,12 @@ import type {
   Character,
   ChronoColumn,
   Field,
+  Link,
   Location,
   Misc,
   NPC,
   SessionDoc,
+  Task,
   ThemeId,
 } from './types'
 
@@ -60,6 +62,10 @@ export function makeLocation(name = ''): Location {
 
 export function makeMisc(kind: string, name = ''): Misc {
   return { id: newId('misc'), kind, name: name.trim(), fields: [], tags: [], links: [] }
+}
+
+export function makeTask(title = '', links: Link[] = []): Task {
+  return { id: newId('task'), title: title.trim(), status: 'todo', links }
 }
 
 /** A blank session document. Canvas starts empty; tldraw seeds it on first mount. */

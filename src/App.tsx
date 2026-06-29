@@ -9,6 +9,7 @@ import { ChronologyPage } from './pages/ChronologyPage'
 import { SessionsPage } from './pages/SessionsPage'
 import { LocationsPage } from './pages/LocationsPage'
 import { MiscPage } from './pages/MiscPage'
+import { TasksPage } from './pages/TasksPage'
 import { ActivityLog } from './pages/ActivityLog'
 import { SettingsPage } from './pages/SettingsPage'
 import { ModulePlaceholder } from './pages/ModulePlaceholder'
@@ -36,6 +37,7 @@ const MODULE_ELEMENTS: Record<string, ReactElement> = {
   sessions: <SessionsPage />,
   locations: <LocationsPage />,
   misc: <MiscPage />,
+  tasks: <TasksPage />,
   activity: <ActivityLog />,
   settings: <SettingsPage />,
 }

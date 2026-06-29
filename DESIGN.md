@@ -265,8 +265,8 @@ interface TaskAdapter    { create(task): Promise<{ url: string; id?: string }> }
 - **B4 — Relation board + in-world chronology.**
 - **B5 — Sessions:** independent session docs + Session Planner (tldraw) + scenes.
 - **B6 — Locations + Misc.**
-- **B7 — Images (Imgur) across modules.**
-- **B8 — Imports (2 sites) + Task tracker (3rd site).**
+- **B7 — Images (Imgur) across modules.** *(done — `ImageAdapter`/`ImgurImageAdapter`, file-picker `ImageField` on portraits/cover/location image)*
+- **B8 — Imports (2 sites) + Task tracker (3rd site).** *(done — generic JSON→entity import wizard; Tasks board + `GitHubTaskAdapter` push to a 3rd repo)*
 - **B9 — Rules + Print/Export compiler.**
 - **B10 — Polish:** search/command palette, shortcuts, mobile passes.
 

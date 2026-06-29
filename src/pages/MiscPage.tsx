@@ -8,6 +8,7 @@ import { Drawer } from '../components/Drawer'
 import { FieldsEditor } from '../components/FieldsEditor'
 import { TagEditor } from '../components/TagEditor'
 import { ConnectionsEditor } from '../components/ConnectionsEditor'
+import { EntityTaskButton } from '../components/EntityTaskButton'
 import { makeMisc } from '../model/defaults'
 import { useCampaign } from '../store/campaign'
 import { useEntityPool } from '../store/entities'
@@ -149,6 +150,9 @@ export function MiscPage() {
 
           <h3 className="section-title" style={{ marginTop: '1rem' }}>Connections</h3>
           <ConnectionsEditor entityId={editing.id} entities={entities} />
+
+          <h3 className="section-title" style={{ marginTop: '1rem' }}>Tasks</h3>
+          <EntityTaskButton campaignId={campaignId} entityId={editing.id} entityName={editing.name} kind="misc" />
         </Drawer>
       )}
     </div>
