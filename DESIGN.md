@@ -269,5 +269,27 @@ interface TaskAdapter    { create(task): Promise<{ url: string; id?: string }> }
 - **B8 — Imports (2 sites) + Task tracker (3rd site).**
 - **B9 — Rules + Print/Export compiler.**
 - **B10 — Polish:** search/command palette, shortcuts, mobile passes.
+- **B11 — Custom Session board (drop tldraw):** replace the tldraw Session Planner with a
+  free-forever canvas. *Rationale:* tldraw v5 disables its editor on production deploys
+  (https + non-localhost) without a license key; the free key is a time-limited trial
+  (current one expires **2026-10-07**), so tldraw is not a free-forever fit for a static
+  GitHub Pages app. Build a **custom board on top of React Flow** (`@xyflow/react`, MIT,
+  already a dependency for the Relation board) — no production-license gate.
+  - **Tokens** → custom React Flow node types (entity glyph + name, click-to-open), carrying
+    `{ entityId, kind }` in `node.data` (the role tldraw's shape `meta` played).
+  - **Scenes** → React Flow **group nodes**; tokens become children (`parentNode` + `extent:
+    'parent'`), so membership is read from parent/child relationships — same derivation B5
+    used for tldraw frames.
+  - **Scene-to-scene flow** → React Flow **edges** (arrowheads via `markerEnd`).
+  - **Freeform extras** → for sketch/annotation that React Flow doesn't model, layer a thin
+    custom absolutely-positioned/SVG surface *behind* the React Flow pane (the "custom board"
+    part); the structured graph stays in React Flow.
+  - **Persistence/print unchanged:** keep the `SessionDoc.scenes[] { members }` model exactly
+    as-is — only `SessionDoc.canvas` changes from a tldraw snapshot to React Flow
+    `{ nodes, edges }`. B9/Print already reads `scenes[]`, so it's unaffected. Remove the
+    `tldraw` dependency and the `VITE_TLDRAW_LICENSE_KEY` plumbing.
+  - *Alternative considered:* Excalidraw (MIT) for a true freehand whiteboard feel — pick it
+    over React Flow only if free-hand sketching matters more than structured scene/token
+    modelling.
 
 Single-player throughout; no realtime (by decision).
