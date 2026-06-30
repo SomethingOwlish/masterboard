@@ -3,6 +3,7 @@
 
 import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
+import { useNewAction } from '../lib/shortcuts'
 import { sessionTitle, useSessions } from '../store/sessions'
 
 export function SessionsPage() {
@@ -25,6 +26,8 @@ export function SessionsPage() {
     const doc = await create()
     if (doc) navigate(`${base}/${doc.id}`)
   }
+
+  useNewAction(() => void newSession())
 
   async function dup(id: string) {
     const doc = await duplicate(id)

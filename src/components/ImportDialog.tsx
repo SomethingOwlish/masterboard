@@ -64,6 +64,15 @@ export function ImportDialog({
     }
   }, [url])
 
+  // Esc closes, consistent with the drawer and command palette (B10).
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') onClose()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [onClose])
+
   const arrayKeys = useMemo(() => arrayKeysOf(json), [json])
   const records = useMemo(() => recordsFrom(json, arrayKey || undefined), [json, arrayKey])
   const keys = useMemo(() => keysOf(records), [records])

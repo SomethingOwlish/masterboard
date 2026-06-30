@@ -19,6 +19,7 @@ import {
 } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import type { NodePosition } from '../model/types'
+import { TouchHint } from '../components/TouchHint'
 import { KIND_GLYPH, KIND_MODULE, useEntityPool, type EntityKind } from '../store/entities'
 import { useRelations } from '../store/relations'
 
@@ -152,6 +153,7 @@ export function RelationsBoard() {
       </p>
 
       <div className="board-canvas">
+        <TouchHint text="Pinch to zoom · drag to pan" />
         <ReactFlow
           nodes={nodes}
           edges={edges}

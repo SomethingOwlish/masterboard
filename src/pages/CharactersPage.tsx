@@ -4,6 +4,7 @@
 
 import { useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useFocusParam, useNewAction } from '../lib/shortcuts'
 import { Drawer } from '../components/Drawer'
 import { FieldsEditor } from '../components/FieldsEditor'
 import { TagEditor } from '../components/TagEditor'
@@ -34,6 +35,9 @@ export function CharactersPage() {
     await addCharacter(c)
     setOpenId(c.id)
   }
+
+  useFocusParam(setOpenId)
+  useNewAction(() => void create())
 
   return (
     <div className="content">
