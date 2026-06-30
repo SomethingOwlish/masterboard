@@ -18,8 +18,8 @@ import { ModulePlaceholder } from './pages/ModulePlaceholder'
 import { MODULES } from './modules'
 import { lazy, Suspense, type ReactElement } from 'react'
 
-// The Session planner pulls in tldraw (~1.5 MB). Code-split it so it only loads
-// when a session board is actually opened, keeping the initial bundle lean.
+// The Session planner pulls in React Flow + the drawing layer. Code-split it so it
+// only loads when a session board is actually opened, keeping the initial bundle lean.
 const SessionPlanner = lazy(() =>
   import('./pages/SessionPlanner').then((m) => ({ default: m.SessionPlanner })),
 )

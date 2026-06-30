@@ -15,7 +15,8 @@ import { useCampaign } from '../store/campaign'
 import { useEntityPool } from '../store/entities'
 import { useMisc } from '../store/misc'
 import { useConfirm } from '../components/useConfirm'
-import { Icon, Button, TextField, Select } from '../ds'
+import { useToast } from '../components/useToast'
+import { Icon, Button, TextField, Select, Modal } from '../ds'
 
 export function MiscPage() {
   const { campaignId } = useParams()
@@ -31,7 +32,10 @@ export function MiscPage() {
   const entities = useEntityPool(campaignId)
 
   const [openId, setOpenId] = useState<string | null>(null)
+  const [kindDialog, setKindDialog] = useState(false)
+  const [kindDraft, setKindDraft] = useState('')
   const confirm = useConfirm()
+  const toast = useToast()
 
   const editing = misc.find((m) => m.id === openId) ?? null
 
@@ -53,10 +57,22 @@ export function MiscPage() {
   // `n` creates in the first kind so the shortcut works without a kind picker.
   useNewAction(() => void create(kinds[0] ?? 'note'))
 
-  function addKind() {
-    const name = window.prompt('New kind name (e.g. faction, item, rumor):')?.trim()
-    if (!name || kinds.includes(name)) return
+  function submitKind() {
+    const name = kindDraft.trim()
+    if (!name) return
+    if (kinds.includes(name)) {
+      toast({ message: `"${name}" already exists`, tone: 'warning' })
+      return
+    }
     void updateSettings({ miscKinds: [...kinds, name] })
+    toast({ message: `Added kind "${name}"`, tone: 'success' })
+    setKindDraft('')
+    setKindDialog(false)
+  }
+
+  function openKindDialog() {
+    setKindDraft('')
+    setKindDialog(true)
   }
 
   const defaultKind = kinds[0] ?? 'note'
@@ -68,7 +84,7 @@ export function MiscPage() {
           <Icon name="dices" size={24} /> Misc
         </h1>
         <div className="row">
-          <Button icon="plus" onClick={addKind}>Kind</Button>
+          <Button icon="plus" onClick={openKindDialog}>Kind</Button>
           <Button variant="primary" icon="plus" onClick={() => void create(defaultKind)}>
             New object
           </Button>
@@ -174,6 +190,32 @@ export function MiscPage() {
           <EntityTaskButton campaignId={campaignId} entityId={editing.id} entityName={editing.name} kind="misc" />
         </Drawer>
       )}
+
+      <Modal
+        open={kindDialog}
+        onClose={() => setKindDialog(false)}
+        title="New kind"
+        subtitle="Group Misc objects by your own categories — factions, items, rumors…"
+        icon="plus"
+        size="sm"
+        footer={
+          <>
+            <Button variant="ghost" onClick={() => setKindDialog(false)}>Cancel</Button>
+            <Button variant="primary" disabled={!kindDraft.trim()} onClick={submitKind}>Add kind</Button>
+          </>
+        }
+      >
+        <TextField
+          label="Kind name"
+          autoFocus
+          value={kindDraft}
+          placeholder="e.g. faction, item, rumor"
+          onChange={(e) => setKindDraft(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter') submitKind()
+          }}
+        />
+      </Modal>
     </div>
   )
 }

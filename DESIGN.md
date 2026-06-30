@@ -273,5 +273,11 @@ interface TaskAdapter    { create(task): Promise<{ url: string; id?: string }> }
 - **B10 — Polish:** *(done — ⌘/Ctrl-K command palette over modules/sessions/entities with
   `?focus=` deep-links; `g`-prefixed module nav, `n` new-entity, Esc closes overlays; mobile
   passes: full-screen drawers/dialogs, topbar Search button, canvas touch hint)*
+- **B11 — Session planner whiteboard rebuild:** *(done — replaced tldraw with React Flow
+  (scenes = group nodes, tokens = children, flow = edges) + a custom SVG annotation layer
+  (pen, highlighter, shapes, text, free arrows, emoji stickers, eraser) synced to pan/zoom.
+  Own JSON canvas (`lib/board`), `deriveScenes` keeps Print's contract; planner chunk 1.7MB→19kB.)*
+- **B12 — Finish gaps:** *(in progress — audit M1–M12 for stubs / dead ends / rough edges
+  and close the prioritized ones.)*
 
 Single-player throughout; no realtime (by decision).

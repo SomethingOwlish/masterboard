@@ -14,12 +14,29 @@ import type {
   SessionsIndex,
   TimelineDoc,
 } from '../model/types'
+import type { Json } from '../adapters/types'
 import { useConfig } from '../store/config'
+import { useCampaign } from '../store/campaign'
 import { paths } from './paths'
 import { repo } from './repository'
 
 function gm(): string {
   return useConfig.getState().config.gmHandle || 'local'
+}
+
+// Content modules a GM may mark read-only (storage backend 'source-readonly') from
+// Campaign settings — e.g. data fed by an import they don't want overwritten. The
+// `campaign` file is never lockable (it holds the storage setting itself, so locking
+// it would be a one-way trip), and infrastructure files (activity, sessions, rules)
+// stay writable too.
+const LOCKABLE: ModuleId[] = ['characters', 'npcs', 'locations', 'misc', 'relations', 'timeline', 'log', 'tasks']
+
+/** Whether a module write should be skipped because the GM locked it read-only. */
+function isLocked(id: string, mod: ModuleId): boolean {
+  if (!LOCKABLE.includes(mod)) return false
+  const c = useCampaign.getState().campaign
+  if (!c || c.id !== id) return false
+  return c.settings.storage?.[mod] === 'source-readonly'
 }
 
 export const data = {
@@ -65,6 +82,7 @@ export const data = {
   },
 
   async writeRecaps(id: string, recaps: SessionRecap[]): Promise<void> {
+    if (isLocked(id, 'log')) return
     await repo.write(paths.module(gm(), id, 'log'), recaps)
   },
 
@@ -96,7 +114,8 @@ export const data = {
 
   /** Generic JSON-array module writer (characters, npcs, …). */
   async writeModuleArray<T>(id: string, mod: ModuleId, items: T[]): Promise<void> {
-    await repo.write(paths.module(gm(), id, mod), items)
+    if (isLocked(id, mod)) return
+    await repo.write(paths.module(gm(), id, mod), items as unknown as Json)
   },
 
   async readRelations(id: string): Promise<RelationsDoc> {
@@ -107,6 +126,7 @@ export const data = {
   },
 
   async writeRelations(id: string, doc: RelationsDoc): Promise<void> {
+    if (isLocked(id, 'relations')) return
     await repo.write(paths.module(gm(), id, 'relations'), doc)
   },
 
@@ -118,6 +138,7 @@ export const data = {
   },
 
   async writeTimeline(id: string, doc: TimelineDoc): Promise<void> {
+    if (isLocked(id, 'timeline')) return
     await repo.write(paths.module(gm(), id, 'timeline'), doc)
   },
 

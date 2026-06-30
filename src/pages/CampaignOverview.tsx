@@ -7,6 +7,7 @@ import { CharacterBlock } from '../components/CharacterBlock'
 import { NextSessionPlanner } from '../components/NextSessionPlanner'
 import { RecapLog } from '../components/RecapLog'
 import { SourcePanel } from '../components/SourcePanel'
+import { StoragePanel } from '../components/StoragePanel'
 import { useCampaign } from '../store/campaign'
 
 export function CampaignOverview() {
@@ -34,6 +35,7 @@ export function CampaignOverview() {
         </div>
         <div className="overview-col">
           <RecapLog recaps={recaps} />
+          <StoragePanel />
         </div>
       </div>
     </div>
