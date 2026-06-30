@@ -1,9 +1,11 @@
-// Right-side slide-over used for entity detail editing (Characters, NPCs, …).
-// Thin wrapper over the design system's Drawer, preserving this app's existing
-// prop shape (title / onClose / children / footer) so call sites are unchanged.
+// Entity detail editor surface (Characters, NPCs, Locations, Misc, Tasks,
+// Chronology). The app no longer uses a right-hand slide-over: clicking a card
+// opens a centered MODAL instead. This wrapper keeps the historical name and
+// prop shape (title / onClose / children / footer) so all call sites are
+// unchanged while every editor now opens as a dialog over a blurred scrim.
 
 import { type ReactNode } from 'react'
-import { Drawer as DsDrawer } from '../ds'
+import { Modal } from '../ds'
 
 export function Drawer({
   title,
@@ -17,9 +19,9 @@ export function Drawer({
   footer?: ReactNode
 }) {
   return (
-    <DsDrawer open onClose={onClose} title={typeof title === 'string' ? title : undefined} footer={footer}>
+    <Modal open onClose={onClose} size="lg" title={typeof title === 'string' ? title : undefined} footer={footer}>
       {typeof title !== 'string' && title}
-      {children}
-    </DsDrawer>
+      <div className="mb-stack">{children}</div>
+    </Modal>
   )
 }
