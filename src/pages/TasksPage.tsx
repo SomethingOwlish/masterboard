@@ -7,6 +7,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { Drawer } from '../components/Drawer'
 import { makeTask } from '../model/defaults'
+import { useNewAction } from '../lib/shortcuts'
 import type { Task } from '../model/types'
 import { useCampaign } from '../store/campaign'
 import { KIND_GLYPH, useEntityPool } from '../store/entities'
@@ -47,6 +48,8 @@ export function TasksPage() {
     await add(t)
     setOpenId(t.id)
   }
+
+  useNewAction(() => void create())
 
   async function push(id: string) {
     setPushMsg(null)

@@ -5,6 +5,7 @@
 
 import { useMemo, useState } from 'react'
 import { useParams } from 'react-router-dom'
+import { useFocusParam, useNewAction } from '../lib/shortcuts'
 import { Drawer } from '../components/Drawer'
 import { TagEditor } from '../components/TagEditor'
 import { ConnectionsEditor } from '../components/ConnectionsEditor'
@@ -36,6 +37,9 @@ export function LocationsPage() {
     await add(l)
     setOpenId(l.id)
   }
+
+  useFocusParam(setOpenId)
+  useNewAction(() => void create())
 
   return (
     <div className="content">

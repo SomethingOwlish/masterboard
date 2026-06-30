@@ -10,6 +10,8 @@ import { SessionsPage } from './pages/SessionsPage'
 import { LocationsPage } from './pages/LocationsPage'
 import { MiscPage } from './pages/MiscPage'
 import { TasksPage } from './pages/TasksPage'
+import { RulesPage } from './pages/RulesPage'
+import { PrintPage } from './pages/PrintPage'
 import { ActivityLog } from './pages/ActivityLog'
 import { SettingsPage } from './pages/SettingsPage'
 import { ModulePlaceholder } from './pages/ModulePlaceholder'
@@ -38,6 +40,8 @@ const MODULE_ELEMENTS: Record<string, ReactElement> = {
   locations: <LocationsPage />,
   misc: <MiscPage />,
   tasks: <TasksPage />,
+  rules: <RulesPage />,
+  print: <PrintPage />,
   activity: <ActivityLog />,
   settings: <SettingsPage />,
 }

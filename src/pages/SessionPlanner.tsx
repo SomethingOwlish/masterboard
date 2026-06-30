@@ -20,6 +20,7 @@ import {
 } from 'tldraw'
 import 'tldraw/tldraw.css'
 import type { Scene } from '../model/types'
+import { TouchHint } from '../components/TouchHint'
 import { useChronology } from '../store/chronology'
 import { KIND_GLYPH, useEntityPool } from '../store/entities'
 import { sessionTitle, useSessions } from '../store/sessions'
@@ -280,6 +281,7 @@ export function SessionPlanner() {
         </aside>
 
         <div className="planner-canvas">
+          <TouchHint text="Pinch to zoom · drag to pan" />
           <Tldraw
             key={`${current.id}:${recoverKey}`}
             colorScheme={colorScheme}

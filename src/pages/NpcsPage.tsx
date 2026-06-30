@@ -10,6 +10,7 @@ import { ConnectionsEditor } from '../components/ConnectionsEditor'
 import { ImageField } from '../components/ImageField'
 import { EntityTaskButton } from '../components/EntityTaskButton'
 import { makeNpc } from '../model/defaults'
+import { useFocusParam, useNewAction } from '../lib/shortcuts'
 import { useNpcs } from '../store/npcs'
 import { useEntityPool } from '../store/entities'
 
@@ -43,6 +44,9 @@ export function NpcsPage() {
     await add(n)
     setOpenId(n.id)
   }
+
+  useFocusParam(setOpenId)
+  useNewAction(() => void create())
 
   return (
     <div className="content">

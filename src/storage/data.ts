@@ -68,6 +68,17 @@ export const data = {
     await repo.write(paths.module(gm(), id, 'log'), recaps)
   },
 
+  // Rules live in rules.md as raw markdown (the GitHub adapter stores `.md` paths
+  // as text, not JSON), so these read/write a plain string rather than an object.
+  async readRules(id: string): Promise<string> {
+    const md = await repo.read(paths.module(gm(), id, 'rules'))
+    return typeof md === 'string' ? md : ''
+  },
+
+  async writeRules(id: string, markdown: string): Promise<void> {
+    await repo.write(paths.module(gm(), id, 'rules'), markdown)
+  },
+
   async readActivity(id: string): Promise<ActivityEntry[]> {
     const list = (await repo.read(paths.module(gm(), id, 'activity'))) as ActivityEntry[] | null
     return Array.isArray(list) ? list : []

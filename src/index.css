@@ -353,9 +353,107 @@ button.ghost { border-color: transparent; background: transparent; padding: 0.2r
   .tasks-board { grid-template-columns: 1fr; }
 }
 
+/* ---- Segmented control + kbd (B9/B10) ------------------------------------ */
+.seg { display: inline-flex; border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+.seg button { border: none; border-radius: 0; background: var(--surface); padding: 0.35rem 0.7rem; font-size: 0.85rem; }
+.seg button.active { background: var(--accent); color: var(--accent-text); }
+kbd {
+  font: inherit; font-size: 0.78rem; padding: 0.05rem 0.35rem;
+  border: 1px solid var(--border); border-bottom-width: 2px; border-radius: 5px; background: var(--surface-2);
+}
+.rail-hint { margin: auto 0.6rem 0.6rem; font-size: 0.72rem; line-height: 1.6; }
+.palette-trigger-text { margin-left: 0.25rem; }
+
+/* ---- Rules workspace (B9 / M11) ------------------------------------------ */
+.rules-page { display: flex; flex-direction: column; min-height: 0; }
+.rules-body { display: flex; gap: 1rem; margin-top: 0.75rem; flex: 1; min-height: 0; }
+.rules-toc { flex: 0 0 220px; display: flex; flex-direction: column; gap: 0.5rem; min-width: 0; }
+.rules-search { width: 100%; }
+.rules-toc-list { display: flex; flex-direction: column; gap: 0.1rem; overflow-y: auto; }
+.rules-toc-item { text-align: left; border: none; background: transparent; padding: 0.25rem 0.3rem; border-radius: var(--radius); font-size: 0.88rem; }
+.rules-toc-item:hover { background: var(--surface-2); }
+.rules-panes { flex: 1; display: flex; gap: 1rem; min-width: 0; min-height: 420px; height: calc(100vh - 200px); }
+.rules-panes.mode-write .rules-editor, .rules-panes.mode-preview .rules-preview { flex: 1; }
+.rules-panes.mode-split .rules-editor, .rules-panes.mode-split .rules-preview { flex: 1; width: 50%; }
+.rules-editor {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9rem; line-height: 1.6;
+  resize: none; height: 100%; min-height: 0;
+}
+.rules-preview {
+  height: 100%; overflow-y: auto; padding: 0.5rem 1rem;
+  border: 1px solid var(--border); border-radius: var(--radius); background: var(--surface);
+}
+.md { line-height: 1.65; }
+.md h1, .md h2, .md h3, .md h4 { line-height: 1.25; margin: 1.1em 0 0.4em; }
+.md h1 { font-size: 1.6rem; } .md h2 { font-size: 1.3rem; } .md h3 { font-size: 1.1rem; }
+.md p { margin: 0.5em 0; }
+.md ul, .md ol { margin: 0.5em 0; padding-left: 1.4rem; }
+.md code { background: var(--surface-2); padding: 0.05rem 0.3rem; border-radius: 5px; font-size: 0.9em; }
+.md pre { background: var(--surface-2); padding: 0.75rem; border-radius: var(--radius); overflow-x: auto; }
+.md pre code { background: none; padding: 0; }
+.md blockquote { margin: 0.5em 0; padding: 0.2em 0.9em; border-left: 3px solid var(--accent); color: var(--muted); }
+.md hr { border: none; border-top: 1px solid var(--border); margin: 1em 0; }
+.md a { word-break: break-word; }
+
+/* ---- Command palette (B10) ----------------------------------------------- */
+.palette-scrim { position: fixed; inset: 0; z-index: 60; background: rgba(0, 0, 0, 0.4); display: flex; justify-content: center; align-items: flex-start; padding: 10vh 1rem 1rem; }
+.palette { width: 100%; max-width: 540px; background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; display: flex; flex-direction: column; max-height: 70vh; }
+.palette-input { border: none; border-bottom: 1px solid var(--border); border-radius: 0; padding: 0.8rem 1rem; font-size: 1rem; }
+.palette-input:focus { outline: none; }
+.palette-results { overflow-y: auto; }
+.palette-result { display: flex; align-items: center; gap: 0.6rem; width: 100%; text-align: left; border: none; border-radius: 0; background: transparent; padding: 0.5rem 1rem; }
+.palette-result.active { background: var(--surface-2); }
+.palette-result-icon { flex: 0 0 auto; }
+.palette-result-label { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.palette-result-sub { flex: 0 0 auto; font-size: 0.78rem; text-transform: capitalize; }
+
+/* ---- Canvas touch hint (B10) --------------------------------------------- */
+.touch-hint {
+  position: absolute; bottom: 0.6rem; left: 50%; transform: translateX(-50%); z-index: 6;
+  background: var(--surface); border: 1px solid var(--border); border-radius: 999px;
+  padding: 0.3rem 0.8rem; font-size: 0.8rem; box-shadow: var(--shadow); display: flex; gap: 0.5rem; align-items: center;
+}
+.touch-hint button { border: none; background: none; padding: 0; font-size: 1rem; line-height: 1; }
+@media (hover: hover) and (pointer: fine) { .touch-hint { display: none; } }
+
+/* ---- Print sheet (B9 / M12) ---------------------------------------------- */
+.print-sheet { max-width: 860px; margin-top: 1rem; }
+.print-head { border-bottom: 2px solid var(--border); padding-bottom: 0.5rem; margin-bottom: 1rem; }
+.print-section { margin-bottom: 1.25rem; }
+.print-section-title { margin: 0 0 0.5rem; font-size: 1.15rem; border-bottom: 1px solid var(--border); padding-bottom: 0.2rem; }
+.print-party { list-style: none; margin: 0; padding: 0; display: grid; gap: 0.5rem; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); }
+.print-party li { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.6rem; break-inside: avoid; }
+.print-scene { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.75rem; margin-bottom: 0.75rem; break-inside: avoid; }
+.print-scene-title { margin: 0 0 0.5rem; font-size: 1.05rem; }
+.print-members { display: grid; gap: 0.5rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
+.print-member { border: 1px solid var(--border); border-radius: var(--radius); padding: 0.5rem 0.6rem; background: var(--surface-2); break-inside: avoid; }
+.print-member-head { font-size: 0.95rem; }
+.print-member-body { margin: 0.3rem 0 0; font-size: 0.88rem; }
+.print-fields { margin: 0.3rem 0 0; display: grid; grid-template-columns: auto 1fr; gap: 0.1rem 0.5rem; font-size: 0.85rem; }
+.print-fields dt { font-weight: 600; }
+.print-fields dd { margin: 0; }
+.print-tags { margin: 0.3rem 0 0; font-size: 0.8rem; }
+.print-empty, .print-note { font-size: 0.85rem; }
+
+/* ---- Mobile passes (B10) ------------------------------------------------- */
+@media (max-width: 760px) {
+  .drawer { max-width: 100%; }
+  .modal { max-width: 100%; }
+  .palette-scrim { padding: 4vh 0.5rem 0.5rem; }
+  .palette { max-height: 85vh; }
+  .palette-trigger-text { display: none; }
+  .rules-body { flex-direction: column; }
+  .rules-toc { flex-basis: auto; max-height: 30vh; }
+  .rules-panes { flex-direction: column; height: auto; }
+  .rules-panes.mode-split .rules-editor, .rules-panes.mode-split .rules-preview { width: 100%; min-height: 40vh; }
+  .print-members, .print-party { grid-template-columns: 1fr; }
+}
+
 /* ---- Print --------------------------------------------------------------- */
 @media print {
-  .rail, .topbar, .no-print { display: none !important; }
+  .rail, .topbar, .no-print, .scrim, .touch-hint { display: none !important; }
   .content { padding: 0; overflow: visible; }
   body { background: #fff; color: #000; }
+  .print-member { background: none; }
+  .print-scene, .print-member, .print-party li { border-color: #bbb; }
 }

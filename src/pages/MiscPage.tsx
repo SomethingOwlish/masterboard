@@ -10,6 +10,7 @@ import { TagEditor } from '../components/TagEditor'
 import { ConnectionsEditor } from '../components/ConnectionsEditor'
 import { EntityTaskButton } from '../components/EntityTaskButton'
 import { makeMisc } from '../model/defaults'
+import { useFocusParam, useNewAction } from '../lib/shortcuts'
 import { useCampaign } from '../store/campaign'
 import { useEntityPool } from '../store/entities'
 import { useMisc } from '../store/misc'
@@ -44,6 +45,10 @@ export function MiscPage() {
     await add(m)
     setOpenId(m.id)
   }
+
+  useFocusParam(setOpenId)
+  // `n` creates in the first kind so the shortcut works without a kind picker.
+  useNewAction(() => void create(kinds[0] ?? 'note'))
 
   function addKind() {
     const name = window.prompt('New kind name (e.g. faction, item, rumor):')?.trim()

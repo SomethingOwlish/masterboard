@@ -267,7 +267,11 @@ interface TaskAdapter    { create(task): Promise<{ url: string; id?: string }> }
 - **B6 — Locations + Misc.**
 - **B7 — Images (Imgur) across modules.** *(done — `ImageAdapter`/`ImgurImageAdapter`, file-picker `ImageField` on portraits/cover/location image)*
 - **B8 — Imports (2 sites) + Task tracker (3rd site).** *(done — generic JSON→entity import wizard; Tasks board + `GitHubTaskAdapter` push to a 3rd repo)*
-- **B9 — Rules + Print/Export compiler.**
-- **B10 — Polish:** search/command palette, shortcuts, mobile passes.
+- **B9 — Rules + Print/Export compiler.** *(done — markdown Rules workspace: hand-rolled
+  renderer, headings sidebar + section search, autosaving `rules.md`; Print page with a
+  session picker → structured scene-card sheet + party block, `@media print` → Save as PDF)*
+- **B10 — Polish:** *(done — ⌘/Ctrl-K command palette over modules/sessions/entities with
+  `?focus=` deep-links; `g`-prefixed module nav, `n` new-entity, Esc closes overlays; mobile
+  passes: full-screen drawers/dialogs, topbar Search button, canvas touch hint)*
 
 Single-player throughout; no realtime (by decision).
