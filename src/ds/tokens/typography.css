@@ -1,0 +1,55 @@
+/* ── Typography tokens ────────────────────────────────────────────────────
+   Three families, one fluid-ish scale. Display serif for titles & numerals of
+   consequence; grotesque for everything operational; mono for data (dates,
+   timeline stamps, sync state). Casing stays sentence-case; we lean on weight
+   and the serif for hierarchy, not on all-caps.
+   ------------------------------------------------------------------------- */
+:root {
+  /* Families */
+  --font-display: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Songti SC', Georgia, serif;
+  --font-sans: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
+  --font-mono: 'Space Mono', ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+
+  /* Weights */
+  --weight-light: 300;
+  --weight-regular: 400;
+  --weight-medium: 500;
+  --weight-semibold: 600;
+  --weight-bold: 700;
+  --weight-black: 900;
+
+  /* Type scale — 1.20 minor-third, base 15px */
+  --text-2xs: 0.69rem;   /* 11px — micro labels, badge text */
+  --text-xs: 0.78rem;    /* 12.5px — meta, captions */
+  --text-sm: 0.87rem;    /* 14px — secondary UI */
+  --text-base: 1rem;     /* 16px — body */
+  --text-md: 1.13rem;    /* 18px — lead body */
+  --text-lg: 1.35rem;    /* 21.6px — card titles */
+  --text-xl: 1.7rem;     /* 27px — section heads */
+  --text-2xl: 2.1rem;    /* 33.6px — page titles */
+  --text-3xl: 2.7rem;    /* 43px — campaign hero */
+  --text-4xl: 3.6rem;    /* 57px — display */
+
+  /* Line heights */
+  --leading-tight: 1.12;
+  --leading-snug: 1.28;
+  --leading-normal: 1.55;
+  --leading-relaxed: 1.7;
+
+  /* Tracking — mincho wants air; mono wants none */
+  --tracking-tight: -0.015em;
+  --tracking-normal: 0em;
+  --tracking-wide: 0.04em;
+  --tracking-mono: 0.01em;
+
+  /* Semantic roles */
+  --type-brand: var(--weight-bold) var(--text-lg) / var(--leading-tight) var(--font-display);
+  --type-hero: var(--weight-medium) var(--text-3xl) / var(--leading-tight) var(--font-display);
+  --type-title: var(--weight-medium) var(--text-2xl) / var(--leading-tight) var(--font-display);
+  --type-heading: var(--weight-semibold) var(--text-xl) / var(--leading-snug) var(--font-display);
+  --type-card-title: var(--weight-semibold) var(--text-lg) / var(--leading-snug) var(--font-sans);
+  --type-body: var(--weight-regular) var(--text-base) / var(--leading-normal) var(--font-sans);
+  --type-ui: var(--weight-medium) var(--text-sm) / var(--leading-snug) var(--font-sans);
+  --type-meta: var(--weight-regular) var(--text-xs) / var(--leading-snug) var(--font-sans);
+  --type-data: var(--weight-regular) var(--text-sm) / var(--leading-snug) var(--font-mono);
+}

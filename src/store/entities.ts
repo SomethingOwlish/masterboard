@@ -19,8 +19,8 @@ export interface EntityRef {
   kind: EntityKind
 }
 
-/** Glyph + module route per kind, shared by every consumer so they never drift. */
-export const KIND_GLYPH: Record<EntityKind, string> = { pc: '🛡️', npc: '🎭', location: '📍', misc: '🎲' }
+/** Lucide icon + module route per kind, shared by every consumer so they never drift. */
+export const KIND_ICON: Record<EntityKind, string> = { pc: 'shield', npc: 'drama', location: 'map-pin', misc: 'dices' }
 export const KIND_MODULE: Record<EntityKind, string> = { pc: 'characters', npc: 'npcs', location: 'locations', misc: 'misc' }
 
 /**

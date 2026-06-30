@@ -8,6 +8,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useParams } from 'react-router-dom'
 import { extractHeadings, renderMarkdown, searchSections } from '../lib/markdown'
 import { useRules } from '../store/rules'
+import { Icon } from '../ds'
 
 type Mode = 'split' | 'write' | 'preview'
 
@@ -61,8 +62,8 @@ export function RulesPage() {
   return (
     <div className="content rules-page">
       <div className="row no-print" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ margin: 0 }}>
-          <span aria-hidden>📖</span> Rules
+        <h1 className="row" style={{ margin: 0, gap: '0.5rem' }}>
+          <Icon name="book-open" size={24} /> Rules
         </h1>
         <div className="row" style={{ gap: '0.5rem' }}>
           <span className="muted" style={{ fontSize: '0.8rem' }}>

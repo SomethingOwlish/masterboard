@@ -5,6 +5,8 @@
 import { useState } from 'react'
 import type { SessionRecap } from '../model/types'
 import { useCampaign } from '../store/campaign'
+import { useConfirm } from './useConfirm'
+import { Icon, Button, RecapItem } from '../ds'
 
 function today(): string {
   return new Date().toISOString().slice(0, 10)
@@ -12,6 +14,7 @@ function today(): string {
 
 export function RecapLog({ recaps }: { recaps: SessionRecap[] }) {
   const { addRecap, editRecap, deleteRecap } = useCampaign()
+  const confirm = useConfirm()
   const [adding, setAdding] = useState(false)
   const [title, setTitle] = useState('')
   const [realDate, setRealDate] = useState(today())
@@ -36,8 +39,8 @@ export function RecapLog({ recaps }: { recaps: SessionRecap[] }) {
   return (
     <section className="card">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h2 className="section-title" style={{ margin: 0 }}>📜 Session recaps</h2>
-        {!adding && <button className="primary" onClick={() => setAdding(true)}>+ Add recap</button>}
+        <h2 className="section-title row" style={{ margin: 0, gap: '0.4rem' }}><Icon name="scroll-text" size={18} /> Session recaps</h2>
+        {!adding && <Button variant="primary" icon="plus" onClick={() => setAdding(true)}>Add recap</Button>}
       </div>
 
       {adding && (
@@ -57,8 +60,8 @@ export function RecapLog({ recaps }: { recaps: SessionRecap[] }) {
             <textarea id="r-body" rows={4} value={body} onChange={(e) => setBody(e.target.value)} />
           </div>
           <div className="row" style={{ justifyContent: 'flex-end' }}>
-            <button onClick={reset}>Cancel</button>
-            <button className="primary" onClick={submit} disabled={!title.trim()}>Save recap</button>
+            <Button variant="ghost" onClick={reset}>Cancel</Button>
+            <Button variant="primary" onClick={submit} disabled={!title.trim()}>Save recap</Button>
           </div>
         </div>
       )}
@@ -80,15 +83,26 @@ export function RecapLog({ recaps }: { recaps: SessionRecap[] }) {
               onCancel={() => setEditingId(null)}
             />
           ) : (
-            <li key={r.id} className="recap-item">
-              <div className="row" style={{ justifyContent: 'space-between' }}>
-                <strong>#{r.seq} · {r.title}</strong>
-                <span className="muted">{r.realDate}</span>
-              </div>
-              {r.body && <p style={{ whiteSpace: 'pre-wrap', margin: '0.4rem 0 0' }}>{r.body}</p>}
+            <li key={r.id}>
+              <RecapItem seq={r.seq} date={r.realDate} title={r.title} body={r.body} />
               <div className="row" style={{ marginTop: '0.4rem' }}>
-                <button onClick={() => setEditingId(r.id)}>Edit</button>
-                <button onClick={() => confirm('Delete this recap?') && void deleteRecap(r.id)}>Delete</button>
+                <Button size="sm" variant="ghost" icon="pencil" onClick={() => setEditingId(r.id)}>Edit</Button>
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  tone="danger"
+                  icon="trash-2"
+                  onClick={() =>
+                    confirm({
+                      title: 'Delete recap?',
+                      message: `Delete "${r.title}"? This cannot be undone.`,
+                      confirmLabel: 'Delete',
+                      onConfirm: () => void deleteRecap(r.id),
+                    })
+                  }
+                >
+                  Delete
+                </Button>
               </div>
             </li>
           ),

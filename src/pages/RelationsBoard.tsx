@@ -20,8 +20,16 @@ import {
 import '@xyflow/react/dist/style.css'
 import type { NodePosition } from '../model/types'
 import { TouchHint } from '../components/TouchHint'
-import { KIND_GLYPH, KIND_MODULE, useEntityPool, type EntityKind } from '../store/entities'
+import { KIND_MODULE, useEntityPool, type EntityKind } from '../store/entities'
 import { useRelations } from '../store/relations'
+import { useConfirm } from '../components/useConfirm'
+import { Icon, Button, TextField, Checkbox, GlassPanel } from '../ds'
+
+// Bold, theme-coloured relation lines (the requested "more visible" web). Labels
+// always show on a chip background so the graph reads at a glance.
+const EDGE_STYLE = { strokeWidth: 2.5, stroke: 'var(--line-strong)' } as const
+const EDGE_LABEL_BG = { fill: 'var(--surface)', stroke: 'var(--line-strong)', strokeWidth: 1 } as const
+const EDGE_LABEL_TEXT = { fill: 'var(--text)', fontWeight: 600, fontFamily: 'var(--font-sans)' } as const
 
 interface NodeData extends Record<string, unknown> {
   label: string
@@ -54,6 +62,7 @@ export function RelationsBoard() {
   const [nodes, setNodes] = useState<FlowNode[]>([])
   const [selectedEdge, setSelectedEdge] = useState<string | null>(null)
   const rf = useRef<ReactFlowInstance<FlowNode, Edge> | null>(null)
+  const confirm = useConfirm()
 
   const kindOf = useMemo(() => {
     const m = new Map<string, EntityKind>()
@@ -73,7 +82,7 @@ export function RelationsBoard() {
       return entities.map((e, i) => ({
         id: e.id,
         position: live.get(e.id) ?? positions[e.id] ?? circleLayout(i, entities.length),
-        data: { label: `${KIND_GLYPH[e.kind]} ${e.name}`, kind: e.kind },
+        data: { label: e.name, kind: e.kind },
         className: `rf-node rf-${e.kind}`,
       }))
     })
@@ -86,8 +95,16 @@ export function RelationsBoard() {
         source: r.fromId,
         target: r.toId,
         label: r.label || undefined,
-        markerEnd: r.directed ? { type: MarkerType.ArrowClosed } : undefined,
+        markerEnd: r.directed
+          ? { type: MarkerType.ArrowClosed, color: 'var(--line-strong)', width: 18, height: 18 }
+          : undefined,
         selected: r.id === selectedEdge,
+        style: r.id === selectedEdge ? { ...EDGE_STYLE, stroke: 'var(--accent)', strokeWidth: 3.5 } : EDGE_STYLE,
+        labelShowBg: true,
+        labelBgStyle: EDGE_LABEL_BG,
+        labelBgPadding: [6, 3] as [number, number],
+        labelBgBorderRadius: 9,
+        labelStyle: EDGE_LABEL_TEXT,
       })),
     [relations, selectedEdge],
   )
@@ -129,8 +146,8 @@ export function RelationsBoard() {
   if (nodes.length === 0) {
     return (
       <div className="content">
-        <h1 style={{ marginTop: 0 }}>
-          <span aria-hidden>🕸️</span> Relations
+        <h1 className="row" style={{ marginTop: 0, gap: '0.5rem' }}>
+          <Icon name="waypoints" size={24} /> Relations
         </h1>
         <p className="muted">
           Add some Characters, NPCs, Locations, or Misc objects first — they'll appear here as nodes to connect.
@@ -142,10 +159,10 @@ export function RelationsBoard() {
   return (
     <div className="content board-content">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ margin: 0 }}>
-          <span aria-hidden>🕸️</span> Relations
+        <h1 className="row" style={{ margin: 0, gap: '0.5rem' }}>
+          <Icon name="waypoints" size={24} /> Relations
         </h1>
-        <button onClick={autoLayout}>Auto-layout</button>
+        <Button icon="refresh-cw" onClick={autoLayout}>Auto-layout</Button>
       </div>
       <p className="muted" style={{ marginTop: '0.25rem' }}>
         Drag from a node's edge to another to connect. Select an edge to label it, set direction, or delete.
@@ -175,33 +192,41 @@ export function RelationsBoard() {
         </ReactFlow>
 
         {selected && (
-          <div className="edge-inspector card">
-            <div className="muted" style={{ fontSize: '0.8rem' }}>
+          <GlassPanel className="edge-inspector" padding="var(--space-4)">
+            <div className="mb-data" style={{ fontSize: '0.8rem', color: 'var(--muted)' }}>
               {nameOf(selected.fromId)} {selected.directed ? '→' : '↔'} {nameOf(selected.toId)}
             </div>
-            <input
+            <TextField
               autoFocus
               value={selected.label}
               placeholder="label (e.g. rival)"
               onChange={(e) => void updateRelation(selected.id, { label: e.target.value })}
             />
-            <label className="row" style={{ gap: '0.3rem', fontSize: '0.85rem' }}>
-              <input
-                type="checkbox"
-                checked={selected.directed}
-                onChange={(e) => void updateRelation(selected.id, { directed: e.target.checked })}
-              />
-              directed
-            </label>
-            <button
-              onClick={() => {
-                void removeRelation(selected.id)
-                setSelectedEdge(null)
-              }}
+            <Checkbox
+              label="Directed"
+              checked={selected.directed}
+              onChange={(e) => void updateRelation(selected.id, { directed: e.target.checked })}
+            />
+            <Button
+              variant="soft"
+              tone="danger"
+              icon="trash-2"
+              block
+              onClick={() =>
+                confirm({
+                  title: 'Remove relation?',
+                  message: `Remove the link between ${nameOf(selected.fromId)} and ${nameOf(selected.toId)}?`,
+                  confirmLabel: 'Remove',
+                  onConfirm: () => {
+                    void removeRelation(selected.id)
+                    setSelectedEdge(null)
+                  },
+                })
+              }
             >
               Delete relation
-            </button>
-          </div>
+            </Button>
+          </GlassPanel>
         )}
       </div>
     </div>

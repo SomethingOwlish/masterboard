@@ -5,6 +5,8 @@ import { useEffect } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { useNewAction } from '../lib/shortcuts'
 import { sessionTitle, useSessions } from '../store/sessions'
+import { useConfirm } from '../components/useConfirm'
+import { Icon, Button, EmptyState } from '../ds'
 
 export function SessionsPage() {
   const { campaignId } = useParams()
@@ -15,6 +17,7 @@ export function SessionsPage() {
   const create = useSessions((s) => s.create)
   const duplicate = useSessions((s) => s.duplicate)
   const remove = useSessions((s) => s.remove)
+  const confirm = useConfirm()
 
   useEffect(() => {
     if (campaignId) void load(campaignId)
@@ -40,20 +43,24 @@ export function SessionsPage() {
   return (
     <div className="content">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ margin: 0 }}>
-          <span aria-hidden>🗺️</span> Sessions
+        <h1 className="row" style={{ margin: 0, gap: '0.5rem' }}>
+          <Icon name="map" size={24} /> Sessions
         </h1>
-        <button className="primary" onClick={() => void newSession()}>
-          + New session
-        </button>
+        <Button variant="primary" icon="plus" onClick={() => void newSession()}>
+          New session
+        </Button>
       </div>
 
       {loading ? (
         <p className="muted" style={{ marginTop: '1rem' }}>Loading…</p>
       ) : ordered.length === 0 ? (
-        <p className="muted" style={{ marginTop: '1rem' }}>
-          No sessions yet. Plan your first one with “New session”.
-        </p>
+        <EmptyState
+          icon="map"
+          title="No sessions yet"
+          hint="Plan your first one with “New session”."
+          action={<Button variant="primary" icon="plus" onClick={() => void newSession()}>New session</Button>}
+          style={{ marginTop: '1rem' }}
+        />
       ) : (
         <div className="grid" style={{ marginTop: '1rem' }}>
           {ordered.map((s) => (
@@ -64,15 +71,23 @@ export function SessionsPage() {
                 <span className="muted">{s.realDate}</span>
               </button>
               <div className="row session-actions">
-                <button className="ghost" onClick={() => void dup(s.id)}>Duplicate</button>
-                <button
-                  className="ghost"
-                  onClick={() => {
-                    if (window.confirm(`Delete session ${sessionTitle(s)}?`)) void remove(s.id)
-                  }}
+                <Button variant="ghost" size="sm" icon="copy" onClick={() => void dup(s.id)}>Duplicate</Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  tone="danger"
+                  icon="trash-2"
+                  onClick={() =>
+                    confirm({
+                      title: 'Delete session?',
+                      message: `Delete session ${sessionTitle(s)}? This cannot be undone.`,
+                      confirmLabel: 'Delete',
+                      onConfirm: () => void remove(s.id),
+                    })
+                  }
                 >
                   Delete
-                </button>
+                </Button>
               </div>
             </div>
           ))}

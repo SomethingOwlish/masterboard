@@ -7,6 +7,8 @@ import { useParams } from 'react-router-dom'
 import { Drawer } from '../components/Drawer'
 import type { ChronoColumn, ChronoEvent } from '../model/types'
 import { useChronology } from '../store/chronology'
+import { useConfirm } from '../components/useConfirm'
+import { Icon, Button, IconButton, TextField, Select, ChronoEvent as ChronoEventCard } from '../ds'
 
 export function ChronologyPage() {
   const { campaignId } = useParams()
@@ -26,6 +28,7 @@ export function ChronologyPage() {
 
   const [openEventId, setOpenEventId] = useState<string | null>(null)
   const [dragId, setDragId] = useState<string | null>(null)
+  const confirm = useConfirm()
 
   useEffect(() => {
     if (campaignId) void load(campaignId)
@@ -60,10 +63,10 @@ export function ChronologyPage() {
   return (
     <div className="content board-content">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ margin: 0 }}>
-          <span aria-hidden>📜</span> Chronology
+        <h1 className="row" style={{ margin: 0, gap: '0.5rem' }}>
+          <Icon name="history" size={24} /> Chronology
         </h1>
-        <button onClick={() => void addColumn('New column')}>+ Column</button>
+        <Button icon="plus" onClick={() => void addColumn('New column')}>Column</Button>
       </div>
 
       <div className="chrono-board">
@@ -78,7 +81,14 @@ export function ChronologyPage() {
             onRename={(name) => void renameColumn(col.id, name)}
             onToggleMinimize={() => void toggleMinimize(col.id)}
             onMove={(dir) => void moveColumn(col.id, dir)}
-            onRemove={() => void removeColumn(col.id)}
+            onRemove={() =>
+              confirm({
+                title: 'Delete column?',
+                message: `Delete "${col.name}" and its events? This cannot be undone.`,
+                confirmLabel: 'Delete',
+                onConfirm: () => void removeColumn(col.id),
+              })
+            }
             onAddEvent={() => void newEvent(col.id)}
             onOpenEvent={setOpenEventId}
             onDragStart={setDragId}
@@ -93,45 +103,58 @@ export function ChronologyPage() {
           onClose={() => setOpenEventId(null)}
           footer={
             <>
-              <button
-                onClick={() => {
-                  void removeEvent(editing.id)
-                  setOpenEventId(null)
-                }}
+              <Button
+                variant="ghost"
+                tone="danger"
+                icon="trash-2"
+                onClick={() =>
+                  confirm({
+                    title: 'Delete event?',
+                    message: `Delete "${editing.title || 'this event'}"? This cannot be undone.`,
+                    confirmLabel: 'Delete',
+                    onConfirm: () => {
+                      void removeEvent(editing.id)
+                      setOpenEventId(null)
+                    },
+                  })
+                }
               >
                 Delete
-              </button>
-              <button className="primary" onClick={() => setOpenEventId(null)}>
+              </Button>
+              <Button variant="primary" onClick={() => setOpenEventId(null)}>
                 Done
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="field">
-            <label>Title</label>
-            <input value={editing.title} onChange={(e) => void updateEvent(editing.id, { title: e.target.value })} />
-          </div>
-          <div className="field">
-            <label>Date</label>
-            <input
-              value={editing.date}
-              placeholder="e.g. 3rd of Harvest, 1024"
-              onChange={(e) => void updateEvent(editing.id, { date: e.target.value })}
-            />
-            <small>Free-form. Default order is by this text; drag cards to override.</small>
-          </div>
-          <div className="field">
-            <label>Column</label>
-            <select value={editing.columnId} onChange={(e) => void updateEvent(editing.id, { columnId: e.target.value })}>
-              {sortedColumns.map((c) => (
-                <option key={c.id} value={c.id}>{c.name}</option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Notes</label>
-            <textarea rows={5} value={editing.body ?? ''} onChange={(e) => void updateEvent(editing.id, { body: e.target.value || undefined })} />
-          </div>
+          <TextField
+            label="Title"
+            value={editing.title}
+            onChange={(e) => void updateEvent(editing.id, { title: e.target.value })}
+          />
+          <TextField
+            label="Date"
+            value={editing.date}
+            placeholder="e.g. 3rd of Harvest, 1024"
+            hint="Free-form. Default order is by this text; drag cards to override."
+            onChange={(e) => void updateEvent(editing.id, { date: e.target.value })}
+          />
+          <Select
+            label="Column"
+            value={editing.columnId}
+            onChange={(e) => void updateEvent(editing.id, { columnId: e.target.value })}
+          >
+            {sortedColumns.map((c) => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </Select>
+          <TextField
+            label="Notes"
+            multiline
+            rows={5}
+            value={editing.body ?? ''}
+            onChange={(e) => void updateEvent(editing.id, { body: e.target.value || undefined })}
+          />
         </Drawer>
       )}
     </div>
@@ -171,7 +194,7 @@ function ChronoColumnView({
     return (
       <div className="chrono-col minimized">
         <button className="chrono-col-min" onClick={onToggleMinimize} title="Expand">
-          <span className="chrono-col-min-name">{col.name}</span> ⮞
+          <span className="chrono-col-min-name">{col.name}</span>
         </button>
       </div>
     )
@@ -188,13 +211,13 @@ function ChronoColumnView({
         <div className="chrono-col-actions">
           {!col.fixed && (
             <>
-              <button className="ghost" title="Move left" disabled={index <= 1} onClick={() => onMove(-1)}>◀</button>
-              <button className="ghost" title="Move right" disabled={index >= count - 1} onClick={() => onMove(1)}>▶</button>
+              <IconButton icon="chevron-left" label="Move left" size="sm" disabled={index <= 1} onClick={() => onMove(-1)} />
+              <IconButton icon="chevron-right" label="Move right" size="sm" disabled={index >= count - 1} onClick={() => onMove(1)} />
             </>
           )}
-          <button className="ghost" title="Minimize" onClick={onToggleMinimize}>⮜</button>
+          <IconButton icon="panel-left-close" label="Minimize" size="sm" onClick={onToggleMinimize} />
           {!col.fixed && (
-            <button className="ghost" title="Delete column" onClick={onRemove}>🗑</button>
+            <IconButton icon="trash-2" label="Delete column" size="sm" tone="danger" onClick={onRemove} />
           )}
         </div>
       </header>
@@ -206,9 +229,13 @@ function ChronoColumnView({
       >
         {events.length === 0 && <p className="muted" style={{ fontSize: '0.85rem' }}>No events.</p>}
         {events.map((ev) => (
-          <article
+          <ChronoEventCard
             key={ev.id}
-            className={`chrono-event ${dragId === ev.id ? 'dragging' : ''}`}
+            date={ev.date}
+            title={ev.title}
+            body={ev.body}
+            dragging={dragId === ev.id}
+            onClick={() => onOpenEvent(ev.id)}
             draggable
             onDragStart={() => onDragStart(ev.id)}
             onDragOver={(e) => e.preventDefault()}
@@ -216,12 +243,7 @@ function ChronoColumnView({
               e.stopPropagation()
               onDropBefore(ev.id)
             }}
-            onClick={() => onOpenEvent(ev.id)}
-          >
-            <div className="chrono-event-date">{ev.date || '—'}</div>
-            <strong>{ev.title || '(untitled)'}</strong>
-            {ev.body && <p className="muted chrono-event-body">{ev.body}</p>}
-          </article>
+          />
         ))}
         <button className="chrono-add" onClick={onAddEvent}>+ Event</button>
       </div>

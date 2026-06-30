@@ -14,6 +14,8 @@ import { useFocusParam, useNewAction } from '../lib/shortcuts'
 import { useCampaign } from '../store/campaign'
 import { useEntityPool } from '../store/entities'
 import { useMisc } from '../store/misc'
+import { useConfirm } from '../components/useConfirm'
+import { Icon, Button, TextField, Select } from '../ds'
 
 export function MiscPage() {
   const { campaignId } = useParams()
@@ -29,6 +31,7 @@ export function MiscPage() {
   const entities = useEntityPool(campaignId)
 
   const [openId, setOpenId] = useState<string | null>(null)
+  const confirm = useConfirm()
 
   const editing = misc.find((m) => m.id === openId) ?? null
 
@@ -61,14 +64,14 @@ export function MiscPage() {
   return (
     <div className="content">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ margin: 0 }}>
-          <span aria-hidden>🎲</span> Misc
+        <h1 className="row" style={{ margin: 0, gap: '0.5rem' }}>
+          <Icon name="dices" size={24} /> Misc
         </h1>
         <div className="row">
-          <button onClick={addKind}>+ Kind</button>
-          <button className="primary" onClick={() => void create(defaultKind)}>
-            + New object
-          </button>
+          <Button icon="plus" onClick={addKind}>Kind</Button>
+          <Button variant="primary" icon="plus" onClick={() => void create(defaultKind)}>
+            New object
+          </Button>
         </div>
       </div>
 
@@ -80,7 +83,7 @@ export function MiscPage() {
             <section key={kind} className="misc-group">
               <div className="row" style={{ justifyContent: 'space-between' }}>
                 <h2 className="misc-group-title">{kind}</h2>
-                <button className="ghost" onClick={() => void create(kind)}>+ Add {kind}</button>
+                <Button variant="ghost" size="sm" icon="plus" onClick={() => void create(kind)}>Add {kind}</Button>
               </div>
               {items.length === 0 ? (
                 <p className="muted" style={{ fontSize: '0.85rem' }}>No {kind} objects yet.</p>
@@ -112,40 +115,51 @@ export function MiscPage() {
           onClose={() => setOpenId(null)}
           footer={
             <>
-              <button
-                onClick={() => {
-                  void remove(editing.id)
-                  setOpenId(null)
-                }}
+              <Button
+                variant="ghost"
+                tone="danger"
+                icon="trash-2"
+                onClick={() =>
+                  confirm({
+                    title: 'Delete object?',
+                    message: `Delete "${editing.name || 'this object'}"? This cannot be undone.`,
+                    confirmLabel: 'Delete',
+                    onConfirm: () => {
+                      void remove(editing.id)
+                      setOpenId(null)
+                    },
+                  })
+                }
               >
                 Delete
-              </button>
-              <button className="primary" onClick={() => setOpenId(null)}>
+              </Button>
+              <Button variant="primary" onClick={() => setOpenId(null)}>
                 Done
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="field">
-            <label>Name</label>
-            <input value={editing.name} onChange={(e) => void update(editing.id, { name: e.target.value })} />
-          </div>
-          <div className="field">
-            <label>Kind</label>
-            <select value={editing.kind} onChange={(e) => void update(editing.id, { kind: e.target.value })}>
-              {[...new Set([...kinds, editing.kind])].map((k) => (
-                <option key={k} value={k}>{k}</option>
-              ))}
-            </select>
-          </div>
-          <div className="field">
-            <label>Body</label>
-            <textarea
-              rows={4}
-              value={editing.body ?? ''}
-              onChange={(e) => void update(editing.id, { body: e.target.value || undefined })}
-            />
-          </div>
+          <TextField
+            label="Name"
+            value={editing.name}
+            onChange={(e) => void update(editing.id, { name: e.target.value })}
+          />
+          <Select
+            label="Kind"
+            value={editing.kind}
+            onChange={(e) => void update(editing.id, { kind: e.target.value })}
+          >
+            {[...new Set([...kinds, editing.kind])].map((k) => (
+              <option key={k} value={k}>{k}</option>
+            ))}
+          </Select>
+          <TextField
+            label="Body"
+            multiline
+            rows={4}
+            value={editing.body ?? ''}
+            onChange={(e) => void update(editing.id, { body: e.target.value || undefined })}
+          />
 
           <h3 className="section-title">Fields</h3>
           <FieldsEditor fields={editing.fields} onChange={(fields) => void update(editing.id, { fields })} />

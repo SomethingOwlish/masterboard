@@ -10,8 +10,10 @@ import { makeTask } from '../model/defaults'
 import { useNewAction } from '../lib/shortcuts'
 import type { Task } from '../model/types'
 import { useCampaign } from '../store/campaign'
-import { KIND_GLYPH, useEntityPool } from '../store/entities'
+import { KIND_ICON, useEntityPool } from '../store/entities'
 import { useTasks } from '../store/tasks'
+import { useConfirm } from '../components/useConfirm'
+import { Icon, Button, TextField, Select, EmptyState, Tag } from '../ds'
 
 const COLUMNS: { status: Task['status']; label: string }[] = [
   { status: 'todo', label: 'To do' },
@@ -32,6 +34,7 @@ export function TasksPage() {
   const entities = useEntityPool(campaignId)
   const [openId, setOpenId] = useState<string | null>(null)
   const [pushMsg, setPushMsg] = useState<{ id: string; ok: boolean; text: string } | null>(null)
+  const confirm = useConfirm()
 
   useEffect(() => {
     if (campaignId) void load(campaignId)
@@ -66,10 +69,10 @@ export function TasksPage() {
   return (
     <div className="content">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ margin: 0 }}>
-          <span aria-hidden>✅</span> Tasks
+        <h1 className="row" style={{ margin: 0, gap: '0.5rem' }}>
+          <Icon name="list-checks" size={24} /> Tasks
         </h1>
-        <button className="primary" onClick={() => void create()}>+ New task</button>
+        <Button variant="primary" icon="plus" onClick={() => void create()}>New task</Button>
       </div>
 
       <TaskSiteConfig />
@@ -77,7 +80,13 @@ export function TasksPage() {
       {loading ? (
         <p className="muted" style={{ marginTop: '1rem' }}>Loading…</p>
       ) : tasks.length === 0 ? (
-        <p className="muted" style={{ marginTop: '1rem' }}>No tasks yet. Add one with “New task”.</p>
+        <EmptyState
+          icon="list-checks"
+          title="No tasks yet"
+          hint="Add one with “New task”."
+          action={<Button variant="primary" icon="plus" onClick={() => void create()}>New task</Button>}
+          style={{ marginTop: '1rem' }}
+        />
       ) : (
         <div className="tasks-board">
           {COLUMNS.map((col) => (
@@ -94,9 +103,9 @@ export function TasksPage() {
                       {t.links.map((l) => {
                         const e = nameOf(l.toId)
                         return (
-                          <span key={l.toId} className="chip">
-                            {e ? `${KIND_GLYPH[e.kind]} ${e.name}` : '· linked'}
-                          </span>
+                          <Tag key={l.toId} icon={e ? KIND_ICON[e.kind] : undefined}>
+                            {e ? e.name : 'linked'}
+                          </Tag>
                         )
                       })}
                     </div>
@@ -115,27 +124,46 @@ export function TasksPage() {
           onClose={() => setOpenId(null)}
           footer={
             <>
-              <button onClick={() => { void remove(editing.id); setOpenId(null) }}>Delete</button>
-              <button className="primary" onClick={() => setOpenId(null)}>Done</button>
+              <Button
+                variant="ghost"
+                tone="danger"
+                icon="trash-2"
+                onClick={() =>
+                  confirm({
+                    title: 'Delete task?',
+                    message: `Delete "${editing.title || 'this task'}"? This cannot be undone.`,
+                    confirmLabel: 'Delete',
+                    onConfirm: () => { void remove(editing.id); setOpenId(null) },
+                  })
+                }
+              >
+                Delete
+              </Button>
+              <Button variant="primary" onClick={() => setOpenId(null)}>Done</Button>
             </>
           }
         >
-          <div className="field">
-            <label>Title</label>
-            <input value={editing.title} onChange={(e) => void update(editing.id, { title: e.target.value })} />
-          </div>
-          <div className="field">
-            <label>Details</label>
-            <textarea rows={3} value={editing.body ?? ''} onChange={(e) => void update(editing.id, { body: e.target.value || undefined })} />
-          </div>
-          <div className="field">
-            <label>Status</label>
-            <select value={editing.status} onChange={(e) => void update(editing.id, { status: e.target.value as Task['status'] })}>
-              {COLUMNS.map((c) => (
-                <option key={c.status} value={c.status}>{c.label}</option>
-              ))}
-            </select>
-          </div>
+          <TextField
+            label="Title"
+            value={editing.title}
+            onChange={(e) => void update(editing.id, { title: e.target.value })}
+          />
+          <TextField
+            label="Details"
+            multiline
+            rows={3}
+            value={editing.body ?? ''}
+            onChange={(e) => void update(editing.id, { body: e.target.value || undefined })}
+          />
+          <Select
+            label="Status"
+            value={editing.status}
+            onChange={(e) => void update(editing.id, { status: e.target.value as Task['status'] })}
+          >
+            {COLUMNS.map((c) => (
+              <option key={c.status} value={c.status}>{c.label}</option>
+            ))}
+          </Select>
 
           <h3 className="section-title">Linked to</h3>
           <TaskLinks task={editing} onChange={(links) => void update(editing.id, { links })} />
@@ -149,7 +177,7 @@ export function TasksPage() {
           ) : (
             <p className="muted" style={{ margin: '0 0 0.5rem' }}>Not pushed yet.</p>
           )}
-          <button onClick={() => void push(editing.id)}>{editing.externalRef ? 'Push again ↗' : 'Push to site ↗'}</button>
+          <Button icon="external-link" onClick={() => void push(editing.id)}>{editing.externalRef ? 'Push again' : 'Push to site'}</Button>
           {pushMsg?.id === editing.id && (
             <p style={{ margin: '0.5rem 0 0', color: pushMsg.ok ? 'var(--accent)' : 'crimson', wordBreak: 'break-all' }}>
               {pushMsg.text}
@@ -187,10 +215,13 @@ function TaskLinks({ task, onChange }: { task: Task; onChange: (links: Task['lin
           {linked.map((l) => {
             const e = entities.find((x) => x.id === l.toId)
             return (
-              <span key={l.toId} className="chip">
-                {e ? `${KIND_GLYPH[e.kind]} ${e.name}` : '(unknown)'}
-                <button className="chip-x" aria-label="Unlink" onClick={() => onChange(linked.filter((x) => x.toId !== l.toId))}>×</button>
-              </span>
+              <Tag
+                key={l.toId}
+                icon={e ? KIND_ICON[e.kind] : undefined}
+                onRemove={() => onChange(linked.filter((x) => x.toId !== l.toId))}
+              >
+                {e ? e.name : '(unknown)'}
+              </Tag>
             )
           })}
         </div>
@@ -200,7 +231,7 @@ function TaskLinks({ task, onChange }: { task: Task; onChange: (links: Task['lin
           <select value={pick} onChange={(e) => setPick(e.target.value)} style={{ flex: 1 }}>
             <option value="">Link to…</option>
             {available.map((e) => (
-              <option key={e.id} value={e.id}>{KIND_GLYPH[e.kind]} {e.name}</option>
+              <option key={e.id} value={e.id}>{e.name}</option>
             ))}
           </select>
           <button onClick={add} disabled={!pick}>Link</button>
@@ -228,7 +259,7 @@ function TaskSiteConfig() {
   return (
     <section className="card" style={{ marginTop: '1rem' }}>
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h2 className="section-title" style={{ margin: 0 }}>🌐 Third site</h2>
+        <h2 className="section-title row" style={{ margin: 0, gap: '0.4rem' }}><Icon name="globe" size={18} /> Third site</h2>
         <button className="ghost" onClick={() => setOpen((v) => !v)}>{open ? 'Close' : taskSite ? 'Edit' : 'Set up'}</button>
       </div>
       {!open ? (

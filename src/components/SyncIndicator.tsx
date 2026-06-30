@@ -1,15 +1,17 @@
 // Small topbar badge reflecting the repository's sync state so the GM can tell
-// whether edits are local-only, pushing, or stuck.
+// whether edits are local-only, pushing, or stuck. Renders the design system's
+// SyncBadge, mapping the repo's SyncState onto its visual states.
 
 import { useEffect, useState } from 'react'
 import { repo, type SyncState } from '../storage/repository'
 import { useConfig } from '../store/config'
+import { SyncBadge } from '../ds'
 
-const LABEL: Record<SyncState, string> = {
-  idle: 'Synced',
-  syncing: 'Syncing…',
-  error: 'Sync error',
-  offline: 'Offline',
+const STATE_MAP: Record<SyncState, 'syncing' | 'synced' | 'offline' | 'error'> = {
+  idle: 'synced',
+  syncing: 'syncing',
+  error: 'error',
+  offline: 'offline',
 }
 
 export function SyncIndicator() {
@@ -18,24 +20,32 @@ export function SyncIndicator() {
 
   useEffect(() => repo.onSync(setState), [])
 
-  if (!isConnected) return <span className="sync-badge local" title="Saved in this browser only">Local</span>
+  if (!isConnected) {
+    return (
+      <span title="Saved in this browser only">
+        <SyncBadge state="local" />
+      </span>
+    )
+  }
 
   if (state === 'error') {
     const detail = repo.getError() ?? 'Unknown error'
     return (
-      <button
-        className="sync-badge error"
+      <span
+        role="button"
+        tabIndex={0}
         title={detail}
+        style={{ cursor: 'pointer' }}
         onClick={() => alert(`Sync error:\n\n${detail}\n\nYour work is still saved locally. Check Settings → Test connection.`)}
       >
-        Sync error ⓘ
-      </button>
+        <SyncBadge state="error" />
+      </span>
     )
   }
 
   return (
-    <span className={`sync-badge ${state}`} title="GitHub sync status">
-      {LABEL[state]}
+    <span title="GitHub sync status">
+      <SyncBadge state={STATE_MAP[state]} />
     </span>
   )
 }

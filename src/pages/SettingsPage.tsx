@@ -6,6 +6,7 @@
 import { useEffect, useState } from 'react'
 import { GitHubStorageAdapter } from '../adapters/github'
 import { useConfig } from '../store/config'
+import { Icon, Button } from '../ds'
 
 export function SettingsPage() {
   const { config, token, tokenLoaded, saveConfig, saveToken, clearTokenValue, hydrate } = useConfig()
@@ -61,8 +62,8 @@ export function SettingsPage() {
 
   return (
     <div className="content" style={{ maxWidth: 640 }}>
-      <h1 style={{ marginTop: 0 }}>
-        <span aria-hidden>⚙️</span> Settings
+      <h1 className="row" style={{ marginTop: 0, gap: '0.5rem' }}>
+        <Icon name="settings" size={24} /> Settings
       </h1>
       <p className="muted">
         Masterboard works fully offline using your browser's storage. Connect a GitHub repo to sync
@@ -110,15 +111,15 @@ export function SettingsPage() {
         </div>
 
         <div className="row" style={{ marginTop: '0.75rem' }}>
-          <button className="primary" onClick={saveAll}>Save</button>
-          <button onClick={verify} disabled={verifying}>{verifying ? 'Checking…' : 'Test connection'}</button>
-          {token && <button onClick={clearTok}>Clear token</button>}
-          {savedFlash && <span className="muted">Saved ✓</span>}
+          <Button variant="primary" icon="check" onClick={saveAll}>Save</Button>
+          <Button icon="refresh-cw" onClick={verify} disabled={verifying}>{verifying ? 'Checking…' : 'Test connection'}</Button>
+          {token && <Button variant="ghost" onClick={clearTok}>Clear token</Button>}
+          {savedFlash && <span className="muted row" style={{ gap: '0.3rem' }}><Icon name="check" size={15} /> Saved</span>}
         </div>
 
         {verifyMsg && (
-          <p style={{ marginBottom: 0, color: verifyMsg.ok ? 'var(--accent)' : 'crimson' }}>
-            {verifyMsg.ok ? '✓ ' : '✗ '}
+          <p className="row" style={{ marginBottom: 0, gap: '0.3rem', color: verifyMsg.ok ? 'var(--success)' : 'var(--danger)' }}>
+            <Icon name={verifyMsg.ok ? 'check' : 'x'} size={15} />
             {verifyMsg.text}
           </p>
         )}

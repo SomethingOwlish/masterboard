@@ -9,6 +9,7 @@ import type { SourceSite } from '../model/types'
 import { useCampaign } from '../store/campaign'
 import type { ImportResult } from '../store/importing'
 import { ImportDialog } from './ImportDialog'
+import { Icon, Button, IconButton } from '../ds'
 
 export function SourcePanel({ campaignId, sites }: { campaignId: string; sites: SourceSite[] }) {
   const updateSettings = useCampaign((s) => s.updateSettings)
@@ -32,7 +33,7 @@ export function SourcePanel({ campaignId, sites }: { campaignId: string; sites: 
 
   return (
     <section className="card">
-      <h2 className="section-title">🔗 Connected sites</h2>
+      <h2 className="section-title row" style={{ gap: '0.4rem' }}><Icon name="link" size={18} /> Connected sites</h2>
 
       {sites.length === 0 ? (
         <p className="muted" style={{ marginTop: 0 }}>
@@ -44,9 +45,9 @@ export function SourcePanel({ campaignId, sites }: { campaignId: string; sites: 
             <li key={s.id} className="source-row">
               <span className="source-label">{s.label}</span>
               <div className="row" style={{ gap: '0.4rem' }}>
-                <button onClick={() => { setResult(null); setImporting(s) }}>Import</button>
+                <Button size="sm" icon="download" onClick={() => { setResult(null); setImporting(s) }}>Import</Button>
                 <a className="button-link" href={s.url} target="_blank" rel="noreferrer noopener">Open ↗</a>
-                <button className="ghost" aria-label={`Remove ${s.label}`} onClick={() => removeSite(s.id)}>🗑</button>
+                <IconButton icon="trash-2" label={`Remove ${s.label}`} size="sm" tone="danger" onClick={() => removeSite(s.id)} />
               </div>
             </li>
           ))}
@@ -56,7 +57,7 @@ export function SourcePanel({ campaignId, sites }: { campaignId: string; sites: 
       <div className="source-add">
         <input value={label} placeholder="Label (e.g. Wiki)" onChange={(e) => setLabel(e.target.value)} />
         <input value={url} placeholder="https://…/data.json" onChange={(e) => setUrl(e.target.value)} />
-        <button onClick={addSite} disabled={!label.trim() || !url.trim()}>+ Add</button>
+        <Button icon="plus" onClick={addSite} disabled={!label.trim() || !url.trim()}>Add</Button>
       </div>
 
       {result && <p className="muted" style={{ margin: '0.5rem 0 0' }}>{result}</p>}

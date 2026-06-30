@@ -1,88 +1,47 @@
 /* ---- Theme tokens -------------------------------------------------------- */
-:root,
-[data-theme='parchment'] {
-  --bg: #f4ecd8;
-  --surface: #fbf6e9;
-  --surface-2: #efe4c8;
-  --text: #2c2418;
-  --muted: #7a6c4f;
-  --border: #d8c9a3;
-  --accent: #8a4b2f;
-  --accent-text: #fff;
-  --shadow: 0 1px 3px rgba(60, 40, 10, 0.18);
-  --radius: 10px;
-}
-
-[data-theme='dark'] {
-  --bg: #16181d;
-  --surface: #1e2128;
-  --surface-2: #272b34;
-  --text: #e6e8ee;
-  --muted: #9aa3b2;
-  --border: #333947;
-  --accent: #c9803a;
-  --accent-text: #16181d;
-  --shadow: 0 1px 3px rgba(0, 0, 0, 0.5);
-  --radius: 10px;
-}
-
-[data-theme='contrast'] {
-  --bg: #000;
-  --surface: #0a0a0a;
-  --surface-2: #161616;
-  --text: #fff;
-  --muted: #cfcfcf;
-  --border: #fff;
-  --accent: #ffd400;
-  --accent-text: #000;
-  --shadow: none;
-  --radius: 4px;
-}
-
-[data-theme='neon'] {
-  --bg: #0b0f1a;
-  --surface: #121a2c;
-  --surface-2: #1a2540;
-  --text: #d7f7ff;
-  --muted: #6fa8c7;
-  --border: #25406b;
-  --accent: #18e0c8;
-  --accent-text: #04121a;
-  --shadow: 0 0 12px rgba(24, 224, 200, 0.25);
-  --radius: 12px;
-}
+/* The 10-theme token contract now lives in src/ds/tokens/* (loaded before this
+   file). `--radius`/`--shadow`/`--surface`/`--accent`/… all resolve to those
+   design-system tokens; the bespoke classes below simply consume them.
+   `--radius` (14px), `--radius-sm` (10px) etc. come from tokens/spacing.css. */
 
 /* ---- Base ---------------------------------------------------------------- */
-* { box-sizing: border-box; }
-html, body, #root { height: 100%; margin: 0; }
-body {
-  background: var(--bg);
-  color: var(--text);
-  font: 15px/1.5 system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-}
-a { color: var(--accent); }
+#root { height: 100%; }
+/* element resets, body font, headings, links & focus ring come from
+   ds/tokens/base.css. The app only needs full-height root + control defaults. */
 button {
-  font: inherit;
+  font: var(--type-ui);
   cursor: pointer;
   border: 1px solid var(--border);
   background: var(--surface);
   color: var(--text);
-  border-radius: var(--radius);
-  padding: 0.45rem 0.8rem;
+  border-radius: var(--radius-sm);
+  padding: 0.5rem 0.85rem;
+  box-shadow: var(--shadow-sm);
+  transition: background var(--dur) var(--ease-out), border-color var(--dur) var(--ease-out),
+    filter var(--dur) var(--ease-out);
 }
 button.primary { background: var(--accent); color: var(--accent-text); border-color: transparent; }
-button:hover { filter: brightness(1.05); }
+button.primary:hover { filter: brightness(1.06); }
+button:hover { border-color: var(--border-strong); background: var(--surface-2); }
+button.primary:hover { background: var(--accent); }
 input, select, textarea {
-  font: inherit; color: var(--text);
+  font: var(--type-body); color: var(--text);
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); padding: 0.4rem 0.6rem;
+  border-radius: var(--radius-sm); padding: 0.5rem 0.7rem;
+  transition: border-color var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
+}
+input:focus, select:focus, textarea:focus {
+  outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--ring);
 }
 
 /* ---- App shell ----------------------------------------------------------- */
 .shell { display: flex; height: 100%; }
 .rail {
   width: 240px; flex: 0 0 240px;
-  background: var(--surface); border-right: 1px solid var(--border);
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(1.4) blur(var(--blur-glass));
+  backdrop-filter: saturate(1.4) blur(var(--blur-glass));
+  border-right: 1px solid var(--border);
   display: flex; flex-direction: column; transition: margin-left 0.2s ease;
 }
 .rail .brand { padding: 1rem; font-weight: 700; border-bottom: 1px solid var(--border); }
@@ -98,14 +57,17 @@ input, select, textarea {
 .main { flex: 1; min-width: 0; display: flex; flex-direction: column; }
 .topbar {
   display: flex; align-items: center; gap: 0.75rem;
-  padding: 0.6rem 1rem; border-bottom: 1px solid var(--border); background: var(--surface);
+  padding: 0.6rem 1rem; border-bottom: 1px solid var(--border);
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(1.4) blur(var(--blur-glass));
+  backdrop-filter: saturate(1.4) blur(var(--blur-glass));
 }
 .burger { display: none; }
 .content { padding: 1.25rem; overflow: auto; flex: 1; }
 
 .card {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: var(--shadow); padding: 1rem;
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-sm); padding: var(--space-5);
 }
 .grid { display: grid; gap: 1rem; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); }
 .muted { color: var(--muted); }
@@ -137,9 +99,13 @@ textarea { width: 100%; resize: vertical; font: inherit; }
   background: rgba(0, 0, 0, 0.5);
   display: flex; align-items: center; justify-content: center; padding: 1rem;
 }
+.modal-scrim {
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
 .modal {
   background: var(--surface); border: 1px solid var(--border);
-  border-radius: var(--radius); box-shadow: var(--shadow);
+  border-radius: var(--radius-xl); box-shadow: var(--shadow-lg);
   padding: 1.25rem; width: 100%; max-width: 420px;
 }
 
@@ -160,7 +126,7 @@ textarea { width: 100%; resize: vertical; font: inherit; }
 .chip {
   display: inline-flex; align-items: center; gap: 0.3rem;
   background: var(--surface-2); border: 1px solid var(--border);
-  border-radius: 999px; padding: 0.15rem 0.6rem; font-size: 0.85rem;
+  border-radius: var(--radius-pill); padding: 0.2rem 0.65rem; font-size: var(--text-xs);
 }
 .chip-x { border: none; background: none; padding: 0; line-height: 1; font-size: 1.1rem; }
 
@@ -376,7 +342,7 @@ kbd {
 .rules-panes.mode-write .rules-editor, .rules-panes.mode-preview .rules-preview { flex: 1; }
 .rules-panes.mode-split .rules-editor, .rules-panes.mode-split .rules-preview { flex: 1; width: 50%; }
 .rules-editor {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 0.9rem; line-height: 1.6;
+  font-family: var(--font-mono); font-size: 0.9rem; line-height: 1.6;
   resize: none; height: 100%; min-height: 0;
 }
 .rules-preview {
