@@ -1,7 +1,9 @@
-// Right-side slide-over used for entity detail editing (Characters, NPCs). Closes
-// on backdrop click or Escape. Content scrolls; an optional footer pins actions.
+// Right-side slide-over used for entity detail editing (Characters, NPCs, …).
+// Thin wrapper over the design system's Drawer, preserving this app's existing
+// prop shape (title / onClose / children / footer) so call sites are unchanged.
 
-import { useEffect, type ReactNode } from 'react'
+import { type ReactNode } from 'react'
+import { Drawer as DsDrawer } from '../ds'
 
 export function Drawer({
   title,
@@ -14,26 +16,10 @@ export function Drawer({
   children: ReactNode
   footer?: ReactNode
 }) {
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [onClose])
-
   return (
-    <div className="drawer-scrim" onClick={onClose}>
-      <aside className="drawer" onClick={(e) => e.stopPropagation()} role="dialog" aria-modal="true">
-        <header className="drawer-head">
-          <h2 style={{ margin: 0, fontSize: '1.1rem' }}>{title}</h2>
-          <button className="ghost" aria-label="Close" onClick={onClose}>
-            ✕
-          </button>
-        </header>
-        <div className="drawer-body">{children}</div>
-        {footer && <footer className="drawer-foot">{footer}</footer>}
-      </aside>
-    </div>
+    <DsDrawer open onClose={onClose} title={typeof title === 'string' ? title : undefined} footer={footer}>
+      {typeof title !== 'string' && title}
+      {children}
+    </DsDrawer>
   )
 }

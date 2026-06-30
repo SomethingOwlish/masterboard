@@ -6,8 +6,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { MODULES } from '../modules'
-import { KIND_GLYPH, KIND_MODULE, useEntityPool } from '../store/entities'
+import { KIND_ICON, KIND_MODULE, useEntityPool } from '../store/entities'
 import { sessionTitle, useSessions } from '../store/sessions'
+import { Icon } from '../ds'
 
 interface Item {
   key: string
@@ -56,14 +57,14 @@ export function CommandPalette({
       .sort((a, b) => b.seq - a.seq)
       .map((s) => ({
         key: `sess:${s.id}`,
-        icon: '🗺️',
+        icon: 'map',
         label: sessionTitle(s),
         sub: 'Session',
         to: `${base}/sessions/${s.id}`,
       }))
     const entities: Item[] = pool.map((e) => ({
       key: `ent:${e.id}`,
-      icon: KIND_GLYPH[e.kind],
+      icon: KIND_ICON[e.kind],
       label: e.name,
       sub: KIND_MODULE[e.kind],
       to: `${base}/${KIND_MODULE[e.kind]}?focus=${e.id}`,
@@ -127,7 +128,7 @@ export function CommandPalette({
                 onMouseEnter={() => setActive(i)}
                 onClick={() => go(it)}
               >
-                <span aria-hidden className="palette-result-icon">{it.icon}</span>
+                <span aria-hidden className="palette-result-icon"><Icon name={it.icon} size={18} /></span>
                 <span className="palette-result-label">{it.label}</span>
                 <span className="palette-result-sub muted">{it.sub}</span>
               </button>

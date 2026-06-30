@@ -9,6 +9,8 @@ import { NewCampaignDialog } from '../components/NewCampaignDialog'
 import type { ThemeId } from '../model/types'
 import { useCampaigns } from '../store/campaigns'
 import { useConfig } from '../store/config'
+import { useConfirm } from '../components/useConfirm'
+import { Logo, Button, Card, EmptyState, IconButton, Icon } from '../ds'
 
 export function Hub() {
   const { campaigns, loaded, loading, load, create, remove } = useCampaigns()
@@ -17,6 +19,7 @@ export function Hub() {
   const tokenLoaded = useConfig((s) => s.tokenLoaded)
   const [showWizard, setShowWizard] = useState(false)
   const navigate = useNavigate()
+  const confirm = useConfirm()
 
   // Load the token first so the very first index read can hit GitHub if configured.
   useEffect(() => {
@@ -36,16 +39,22 @@ export function Hub() {
   return (
     <div className="content" style={{ maxWidth: 980, margin: '0 auto' }}>
       <header className="row" style={{ justifyContent: 'space-between', marginBottom: '1.5rem' }}>
-        <h1 style={{ margin: 0 }}>🎲 Masterboard</h1>
+        <Logo size="md" />
         <div className="row">
-          <Link to="/settings" className="muted" style={{ textDecoration: 'none' }}>⚙️ Settings</Link>
+          <Link
+            to="/settings"
+            className="muted row"
+            style={{ textDecoration: 'none', gap: '0.35rem' }}
+          >
+            <Icon name="settings" size={16} /> Settings
+          </Link>
           <ThemePicker />
         </div>
       </header>
 
       <div className="row" style={{ justifyContent: 'space-between', marginBottom: '1rem' }}>
         <h2 style={{ margin: 0 }}>Your campaigns</h2>
-        <button className="primary" onClick={() => setShowWizard(true)}>+ New campaign</button>
+        <Button variant="primary" icon="plus" onClick={() => setShowWizard(true)}>New campaign</Button>
       </div>
 
       {!isConnected && (
@@ -57,32 +66,42 @@ export function Hub() {
       {loading && !loaded && <p className="muted">Loading…</p>}
 
       {loaded && campaigns.length === 0 && (
-        <div className="card" style={{ maxWidth: 480 }}>
-          <strong>No campaigns yet</strong>
-          <p className="muted" style={{ marginBottom: 0 }}>Create your first campaign to get started.</p>
-        </div>
+        <EmptyState
+          icon="dices"
+          title="No campaigns yet"
+          hint="Create your first campaign to start planning sessions, casting NPCs and tracking the story."
+          action={<Button variant="primary" icon="plus" onClick={() => setShowWizard(true)}>New campaign</Button>}
+          style={{ maxWidth: 480 }}
+        />
       )}
 
       <div className="grid">
         {campaigns.map((c) => (
-          <div key={c.id} className="card campaign-card">
+          <Card key={c.id} interactive pattern="paper" padding="var(--space-4)" className="campaign-card">
             <Link to={`/campaign/${c.id}`} style={{ textDecoration: 'none', color: 'inherit' }}>
               {c.cover && <img className="cover" src={c.cover} alt="" />}
               <strong>{c.name}</strong>
-              <div className="muted" style={{ marginTop: '0.4rem' }}>
+              <div className="muted mb-data" style={{ marginTop: '0.4rem', fontSize: 'var(--text-xs)' }}>
                 Last played: {c.lastPlayed ?? 'never'}
               </div>
             </Link>
-            <button
-              className="card-del"
-              title="Delete campaign"
-              onClick={() => {
-                if (confirm(`Delete "${c.name}"? This cannot be undone.`)) void remove(c.id)
-              }}
-            >
-              🗑
-            </button>
-          </div>
+            <span className="card-del">
+              <IconButton
+                icon="trash-2"
+                label="Delete campaign"
+                tone="danger"
+                size="sm"
+                onClick={() =>
+                  confirm({
+                    title: 'Delete campaign?',
+                    message: `Delete "${c.name}"? This cannot be undone.`,
+                    confirmLabel: 'Delete',
+                    onConfirm: () => void remove(c.id),
+                  })
+                }
+              />
+            </span>
+          </Card>
         ))}
       </div>
 

@@ -1,23 +1,25 @@
 import { useState } from 'react'
-import { THEMES, getTheme, setTheme, type ThemeId } from '../theme'
+import { ThemeSwitcher } from '../ds'
+import { getStoredTheme, setTheme, type Family, type Mode } from '../theme'
 
+// Thin persistence wrapper around the design system's ThemeSwitcher: five accent
+// dots + a sun/moon toggle. Seeds from the stored shell theme and writes the
+// choice back to localStorage (ThemeSwitcher itself sets data-theme on <html>).
 export function ThemePicker() {
-  const [theme, setLocal] = useState<ThemeId>(getTheme())
+  const initial = getStoredTheme()
+  const [family, setFamily] = useState<Family>(initial.family)
+  const [mode, setMode] = useState<Mode>(initial.mode)
   return (
-    <label className="row" style={{ gap: '0.4rem' }}>
-      <span className="muted">Theme</span>
-      <select
-        value={theme}
-        onChange={(e) => {
-          const id = e.target.value as ThemeId
-          setTheme(id)
-          setLocal(id)
-        }}
-      >
-        {THEMES.map((t) => (
-          <option key={t.id} value={t.id}>{t.label}</option>
-        ))}
-      </select>
-    </label>
+    <ThemeSwitcher
+      family={family}
+      mode={mode}
+      onChange={({ family: f, mode: m }) => {
+        const fam = f as Family
+        const md = m as Mode
+        setFamily(fam)
+        setMode(md)
+        setTheme(fam, md)
+      }}
+    />
   )
 }

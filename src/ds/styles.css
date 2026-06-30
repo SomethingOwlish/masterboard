@@ -1,0 +1,12 @@
+/* ═══════════════════════════════════════════════════════════════════════════
+   Masterboard Design System — global stylesheet entry point.
+   Consumers link THIS one file. It is an import manifest only; all real rules
+   live in the token files below. Order matters: fonts → scales → themes →
+   patterns → base element defaults.
+   ═══════════════════════════════════════════════════════════════════════════ */
+@import './tokens/fonts.css';
+@import './tokens/typography.css';
+@import './tokens/spacing.css';
+@import './tokens/themes.css';
+@import './tokens/patterns.css';
+@import './tokens/base.css';

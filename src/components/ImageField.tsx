@@ -8,6 +8,7 @@
 
 import { useRef, useState } from 'react'
 import { useConfig } from '../store/config'
+import { Icon, Button } from '../ds'
 
 type Variant = 'avatar' | 'thumb' | 'cover'
 
@@ -26,11 +27,12 @@ export function ImageField({
   value,
   onChange,
   variant = 'thumb',
-  glyph = '🖼️',
+  glyph = 'image',
 }: {
   value?: string
   onChange: (url: string | undefined) => void
   variant?: Variant
+  /** Lucide icon name shown in the empty preview tile. */
   glyph?: string
 }) {
   const imageAdapter = useConfig((s) => s.imageAdapter)
@@ -67,7 +69,7 @@ export function ImageField({
           <img className={PREVIEW_CLASS[variant]} src={value} alt="" />
         ) : (
           <span className={EMPTY_CLASS[variant]} aria-hidden>
-            {glyph}
+            <Icon name={glyph} size={variant === 'avatar' ? 18 : 28} />
           </span>
         )}
 
@@ -79,13 +81,13 @@ export function ImageField({
             onChange={onPick}
             style={{ display: 'none' }}
           />
-          <button onClick={() => fileRef.current?.click()} disabled={busy}>
+          <Button size="sm" icon="upload" onClick={() => fileRef.current?.click()} disabled={busy}>
             {busy ? 'Uploading…' : value ? 'Replace…' : 'Upload…'}
-          </button>
+          </Button>
           {value && (
-            <button className="ghost" onClick={() => onChange(undefined)} disabled={busy}>
+            <Button size="sm" variant="ghost" onClick={() => onChange(undefined)} disabled={busy}>
               Remove
-            </button>
+            </Button>
           )}
         </div>
       </div>

@@ -7,6 +7,7 @@ import { useState } from 'react'
 import { makeTask } from '../model/defaults'
 import type { EntityKind } from '../store/entities'
 import { useTasks } from '../store/tasks'
+import { Button } from '../ds'
 
 export function EntityTaskButton({
   campaignId,
@@ -32,8 +33,8 @@ export function EntityTaskButton({
   }
 
   return (
-    <button onClick={() => void create()} disabled={done}>
-      {done ? 'Task added ✓' : '✅ Create task'}
-    </button>
+    <Button icon={done ? 'check' : 'list-checks'} onClick={() => void create()} disabled={done}>
+      {done ? 'Task added' : 'Create task'}
+    </Button>
   )
 }

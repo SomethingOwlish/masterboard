@@ -1,0 +1,86 @@
+/* ── Patterns, glass & surfaces ───────────────────────────────────────────
+   Texture is structural, never decorative clip-art: fine repeating grids, dot
+   matrices, paper grain and a woven motif, all built from CSS gradients and all
+   tinted by --pattern-ink so they sit a hair above the ground in every theme.
+   Glass surfaces use backdrop-blur over a translucent --glass fill.
+   ------------------------------------------------------------------------- */
+
+/* Page ground — apply to <body> or a kit root. Quiet paper grain + vignette. */
+.mb-ground {
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(var(--pattern-ink) 0.5px, transparent 0.5px),
+    radial-gradient(var(--pattern-ink) 0.5px, transparent 0.5px);
+  background-size: 22px 22px, 22px 22px;
+  background-position: 0 0, 11px 11px;
+}
+
+/* Dot matrix — boards, canvases, the relation web ground. */
+.mb-pattern-dots {
+  background-image: radial-gradient(var(--pattern-ink) 1px, transparent 1px);
+  background-size: 18px 18px;
+}
+
+/* Hairline grid — planner & timeline grounds. */
+.mb-pattern-grid {
+  background-image:
+    linear-gradient(var(--pattern-ink) var(--border-hair), transparent var(--border-hair)),
+    linear-gradient(90deg, var(--pattern-ink) var(--border-hair), transparent var(--border-hair));
+  background-size: 28px 28px;
+}
+
+/* Diagonal hatch — disabled / locked / "fixed column" affordance. */
+.mb-pattern-hatch {
+  background-image: repeating-linear-gradient(
+    45deg,
+    var(--pattern-ink) 0 1px,
+    transparent 1px 9px
+  );
+}
+
+/* Washi paper — soft multi-frequency grain for hero & cover blocks. */
+.mb-pattern-paper {
+  background-image:
+    radial-gradient(var(--pattern-ink) 0.5px, transparent 0.6px),
+    radial-gradient(var(--pattern-ink) 0.5px, transparent 0.6px);
+  background-size: 13px 13px, 31px 31px;
+  background-position: 0 0, 7px 9px;
+}
+
+/* Asanoha-leaning weave — a quiet interlock for section dividers / empty states. */
+.mb-pattern-weave {
+  background-image:
+    linear-gradient(60deg, var(--pattern-ink) 25%, transparent 25.5%),
+    linear-gradient(-60deg, var(--pattern-ink) 25%, transparent 25.5%);
+  background-size: 20px 34px;
+}
+
+/* ── Glass ───────────────────────────────────────────────────────────────
+   Frosted translucent surface. Use for rails, topbars, modals, floating
+   inspectors — anything that should let the ground read faintly through. */
+.mb-glass {
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(1.4) blur(var(--blur-glass));
+  backdrop-filter: saturate(1.4) blur(var(--blur-glass));
+  border: var(--border-width) solid var(--glass-border);
+}
+.mb-glass-veil {
+  background: var(--glass);
+  -webkit-backdrop-filter: saturate(1.2) blur(var(--blur-veil));
+  backdrop-filter: saturate(1.2) blur(var(--blur-veil));
+}
+
+/* A subtle top sheen, the way light catches frosted glass. */
+.mb-sheen {
+  position: relative;
+  isolation: isolate;
+}
+.mb-sheen::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.10), transparent 42%);
+  pointer-events: none;
+  z-index: -1;
+}

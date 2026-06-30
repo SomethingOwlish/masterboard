@@ -22,10 +22,11 @@ import 'tldraw/tldraw.css'
 import type { Scene } from '../model/types'
 import { TouchHint } from '../components/TouchHint'
 import { useChronology } from '../store/chronology'
-import { KIND_GLYPH, useEntityPool } from '../store/entities'
+import { KIND_ICON, useEntityPool } from '../store/entities'
 import { sessionTitle, useSessions } from '../store/sessions'
+import { Icon } from '../ds'
 
-// tldraw palette colours + glyphs per token kind ('event' is planner-only).
+// tldraw palette colours + icons per token kind ('event' is planner-only).
 const TOKEN_COLOR: Record<string, TLDefaultColorStyle> = {
   pc: 'blue',
   npc: 'violet',
@@ -33,7 +34,7 @@ const TOKEN_COLOR: Record<string, TLDefaultColorStyle> = {
   misc: 'orange',
   event: 'grey',
 }
-const GLYPH: Record<string, string> = { ...KIND_GLYPH, event: '📜' }
+const TOKEN_ICON: Record<string, string> = { ...KIND_ICON, event: 'history' }
 
 interface PaletteItem {
   id: string
@@ -180,7 +181,7 @@ export function SessionPlanner() {
         geo: 'rectangle',
         w: 140,
         h: 48,
-        richText: toRichText(`${GLYPH[item.kind] ?? ''} ${item.name}`.trim()),
+        richText: toRichText(item.name),
         color: TOKEN_COLOR[item.kind] ?? 'black',
         fill: 'semi',
         size: 's',
@@ -271,8 +272,8 @@ export function SessionPlanner() {
                 <p className="muted palette-empty">None yet.</p>
               ) : (
                 g.items.map((item) => (
-                  <button key={item.id} className="palette-item" onClick={() => dropToken(item)}>
-                    <span aria-hidden>{GLYPH[item.kind]}</span> {item.name}
+                  <button key={item.id} className="palette-item row" style={{ gap: '0.4rem' }} onClick={() => dropToken(item)}>
+                    <Icon name={TOKEN_ICON[item.kind] ?? 'dices'} size={15} /> {item.name}
                   </button>
                 ))
               )}

@@ -5,6 +5,7 @@
 import { useState } from 'react'
 import type { NextSessionPlan } from '../model/types'
 import { useCampaign } from '../store/campaign'
+import { Icon, Tag, Button } from '../ds'
 
 export function NextSessionPlanner({ plan }: { plan: NextSessionPlan }) {
   const setNextSession = useCampaign((s) => s.setNextSession)
@@ -25,7 +26,7 @@ export function NextSessionPlanner({ plan }: { plan: NextSessionPlan }) {
 
   return (
     <section className="card">
-      <h2 className="section-title">🗓️ Next session</h2>
+      <h2 className="section-title row" style={{ gap: '0.4rem' }}><Icon name="calendar" size={18} /> Next session</h2>
 
       <div className="field">
         <label htmlFor="ns-date">Date</label>
@@ -51,15 +52,12 @@ export function NextSessionPlanner({ plan }: { plan: NextSessionPlan }) {
             }}
             placeholder="Add a player…"
           />
-          <button onClick={addAttendee}>Add</button>
+          <Button onClick={addAttendee}>Add</Button>
         </div>
         {plan.attendees.length > 0 && (
           <div className="chips">
             {plan.attendees.map((a) => (
-              <span key={a} className="chip">
-                {a}
-                <button className="chip-x" aria-label={`Remove ${a}`} onClick={() => removeAttendee(a)}>×</button>
-              </span>
+              <Tag key={a} icon="users" onRemove={() => removeAttendee(a)}>{a}</Tag>
             ))}
           </div>
         )}

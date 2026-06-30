@@ -13,6 +13,8 @@ import { makeNpc } from '../model/defaults'
 import { useFocusParam, useNewAction } from '../lib/shortcuts'
 import { useNpcs } from '../store/npcs'
 import { useEntityPool } from '../store/entities'
+import { useConfirm } from '../components/useConfirm'
+import { Icon, Button, TextField, Select, Checkbox, EntityCard, EmptyState, Tabs } from '../ds'
 
 type AliveFilter = 'all' | 'alive' | 'dead'
 
@@ -27,6 +29,7 @@ export function NpcsPage() {
   const [openId, setOpenId] = useState<string | null>(null)
   const [tagFilter, setTagFilter] = useState('')
   const [alive, setAlive] = useState<AliveFilter>('all')
+  const confirm = useConfirm()
 
   // The pool loads NPCs (+ PCs/Locations/Misc + relations) for this campaign.
   const entities = useEntityPool(campaignId)
@@ -38,6 +41,8 @@ export function NpcsPage() {
       (alive === 'all' || (alive === 'dead' ? n.dead : !n.dead)) &&
       (!tagFilter || n.tags.includes(tagFilter)),
   )
+  const aliveCount = npcs.filter((n) => !n.dead).length
+  const deadCount = npcs.filter((n) => n.dead).length
 
   async function create() {
     const n = makeNpc()
@@ -51,57 +56,59 @@ export function NpcsPage() {
   return (
     <div className="content">
       <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ margin: 0 }}>
-          <span aria-hidden>🎭</span> NPCs
+        <h1 className="row" style={{ margin: 0, gap: '0.5rem' }}>
+          <Icon name="drama" size={24} /> NPCs
         </h1>
-        <button className="primary" onClick={() => void create()}>
-          + New NPC
-        </button>
+        <Button variant="primary" icon="plus" onClick={() => void create()}>
+          New NPC
+        </Button>
       </div>
 
-      <div className="row" style={{ marginTop: '0.75rem' }}>
-        <select value={alive} onChange={(e) => setAlive(e.target.value as AliveFilter)}>
-          <option value="all">All</option>
-          <option value="alive">Alive</option>
-          <option value="dead">Dead</option>
-        </select>
-        <select value={tagFilter} onChange={(e) => setTagFilter(e.target.value)} disabled={allTags.length === 0}>
+      <div className="row" style={{ marginTop: '0.75rem', justifyContent: 'space-between', alignItems: 'flex-end' }}>
+        <Tabs
+          tabs={[
+            { id: 'all', label: 'All', count: npcs.length },
+            { id: 'alive', label: 'Alive', count: aliveCount },
+            { id: 'dead', label: 'Dead', icon: 'skull', count: deadCount },
+          ]}
+          activeId={alive}
+          onSelect={(id) => setAlive(id as AliveFilter)}
+        />
+        <Select
+          value={tagFilter}
+          onChange={(e) => setTagFilter(e.target.value)}
+          disabled={allTags.length === 0}
+          containerStyle={{ minWidth: 160 }}
+        >
           <option value="">All tags</option>
           {allTags.map((t) => (
             <option key={t} value={t}>{t}</option>
           ))}
-        </select>
+        </Select>
       </div>
 
       {loading ? (
         <p className="muted" style={{ marginTop: '1rem' }}>Loading…</p>
       ) : shown.length === 0 ? (
-        <p className="muted" style={{ marginTop: '1rem' }}>
-          {npcs.length === 0 ? 'No NPCs yet. Add one with “New NPC”.' : 'No NPCs match the current filters.'}
-        </p>
+        <EmptyState
+          icon="drama"
+          title={npcs.length === 0 ? 'No NPCs yet' : 'No NPCs match the current filters'}
+          hint={npcs.length === 0 ? 'Add the cast your party will meet.' : 'Try a different tag or alive/dead filter.'}
+          action={npcs.length === 0 ? <Button variant="primary" icon="plus" onClick={() => void create()}>New NPC</Button> : undefined}
+          style={{ marginTop: '1rem' }}
+        />
       ) : (
         <div className="grid entity-grid" style={{ marginTop: '1rem' }}>
           {shown.map((n) => (
-            <button key={n.id} className={`card entity-card ${n.dead ? 'is-dead' : ''}`} onClick={() => setOpenId(n.id)}>
-              <div className="entity-head">
-                {n.portrait ? (
-                  <img className="avatar" src={n.portrait} alt="" />
-                ) : (
-                  <span className="avatar avatar-empty" aria-hidden>{n.dead ? '💀' : '🎭'}</span>
-                )}
-                <div className="entity-title">
-                  <strong>{n.name || '(unnamed)'}</strong>
-                  {n.dead && <div className="muted">💀 Dead</div>}
-                </div>
-              </div>
-              {n.tags.length > 0 && (
-                <div className="chips">
-                  {n.tags.map((t) => (
-                    <span key={t} className="chip">{t}</span>
-                  ))}
-                </div>
-              )}
-            </button>
+            <EntityCard
+              key={n.id}
+              kind="npc"
+              name={n.name || '(unnamed)'}
+              portrait={n.portrait}
+              dead={n.dead}
+              tags={n.tags}
+              onClick={() => setOpenId(n.id)}
+            />
           ))}
         </div>
       )}
@@ -112,41 +119,56 @@ export function NpcsPage() {
           onClose={() => setOpenId(null)}
           footer={
             <>
-              <button
-                onClick={() => {
-                  void remove(editing.id)
-                  setOpenId(null)
-                }}
+              <Button
+                variant="ghost"
+                tone="danger"
+                icon="trash-2"
+                onClick={() =>
+                  confirm({
+                    title: 'Delete NPC?',
+                    message: `Delete "${editing.name || 'this NPC'}"? This cannot be undone.`,
+                    confirmLabel: 'Delete',
+                    onConfirm: () => {
+                      void remove(editing.id)
+                      setOpenId(null)
+                    },
+                  })
+                }
               >
                 Delete
-              </button>
-              <button className="primary" onClick={() => setOpenId(null)}>
+              </Button>
+              <Button variant="primary" onClick={() => setOpenId(null)}>
                 Done
-              </button>
+              </Button>
             </>
           }
         >
-          <div className="field">
-            <label>Name</label>
-            <input value={editing.name} onChange={(e) => void update(editing.id, { name: e.target.value })} />
-          </div>
-          <label className="row" style={{ gap: '0.4rem', marginBottom: '0.75rem' }}>
-            <input type="checkbox" checked={editing.dead} onChange={(e) => void update(editing.id, { dead: e.target.checked })} />
-            Dead
-          </label>
+          <TextField
+            label="Name"
+            value={editing.name}
+            onChange={(e) => void update(editing.id, { name: e.target.value })}
+          />
+          <Checkbox
+            label="Dead"
+            checked={editing.dead}
+            onChange={(e) => void update(editing.id, { dead: e.target.checked })}
+          />
           <div className="field">
             <label>Portrait</label>
             <ImageField
               value={editing.portrait}
               variant="avatar"
-              glyph="🎭"
+              glyph="drama"
               onChange={(portrait) => void update(editing.id, { portrait })}
             />
           </div>
-          <div className="field">
-            <label>Notes</label>
-            <textarea rows={3} value={editing.notes ?? ''} onChange={(e) => void update(editing.id, { notes: e.target.value || undefined })} />
-          </div>
+          <TextField
+            label="Notes"
+            multiline
+            rows={3}
+            value={editing.notes ?? ''}
+            onChange={(e) => void update(editing.id, { notes: e.target.value || undefined })}
+          />
 
           <h3 className="section-title">Fields</h3>
           <FieldsEditor fields={editing.fields} onChange={(fields) => void update(editing.id, { fields })} />

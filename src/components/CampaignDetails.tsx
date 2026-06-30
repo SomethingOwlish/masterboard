@@ -8,6 +8,7 @@ import type { Campaign } from '../model/types'
 import { useCampaign } from '../store/campaign'
 import { ImageField } from './ImageField'
 import { SystemSelect } from './SystemSelect'
+import { Icon, IconButton, Button, StatBlock } from '../ds'
 
 export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaign; finishedCount: number }) {
   const { rename, update } = useCampaign()
@@ -33,7 +34,7 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
           {campaign.cover ? (
             <img className="overview-cover" src={campaign.cover} alt="" />
           ) : (
-            <span className="overview-cover overview-cover-empty" aria-hidden>🎲</span>
+            <span className="overview-cover overview-cover-empty" aria-hidden><Icon name="dices" size={32} /></span>
           )}
           <button className="cover-change" onClick={() => setEditCover((v) => !v)}>
             Change
@@ -53,13 +54,13 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
                 }}
                 style={{ fontSize: '1.3rem', fontWeight: 700, flex: 1 }}
               />
-              <button className="primary" onClick={saveTitle}>Save</button>
-              <button onClick={() => { setTitleDraft(campaign.name); setEditTitle(false) }}>Cancel</button>
+              <Button variant="primary" onClick={saveTitle}>Save</Button>
+              <Button variant="ghost" onClick={() => { setTitleDraft(campaign.name); setEditTitle(false) }}>Cancel</Button>
             </div>
           ) : (
             <div className="row" style={{ gap: '0.5rem' }}>
               <h1 style={{ margin: 0 }}>{campaign.name}</h1>
-              <button className="ghost" title="Rename" onClick={() => { setTitleDraft(campaign.name); setEditTitle(true) }}>✎</button>
+              <IconButton icon="pencil" label="Rename" size="sm" onClick={() => { setTitleDraft(campaign.name); setEditTitle(true) }} />
             </div>
           )}
           <p className="muted" style={{ margin: '0.25rem 0 0' }}>
@@ -75,7 +76,7 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
           <ImageField
             value={campaign.cover}
             variant="cover"
-            glyph="🎲"
+            glyph="dices"
             onChange={(cover) => void update({ cover })}
           />
         </div>
@@ -104,10 +105,7 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
             placeholder="0"
           />
         </label>
-        <div className="stat">
-          <span className="stat-label">Sessions finished</span>
-          <span className="stat-value" title="Counts entries in the recap log">{finishedCount}</span>
-        </div>
+        <StatBlock label="Sessions finished" value={finishedCount} accent hint="From the recap log" />
       </div>
 
       <div className="field" style={{ marginTop: '0.75rem' }}>

@@ -3,8 +3,9 @@
 // shared relations store, so edits appear instantly on the Relation board too.
 
 import { useState } from 'react'
-import { KIND_GLYPH, type EntityRef } from '../store/entities'
+import { type EntityRef } from '../store/entities'
 import { useRelations } from '../store/relations'
+import { IconButton, Icon } from '../ds'
 
 export type { EntityRef }
 
@@ -21,7 +22,7 @@ export function ConnectionsEditor({ entityId, entities }: { entityId: string; en
   const entityOf = (id: string) => entities.find((e) => e.id === id)
   const nameOf = (id: string) => {
     const e = entityOf(id)
-    return e ? `${KIND_GLYPH[e.kind]} ${e.name}` : '(unknown)'
+    return e ? e.name : '(unknown)'
   }
   const mine = relations.filter((r) => r.fromId === entityId || r.toId === entityId)
   const targets = entities.filter((e) => e.id !== entityId)
@@ -45,7 +46,9 @@ export function ConnectionsEditor({ entityId, entities }: { entityId: string; en
             const outgoing = r.fromId === entityId
             return (
               <li key={r.id} className="conn-item">
-                <span aria-hidden>{r.directed ? (outgoing ? '→' : '←') : '↔'}</span>
+                <span aria-hidden style={{ display: 'inline-flex', color: 'var(--muted)' }}>
+                  <Icon name={r.directed ? (outgoing ? 'arrow-right' : 'arrow-left') : 'arrow-left-right'} size={15} />
+                </span>
                 <strong>{nameOf(other)}</strong>
                 <input
                   className="conn-label"
@@ -53,9 +56,7 @@ export function ConnectionsEditor({ entityId, entities }: { entityId: string; en
                   placeholder="label"
                   onChange={(e) => void updateRelation(r.id, { label: e.target.value })}
                 />
-                <button className="ghost" aria-label="Remove connection" onClick={() => void removeRelation(r.id)}>
-                  🗑
-                </button>
+                <IconButton icon="trash-2" label="Remove connection" size="sm" tone="danger" onClick={() => void removeRelation(r.id)} />
               </li>
             )
           })}
@@ -68,7 +69,7 @@ export function ConnectionsEditor({ entityId, entities }: { entityId: string; en
             <option value="">Link to…</option>
             {targets.map((e) => (
               <option key={e.id} value={e.id}>
-                {KIND_GLYPH[e.kind]} {e.name || '(unnamed)'}
+                {e.name || '(unnamed)'}
               </option>
             ))}
           </select>

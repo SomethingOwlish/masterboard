@@ -18,7 +18,23 @@ export interface Field {
   type: 'text' | 'number' | 'longtext'
 }
 
-export type ThemeId = 'parchment' | 'dark' | 'contrast' | 'neon'
+// New family ids (+ optional `-dark`) are the canonical values; the four legacy
+// ids are retained so campaigns saved under the old theme system still load.
+export type ThemeId =
+  | 'parchment'
+  | 'sage'
+  | 'sumi'
+  | 'indigo'
+  | 'dusk'
+  | 'parchment-dark'
+  | 'sage-dark'
+  | 'sumi-dark'
+  | 'indigo-dark'
+  | 'dusk-dark'
+  // legacy (pre design-system migration)
+  | 'dark'
+  | 'contrast'
+  | 'neon'
 
 /** Module storage backends (per-module override, set in Campaign Settings). */
 export type StorageBackend = 'repo-file' | 'imgur' | 'source-readonly' | 'separate-md'

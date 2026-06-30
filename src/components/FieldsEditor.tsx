@@ -4,6 +4,7 @@
 
 import { makeField } from '../model/defaults'
 import type { Field } from '../model/types'
+import { Button, IconButton } from '../ds'
 
 const TYPES: Field['type'][] = ['text', 'number', 'longtext']
 
@@ -30,9 +31,7 @@ export function FieldsEditor({ fields, onChange }: { fields: Field[]; onChange: 
                 </option>
               ))}
             </select>
-            <button className="ghost" aria-label="Remove field" onClick={() => onChange(fields.filter((x) => x.id !== f.id))}>
-              🗑
-            </button>
+            <IconButton icon="trash-2" label="Remove field" size="sm" tone="danger" onClick={() => onChange(fields.filter((x) => x.id !== f.id))} />
           </div>
           {f.type === 'longtext' ? (
             <textarea rows={3} value={f.value} onChange={(e) => patch(f.id, { value: e.target.value })} />
@@ -45,7 +44,7 @@ export function FieldsEditor({ fields, onChange }: { fields: Field[]; onChange: 
           )}
         </div>
       ))}
-      <button onClick={() => onChange([...fields, makeField()])}>+ Add field</button>
+      <Button size="sm" icon="plus" onClick={() => onChange([...fields, makeField()])}>Add field</Button>
     </div>
   )
 }

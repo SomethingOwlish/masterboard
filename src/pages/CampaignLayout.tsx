@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { NavLink, Outlet, useParams, useNavigate, Link } from 'react-router-dom'
+import { Outlet, useParams, useNavigate, useLocation, Link } from 'react-router-dom'
 import { MODULES } from '../modules'
 import { ThemePicker } from '../components/ThemePicker'
 import { SyncIndicator } from '../components/SyncIndicator'
@@ -7,9 +7,10 @@ import { CommandPalette } from '../components/CommandPalette'
 import { useCampaign } from '../store/campaign'
 import { useConfig } from '../store/config'
 import { emitNewAction, isTypingTarget } from '../lib/shortcuts'
+import { SidebarNav, Topbar, Logo, IconButton } from '../ds'
 
 // `g` then one of these jumps to a module (vim/Gmail style). Keys chosen to be
-// memorable per module; surfaced in the burger menu's footer hint.
+// memorable per module; surfaced in the rail's footer hint.
 const NAV_KEYS: Record<string, string> = {
   o: 'overview', c: 'characters', n: 'npcs', r: 'relations', h: 'chronology',
   s: 'sessions', l: 'locations', m: 'misc', t: 'tasks', u: 'rules',
@@ -19,6 +20,7 @@ const NAV_KEYS: Record<string, string> = {
 export function CampaignLayout() {
   const { campaignId } = useParams()
   const navigate = useNavigate()
+  const location = useLocation()
   const [open, setOpen] = useState(false)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const base = `/campaign/${campaignId}`
@@ -37,13 +39,19 @@ export function CampaignLayout() {
     if (tokenLoaded && campaignId) void openCampaign(campaignId)
   }, [tokenLoaded, campaignId, openCampaign])
 
+  const routeFor = (m: { path: string }) => (m.path === '' ? base : `${base}/${m.path}`)
+  // Active module = the deepest route prefix match (overview is the bare base).
+  const activeId =
+    MODULES.filter((m) => m.path !== '' && location.pathname.startsWith(`${base}/${m.path}`))
+      .sort((a, b) => b.path.length - a.path.length)[0]?.id ?? 'overview'
+
   // Global shortcuts (B10). Cmd/Ctrl-K toggles the palette anywhere; the single-key
   // shortcuts (`g`-prefixed nav, `n` for new) defer while typing or when an overlay
-  // owns the keyboard. `routeFor` resolves a module id to its campaign route.
+  // owns the keyboard.
   const gPending = useRef(false)
   const gTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   useEffect(() => {
-    const routeFor = (moduleId: string) => {
+    const routeForId = (moduleId: string) => {
       const m = MODULES.find((x) => x.id === moduleId)
       if (!m) return null
       return m.path === '' ? base : `${base}/${m.path}`
@@ -61,7 +69,7 @@ export function CampaignLayout() {
         if (gTimer.current) clearTimeout(gTimer.current)
         const target = NAV_KEYS[e.key.toLowerCase()]
         if (target) {
-          const route = routeFor(target)
+          const route = routeForId(target)
           if (route) {
             e.preventDefault()
             navigate(route)
@@ -84,41 +92,45 @@ export function CampaignLayout() {
 
   return (
     <div className="shell">
-      <aside className={`rail ${open ? 'open' : ''}`}>
-        <div className="brand">
-          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }}>🎲 Masterboard</Link>
-        </div>
-        <nav onClick={() => setOpen(false)}>
-          {MODULES.map((m) => (
-            <NavLink
-              key={m.id}
-              end={m.path === ''}
-              to={m.path === '' ? base : `${base}/${m.path}`}
-              className={({ isActive }) => (isActive ? 'active' : '')}
-            >
-              <span aria-hidden>{m.icon}</span> {m.label}
-            </NavLink>
-          ))}
-        </nav>
-        <p className="rail-hint muted">
-          <kbd>⌘K</kbd> search · <kbd>g</kbd> then a key to jump · <kbd>n</kbd> new
-        </p>
-      </aside>
+      <SidebarNav
+        className={`rail ${open ? 'open' : ''}`}
+        items={MODULES.map((m) => ({ id: m.id, label: m.label, icon: m.icon }))}
+        activeId={activeId}
+        onSelect={(id) => {
+          const m = MODULES.find((x) => x.id === id)
+          if (m) navigate(routeFor(m))
+          setOpen(false)
+        }}
+        header={
+          <Link to="/" style={{ textDecoration: 'none', color: 'inherit' }} aria-label="All campaigns">
+            <Logo size="sm" />
+          </Link>
+        }
+        footer={
+          <p className="rail-hint muted" style={{ margin: 0 }}>
+            <kbd>⌘K</kbd> search · <kbd>g</kbd> then a key to jump · <kbd>n</kbd> new
+          </p>
+        }
+      />
 
       <div className={`scrim ${open ? 'show' : ''}`} onClick={() => setOpen(false)} />
 
       <div className="main">
-        <div className="topbar">
-          <button className="burger" onClick={() => setOpen((v) => !v)} aria-label="Menu">☰</button>
-          <strong style={{ flex: 1 }}>{campaign?.name ?? `Campaign: ${campaignId}`}</strong>
-          <div className="no-print row">
-            <button className="ghost palette-trigger" onClick={() => setPaletteOpen(true)} aria-label="Search">
-              🔍 <span className="palette-trigger-text">Search</span>
-            </button>
-            <SyncIndicator />
-            <ThemePicker />
-          </div>
-        </div>
+        <Topbar
+          title={campaign?.name ?? `Campaign: ${campaignId}`}
+          left={
+            <span className="burger">
+              <IconButton icon="panel-left" label="Menu" onClick={() => setOpen((v) => !v)} />
+            </span>
+          }
+          right={
+            <div className="no-print row" style={{ gap: '0.5rem' }}>
+              <IconButton icon="search" label="Search" onClick={() => setPaletteOpen(true)} />
+              <SyncIndicator />
+              <ThemePicker />
+            </div>
+          }
+        />
         <Outlet />
       </div>
 

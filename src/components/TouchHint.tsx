@@ -4,6 +4,7 @@
 // dismiss it and remember that across sessions.
 
 import { useState } from 'react'
+import { Icon } from '../ds'
 
 const KEY = 'masterboard:touch-hint-dismissed'
 
@@ -18,7 +19,7 @@ export function TouchHint({ text }: { text: string }) {
   if (dismissed) return null
   return (
     <div className="touch-hint no-print">
-      <span aria-hidden>👆</span> {text}
+      <Icon name="pointer" size={15} /> {text}
       <button
         aria-label="Dismiss hint"
         onClick={() => {
@@ -30,7 +31,7 @@ export function TouchHint({ text }: { text: string }) {
           }
         }}
       >
-        ✕
+        <Icon name="x" size={14} />
       </button>
     </div>
   )

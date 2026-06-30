@@ -1,0 +1,10 @@
+/* ── Masterboard webfonts ─────────────────────────────────────────────────
+   Loaded from Google Fonts CDN. The codebase shipped with system-ui only, so
+   these typefaces are a deliberate brand choice for the Scandinavian/Japanese
+   direction — flag to the user if self-hosted binaries are required.
+
+   · Zen Old Mincho — Japanese mincho serif. Display / campaign titles / brand.
+   · Hanken Grotesk — Scandinavian humanist grotesque. UI + body.
+   · Space Mono     — tabular numerals for dates, timelines, sync state.
+   ------------------------------------------------------------------------- */
+@import url('https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@400;500;600;700;900&family=Hanken+Grotesk:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,500&family=Space+Mono:wght@400;700&display=swap');

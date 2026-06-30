@@ -16,6 +16,7 @@ import { useMisc } from '../store/misc'
 import { useNpcs } from '../store/npcs'
 import { sessionTitle, useSessions } from '../store/sessions'
 import { data } from '../storage/data'
+import { Icon, Button, Select } from '../ds'
 
 export function PrintPage() {
   const { campaignId } = useParams()
@@ -84,21 +85,21 @@ export function PrintPage() {
   return (
     <div className="content print-page">
       <div className="row no-print" style={{ justifyContent: 'space-between' }}>
-        <h1 style={{ margin: 0 }}>
-          <span aria-hidden>🖨️</span> Print
+        <h1 className="row" style={{ margin: 0, gap: '0.5rem' }}>
+          <Icon name="printer" size={24} /> Print
         </h1>
         <div className="row" style={{ gap: '0.5rem' }}>
-          <select value={sessionId} onChange={(e) => setSessionId(e.target.value)}>
+          <Select value={sessionId} onChange={(e) => setSessionId(e.target.value)} containerStyle={{ minWidth: 180 }}>
             {ordered.length === 0 && <option value="">No sessions</option>}
             {ordered.map((s) => (
               <option key={s.id} value={s.id}>
                 {sessionTitle(s)}
               </option>
             ))}
-          </select>
-          <button className="primary" onClick={() => window.print()} disabled={!compiled}>
+          </Select>
+          <Button variant="primary" icon="printer" onClick={() => window.print()} disabled={!compiled}>
             Print / Save as PDF
-          </button>
+          </Button>
         </div>
       </div>
 
@@ -116,7 +117,7 @@ export function PrintPage() {
           </header>
 
           <section className="print-section">
-            <h3 className="print-section-title">🛡️ Party</h3>
+            <h3 className="print-section-title row" style={{ gap: '0.4rem' }}><Icon name="shield" size={18} /> Party</h3>
             {compiled.party.length === 0 ? (
               <p className="muted">No characters in this campaign.</p>
             ) : (
@@ -133,7 +134,7 @@ export function PrintPage() {
           </section>
 
           <section className="print-section">
-            <h3 className="print-section-title">🗺️ Scenes</h3>
+            <h3 className="print-section-title row" style={{ gap: '0.4rem' }}><Icon name="map" size={18} /> Scenes</h3>
             {compiled.scenes.length === 0 ? (
               <p className="muted">
                 No scenes on this session's board. Draw a scene frame in the Session planner and drop
@@ -183,22 +184,22 @@ function FieldList({ fields }: { fields: Field[] }) {
   )
 }
 
-const MEMBER_GLYPH: Record<string, string> = {
-  pc: '🛡️',
-  npc: '🎭',
-  location: '📍',
-  misc: '🎲',
-  event: '📜',
-  unknown: '❔',
+const MEMBER_ICON: Record<string, string> = {
+  pc: 'shield',
+  npc: 'drama',
+  location: 'map-pin',
+  misc: 'dices',
+  event: 'history',
+  unknown: 'circle-help',
 }
 
 function MemberCard({ member }: { member: ResolvedMember }) {
   return (
     <div className="print-member">
-      <div className="print-member-head">
-        <span aria-hidden>{MEMBER_GLYPH[member.kind]}</span>{' '}
+      <div className="print-member-head row" style={{ gap: '0.35rem' }}>
+        <Icon name={MEMBER_ICON[member.kind] ?? 'circle-help'} size={16} />{' '}
         <strong>{member.name}</strong>
-        {member.npc?.dead && <span className="muted"> · ☠ dead</span>}
+        {member.npc?.dead && <span className="muted row" style={{ gap: '0.2rem' }}> · <Icon name="skull" size={13} /> dead</span>}
         {member.misc && <span className="muted"> · {member.misc.kind}</span>}
         {member.event?.date && <span className="muted"> · {member.event.date}</span>}
       </div>
