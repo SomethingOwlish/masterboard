@@ -68,7 +68,7 @@ export function makeTask(title = '', links: Link[] = []): Task {
   return { id: newId('task'), title: title.trim(), status: 'todo', links }
 }
 
-/** A blank session document. Canvas starts empty; tldraw seeds it on first mount. */
+/** A blank session document. Canvas is null until the planner board saves one. */
 export function makeSession(name: string, realDate: string, seq: number): SessionDoc {
   return { id: newId('sess'), name: name.trim(), realDate, seq, canvas: null, scenes: [] }
 }

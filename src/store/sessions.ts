@@ -1,6 +1,6 @@
 // Sessions store (M7 / B5). Independent session documents: a lightweight index
 // (sessions/index.json) lists them and holds the next sequence number, while each
-// full document — including its tldraw canvas snapshot and derived scenes — lives
+// full document — including its planner board canvas and derived scenes — lives
 // in sessions/<id>.json. The index is the list page's source; `current` holds the
 // one open document for the Session planner.
 

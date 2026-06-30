@@ -208,7 +208,7 @@ export interface SessionDoc {
   name: string
   realDate: string
   seq: number
-  canvas: unknown // tldraw snapshot
+  canvas: unknown // session board (lib/board BoardState); null on a fresh doc
   scenes: Scene[]
 }
 

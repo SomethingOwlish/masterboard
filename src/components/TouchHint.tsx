@@ -1,5 +1,5 @@
-// A one-time affordance for touch users on the pan/zoom canvases (B10). tldraw and
-// React Flow are awkward on first touch, so we surface a hint until dismissed. CSS
+// A one-time affordance for touch users on the pan/zoom canvases (B10). React Flow
+// canvases are awkward on first touch, so we surface a hint until dismissed. CSS
 // hides it entirely on fine-pointer (mouse) devices; here we also let the user
 // dismiss it and remember that across sessions.
 

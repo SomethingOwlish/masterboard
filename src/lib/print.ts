@@ -2,7 +2,7 @@
 // page: given a session document and the campaign's entity pools, it gathers the
 // printable sheet — the party roster plus every scene with its members resolved to
 // their full records (NPCs, locations, items, events). The Session planner derives
-// `scenes` from the tldraw frames on every save (see SessionPlanner.deriveScenes),
+// `scenes` from the board's scene nodes on every save (see lib/board.deriveScenes),
 // so Print reads structured data, not a canvas image.
 
 import type { Character, ChronoEvent, Location, Misc, NPC, SessionDoc } from '../model/types'

@@ -10,16 +10,23 @@ import type { ThemeId } from '../model/types'
 import { useCampaigns } from '../store/campaigns'
 import { useConfig } from '../store/config'
 import { useConfirm } from '../components/useConfirm'
+import { useToast } from '../components/useToast'
 import { Logo, Button, Card, EmptyState, IconButton, Icon } from '../ds'
 
 export function Hub() {
-  const { campaigns, loaded, loading, load, create, remove } = useCampaigns()
+  const { campaigns, loaded, loading, load, create, remove, duplicate } = useCampaigns()
   const isConnected = useConfig((s) => s.isConnected())
   const hydrate = useConfig((s) => s.hydrate)
   const tokenLoaded = useConfig((s) => s.tokenLoaded)
   const [showWizard, setShowWizard] = useState(false)
   const navigate = useNavigate()
   const confirm = useConfirm()
+  const toast = useToast()
+
+  const onDuplicate = async (id: string, name: string) => {
+    const copy = await duplicate(id)
+    toast(copy ? { message: `Duplicated "${name}"`, tone: 'success' } : { message: 'Could not duplicate', tone: 'danger' })
+  }
 
   // Load the token first so the very first index read can hit GitHub if configured.
   useEffect(() => {
@@ -86,6 +93,12 @@ export function Hub() {
               </div>
             </Link>
             <span className="card-del">
+              <IconButton
+                icon="copy"
+                label="Duplicate campaign"
+                size="sm"
+                onClick={() => void onDuplicate(c.id, c.name)}
+              />
               <IconButton
                 icon="trash-2"
                 label="Delete campaign"
