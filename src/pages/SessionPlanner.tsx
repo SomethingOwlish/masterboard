@@ -49,6 +49,7 @@ import { SceneNode, type SceneData } from '../components/planner/SceneNode'
 import { TokenNode, type TokenData } from '../components/planner/TokenNode'
 import { DrawLayer } from '../components/planner/DrawLayer'
 import { PlannerToolbar } from '../components/planner/PlannerToolbar'
+import { useColorScheme } from '../lib/useColorScheme'
 
 type FlowNode = Node
 
@@ -155,6 +156,7 @@ function serialize(nodes: FlowNode[], edges: Edge[], drawings: Drawing[]): Board
 function PlannerInner({ campaignId }: { campaignId: string }) {
   const navigate = useNavigate()
   const confirm = useConfirm()
+  const colorScheme = useColorScheme()
   const current = useSessions((s) => s.current)
   const updateMeta = useSessions((s) => s.updateMeta)
   const saveCurrent = useSessions((s) => s.saveCurrent)
@@ -356,8 +358,6 @@ function PlannerInner({ campaignId }: { campaignId: string }) {
     )
   }
 
-  const appTheme = document.documentElement.getAttribute('data-theme')
-  const colorScheme = appTheme && appTheme !== 'parchment' ? 'dark' : 'light'
   const selectMode = tool === 'select'
 
   return (
