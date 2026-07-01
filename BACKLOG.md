@@ -11,11 +11,13 @@ downstream breaks. Root-cause the storage/sync path (`src/storage/repository.ts`
 queue failed writes instead of dropping them, and make sure one failed module write
 can't corrupt or block the others. This is the most disruptive current bug.
 
-## Medium
+## Done
 
-### 2. SVG / HTML / Markdown import parser
-Build a parser that ingests generated documents (SVG, HTML, Markdown) and loads their
-data into the system, routing each piece to the right module (characters, NPCs,
-locations, scenes, notes, timeline events…). Extends the existing JSON import wizard
-(B8) to unstructured/semi-structured sources — parse, map to entities, let the GM
-confirm the routing, then commit.
+### ~~2. SVG / HTML / Markdown import parser~~ ✓
+Shipped: `src/lib/docParse.ts` reduces Markdown/HTML/SVG documents to candidate
+blocks (heading + body + optional image; SVG splits by font-size tiers).
+`DocumentImportDialog` — opened via "Parse document" in the Connected sites panel —
+lets the GM route each block to Characters / NPCs / Locations / Misc / Timeline
+(auto-suggested via `guessRoute`) and confirm before commit
+(`commitRoutedEntities` in `src/store/importing.ts`). Dedups by name per kind.
+Scenes were intentionally left out — they need a session/board context.

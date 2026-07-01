@@ -1,19 +1,23 @@
 // Connected-site panel (M2 + M-imports / B8). Lists the campaign's source sites,
 // links out to each, and pulls data in: "Import" opens the mapping wizard, which
 // fetches the site's JSON and creates entities from it. Sites are added/removed
-// here and stored in campaign.settings.sourceSites.
+// here and stored in campaign.settings.sourceSites. "Parse document" opens the
+// unstructured importer (B-import): paste/upload Markdown, HTML, or SVG and route
+// its sections to modules.
 
 import { useState } from 'react'
 import { newId } from '../model/ids'
 import type { SourceSite } from '../model/types'
 import { useCampaign } from '../store/campaign'
 import type { ImportResult } from '../store/importing'
+import { DocumentImportDialog } from './DocumentImportDialog'
 import { ImportDialog } from './ImportDialog'
 import { Icon, Button, IconButton } from '../ds'
 
 export function SourcePanel({ campaignId, sites }: { campaignId: string; sites: SourceSite[] }) {
   const updateSettings = useCampaign((s) => s.updateSettings)
   const [importing, setImporting] = useState<SourceSite | null>(null)
+  const [parsingDoc, setParsingDoc] = useState(false)
   const [result, setResult] = useState<string | null>(null)
   const [label, setLabel] = useState('')
   const [url, setUrl] = useState('')
@@ -33,7 +37,12 @@ export function SourcePanel({ campaignId, sites }: { campaignId: string; sites: 
 
   return (
     <section className="card">
-      <h2 className="section-title row" style={{ gap: '0.4rem' }}><Icon name="link" size={18} /> Connected sites</h2>
+      <div className="row" style={{ justifyContent: 'space-between', alignItems: 'center' }}>
+        <h2 className="section-title row" style={{ gap: '0.4rem', margin: 0 }}><Icon name="link" size={18} /> Connected sites</h2>
+        <Button size="sm" icon="scroll-text" onClick={() => { setResult(null); setParsingDoc(true) }}>
+          Parse document
+        </Button>
+      </div>
 
       {sites.length === 0 ? (
         <p className="muted" style={{ marginTop: 0 }}>
@@ -70,6 +79,17 @@ export function SourcePanel({ campaignId, sites }: { campaignId: string; sites: 
           onClose={() => setImporting(null)}
           onDone={(r: ImportResult) => {
             setImporting(null)
+            setResult(`Imported ${r.imported}${r.skipped ? `, skipped ${r.skipped} (duplicate or unnamed)` : ''}.`)
+          }}
+        />
+      )}
+
+      {parsingDoc && (
+        <DocumentImportDialog
+          campaignId={campaignId}
+          onClose={() => setParsingDoc(false)}
+          onDone={(r: ImportResult) => {
+            setParsingDoc(false)
             setResult(`Imported ${r.imported}${r.skipped ? `, skipped ${r.skipped} (duplicate or unnamed)` : ''}.`)
           }}
         />
