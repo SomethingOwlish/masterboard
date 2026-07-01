@@ -6,6 +6,7 @@
 import { makeCharacter, makeField, makeLocation, makeMisc, makeNpc } from '../model/defaults'
 import type { EntityKind } from './entities'
 import { useCampaign } from './campaign'
+import { useChronology } from './chronology'
 import { useLocations } from './locations'
 import { useMisc } from './misc'
 import { useNpcs } from './npcs'
@@ -133,6 +134,120 @@ export async function importEntities(
     if (!kinds.includes(map.miscKind)) {
       await useCampaign.getState().updateSettings({ miscKinds: [...kinds, map.miscKind] })
     }
+  }
+
+  return { imported, skipped }
+}
+
+// --- Document import: per-item routing (parser wizard) --------------------------
+// The JSON mapper above routes homogeneous records to one kind. A parsed document
+// (Markdown / HTML / SVG) yields heterogeneous blocks the GM routes individually,
+// so this commits a list where each item names its own target.
+
+/** Where a parsed block can be filed. 'timeline' adds a Campaign-column event. */
+export type RouteKind = EntityKind | 'timeline' | 'skip'
+
+/** A parsed block after the GM has confirmed its routing, ready to commit. */
+export interface RoutedEntity {
+  route: RouteKind
+  name: string
+  body: string
+  tags: string[]
+  image?: string
+  miscKind?: string // when route === 'misc'
+  date?: string // when route === 'timeline'
+}
+
+/** Suggest a route from a block's title/body so the GM starts from a sensible default. */
+export function guessRoute(title: string, body: string): RouteKind {
+  const t = `${title} ${body}`.toLowerCase()
+  if (/\b(\d{3,4}\s?(ad|bc|ce|bce)|year|era|age of|century|on the \w+ day)\b/.test(t)) return 'timeline'
+  if (/\b(city|town|village|castle|keep|forest|tavern|inn|dungeon|region|realm|kingdom|temple|ruins?|mountains?)\b/.test(t))
+    return 'location'
+  if (/\b(npc|villain|ally|merchant|guard|king|queen|lord|lady|priest|captain|innkeeper)\b/.test(t)) return 'npc'
+  if (/\b(player character|\bpc\b|party member|protagonist)\b/.test(t)) return 'pc'
+  return 'misc'
+}
+
+/** Commit routed blocks to their target stores. Dedups by name per kind (and by
+ *  title for timeline) so a re-parse doesn't duplicate. Returns counts. */
+export async function commitRoutedEntities(campaignId: string, items: RoutedEntity[]): Promise<ImportResult> {
+  const active = items.filter((it) => it.route !== 'skip' && it.name.trim())
+  const kinds = new Set(active.map((it) => it.route))
+
+  // Load every target store up front so dedup sets and writes see current data.
+  if (kinds.has('npc')) await useNpcs.getState().load(campaignId)
+  if (kinds.has('location')) await useLocations.getState().load(campaignId)
+  if (kinds.has('misc')) await useMisc.getState().load(campaignId)
+  if (kinds.has('timeline')) await useChronology.getState().load(campaignId)
+
+  const seen = {
+    pc: new Set(useCampaign.getState().characters.map((c) => c.name.toLowerCase())),
+    npc: new Set(useNpcs.getState().npcs.map((n) => n.name.toLowerCase())),
+    location: new Set(useLocations.getState().locations.map((l) => l.name.toLowerCase())),
+    misc: new Set(useMisc.getState().misc.map((m) => m.name.toLowerCase())),
+    timeline: new Set(useChronology.getState().events.map((e) => e.title.toLowerCase())),
+  }
+  const newMiscKinds = new Set<string>()
+  const campaignColumn = useChronology.getState().columns.find((c) => c.fixed) ?? useChronology.getState().columns[0]
+
+  let imported = 0
+  let skipped = 0
+
+  for (const it of active) {
+    const key = it.name.toLowerCase()
+    const bucket = it.route === 'pc' ? seen.pc : seen[it.route as keyof typeof seen]
+    if (bucket?.has(key)) {
+      skipped++
+      continue
+    }
+    bucket?.add(key)
+
+    if (it.route === 'pc') {
+      const c = makeCharacter(it.name)
+      c.tags = it.tags
+      if (it.image) c.portrait = it.image
+      if (it.body) c.fields = [{ ...makeField('longtext'), label: 'Notes', value: it.body }]
+      await useCampaign.getState().addCharacter(c)
+    } else if (it.route === 'npc') {
+      const n = makeNpc(it.name)
+      n.tags = it.tags
+      if (it.image) n.portrait = it.image
+      if (it.body) n.notes = it.body
+      await useNpcs.getState().add(n)
+    } else if (it.route === 'location') {
+      const l = makeLocation(it.name)
+      l.tags = it.tags
+      if (it.image) l.image = it.image
+      if (it.body) l.description = it.body
+      await useLocations.getState().add(l)
+    } else if (it.route === 'timeline') {
+      if (!campaignColumn) {
+        skipped++
+        continue
+      }
+      await useChronology.getState().addEvent({
+        columnId: campaignColumn.id,
+        date: it.date?.trim() || it.name,
+        title: it.name,
+        body: it.body || undefined,
+      })
+    } else {
+      const kind = it.miscKind?.trim() || 'note'
+      const m = makeMisc(kind, it.name)
+      m.tags = it.tags
+      if (it.body) m.body = it.body
+      await useMisc.getState().add(m)
+      newMiscKinds.add(kind)
+    }
+    imported++
+  }
+
+  // Register any freshly-used Misc kinds so imported objects get their own group.
+  if (newMiscKinds.size > 0) {
+    const kinds = useCampaign.getState().campaign?.settings.miscKinds ?? []
+    const merged = [...new Set([...kinds, ...newMiscKinds])]
+    if (merged.length !== kinds.length) await useCampaign.getState().updateSettings({ miscKinds: merged })
   }
 
   return { imported, skipped }

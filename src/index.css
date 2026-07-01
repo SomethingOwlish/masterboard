@@ -386,6 +386,21 @@ button.ghost { border-color: transparent; background: transparent; padding: 0.2r
 .button-link:hover { filter: brightness(1.05); }
 .import-dialog { max-width: 460px; max-height: 85vh; overflow-y: auto; }
 
+/* ---- Document import wizard (B-import) ----------------------------------- */
+.doc-import-dialog { max-width: 620px; }
+.doc-import-input { width: 100%; font-family: var(--font-mono, monospace); font-size: 0.85rem; resize: vertical; }
+.doc-import-rows { display: flex; flex-direction: column; gap: 0.5rem; max-height: 48vh; overflow-y: auto; margin-top: 0.5rem; }
+.doc-import-row {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.5rem 0.6rem; background: var(--surface-2);
+}
+.doc-import-row.is-skipped { opacity: 0.5; }
+.doc-import-row-main { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
+.doc-import-route { flex: 0 0 auto; }
+.doc-import-name { flex: 1; min-width: 8rem; }
+.doc-import-extra { flex: 0 0 auto; width: 10rem; }
+.doc-import-body { margin: 0.35rem 0 0; font-size: 0.8rem; }
+
 /* ---- Tasks (B8) ---------------------------------------------------------- */
 .tasks-board {
   display: grid; grid-template-columns: repeat(3, 1fr); gap: 0.75rem; margin-top: 1rem;
