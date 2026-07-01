@@ -114,12 +114,27 @@ function parseHtml(html: string): ParsedBlock[] {
     else cur.body = cur.body ? `${cur.body}\n${text}` : text
   }
 
-  const walk = (node: Element) => {
+  // Collapse an element's own text, ignoring any nested <summary> (that title
+  // belongs to a child block, not this one).
+  const ownText = (el: Element): string => {
+    const clone = el.cloneNode(true) as Element
+    clone.querySelectorAll('summary').forEach((s) => s.remove())
+    return (clone.textContent ?? '').replace(/\s+/g, ' ').trim()
+  }
+
+  const walk = (node: Element, depth: number) => {
     for (const child of Array.from(node.children)) {
       const tag = child.tagName.toUpperCase()
       const hm = HEADING_RE.exec(tag)
+      // Headings and <summary> both open a new block. Generated docs often use
+      // <details>/<summary> disclosure sections in place of heading tags, so a
+      // <summary> is the section title and its <details> siblings are the body.
       if (hm) {
         start((child.textContent ?? '').replace(/\s+/g, ' ').trim(), Number(hm[1]))
+        continue
+      }
+      if (tag === 'SUMMARY') {
+        start((child.textContent ?? '').replace(/\s+/g, ' ').trim(), depth)
         continue
       }
       if (tag === 'IMG') {
@@ -127,18 +142,22 @@ function parseHtml(html: string): ParsedBlock[] {
         if (src && cur && !cur.image) cur.image = src
         continue
       }
-      if (tag === 'SCRIPT' || tag === 'STYLE') continue
-      // Leaf-ish text container → contribute its text; otherwise recurse so we
-      // never double-count an ancestor's text against its children.
-      if (child.children.length === 0) appendText(child.textContent ?? '')
-      else {
+      if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NAV' || tag === 'BUTTON') continue
+      // Recurse into containers that hold sub-sections so nested <summary>/heading
+      // boundaries are found; otherwise contribute the element's own text (minus
+      // any nested summary titles) so we never double-count an ancestor's text.
+      if (child.querySelector('summary, h1, h2, h3, h4, h5, h6')) {
         const img = child.querySelector('img')
         if (img && cur && !cur.image) cur.image = img.getAttribute('src') ?? cur.image
-        walk(child)
+        walk(child, tag === 'DETAILS' ? depth + 1 : depth)
+      } else {
+        appendText(ownText(child))
+        const img = child.querySelector('img')
+        if (img && cur && !cur.image) cur.image = img.getAttribute('src') ?? cur.image
       }
     }
   }
-  walk(root)
+  walk(root, 1)
   return blocks
 }
 

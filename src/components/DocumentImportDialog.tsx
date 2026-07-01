@@ -79,15 +79,18 @@ export function DocumentImportDialog({
         return
       }
       setRows(
-        blocks.map((b) => ({
-          id: newId('row'),
-          route: guessRoute(b.title, b.body),
-          name: b.title || b.body.slice(0, 60),
-          body: b.body,
-          image: b.image,
-          miscKind: 'note',
-          date: '',
-        })),
+        blocks.map((b) => {
+          const g = guessRoute(b.title, b.body)
+          return {
+            id: newId('row'),
+            route: g.route,
+            name: b.title || b.body.slice(0, 60),
+            body: b.body,
+            image: b.image,
+            miscKind: g.miscKind ?? 'note',
+            date: '',
+          }
+        }),
       )
       setPhase('route')
     } catch {
