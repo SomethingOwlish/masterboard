@@ -158,15 +158,34 @@ export interface RoutedEntity {
   date?: string // when route === 'timeline'
 }
 
-/** Suggest a route from a block's title/body so the GM starts from a sensible default. */
-export function guessRoute(title: string, body: string): RouteKind {
-  const t = `${title} ${body}`.toLowerCase()
-  if (/\b(\d{3,4}\s?(ad|bc|ce|bce)|year|era|age of|century|on the \w+ day)\b/.test(t)) return 'timeline'
-  if (/\b(city|town|village|castle|keep|forest|tavern|inn|dungeon|region|realm|kingdom|temple|ruins?|mountains?)\b/.test(t))
-    return 'location'
-  if (/\b(npc|villain|ally|merchant|guard|king|queen|lord|lady|priest|captain|innkeeper)\b/.test(t)) return 'npc'
-  if (/\b(player character|\bpc\b|party member|protagonist)\b/.test(t)) return 'pc'
-  return 'misc'
+/** The GM's suggested filing for a block: where it goes, and (for Misc) under what
+ *  kind. Titles/bodies may be English or Russian, so both vocabularies are matched. */
+export interface RouteGuess {
+  route: RouteKind
+  miscKind?: string
+}
+
+/** Suggest a route from a block's title/body so the GM starts from a sensible
+ *  default. Scenes and story threads have no dedicated module, so they file under
+ *  Misc with a descriptive kind ('scene' / 'thread') rather than being lost. */
+export function guessRoute(title: string, body: string): RouteGuess {
+  const t = `${title}\n${body}`.toLowerCase()
+  const has = (...needles: string[]) => needles.some((n) => t.includes(n))
+
+  // Scenes / threads first — their titles often also mention places or NPCs.
+  if (has('сцена', 'сцены') || /\bscenes?\b/.test(t)) return { route: 'misc', miscKind: 'scene' }
+  if (has('нить', 'нити') || /\bthreads?\b/.test(t)) return { route: 'misc', miscKind: 'thread' }
+  if (has('нпс') || /\b(npc|villain|ally|merchant|innkeeper)\b/.test(t)) return { route: 'npc' }
+  if (/\b(\d{3,4}\s?(ad|bc|ce|bce)|year|era|age of|century)\b/.test(t) || has('год', 'эпоха', 'дата'))
+    return { route: 'timeline' }
+  if (
+    has('локац', 'город', 'деревн', 'замок', 'крепость', 'таверн', 'подземель', 'храм', 'руины', 'место') ||
+    /\b(city|town|village|castle|keep|forest|tavern|inn|dungeon|region|realm|kingdom|temple|ruins?|mountains?)\b/.test(t)
+  )
+    return { route: 'location' }
+  if (/\b(player character|pc|party member|protagonist)\b/.test(t) || has('персонаж игрок', 'партия'))
+    return { route: 'pc' }
+  return { route: 'misc', miscKind: 'note' }
 }
 
 /** Commit routed blocks to their target stores. Dedups by name per kind (and by
