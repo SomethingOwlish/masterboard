@@ -24,6 +24,7 @@ import { KIND_MODULE, useEntityPool, type EntityKind } from '../store/entities'
 import { useRelations } from '../store/relations'
 import { useConfirm } from '../components/useConfirm'
 import { Icon, Button, TextField, Checkbox, GlassPanel } from '../ds'
+import { useColorScheme } from '../lib/useColorScheme'
 
 // Bold, theme-coloured relation lines (the requested "more visible" web). Labels
 // always show on a chip background so the graph reads at a glance.
@@ -48,6 +49,7 @@ function circleLayout(i: number, total: number): NodePosition {
 export function RelationsBoard() {
   const { campaignId } = useParams()
   const navigate = useNavigate()
+  const colorScheme = useColorScheme()
 
   const entities = useEntityPool(campaignId)
 
@@ -183,6 +185,7 @@ export function RelationsBoard() {
             if (kind) navigate(`/campaign/${campaignId}/${KIND_MODULE[kind]}`)
           }}
           onInit={(inst) => (rf.current = inst)}
+          colorMode={colorScheme}
           fitView
           fitViewOptions={{ maxZoom: 1, padding: 0.25 }}
           proOptions={{ hideAttribution: true }}
