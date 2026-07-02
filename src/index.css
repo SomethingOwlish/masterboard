@@ -384,22 +384,20 @@ button.ghost { border-color: transparent; background: transparent; padding: 0.2r
   background: var(--surface); color: var(--text); text-decoration: none; font-size: 0.9rem;
 }
 .button-link:hover { filter: brightness(1.05); }
-.import-dialog { max-width: 460px; max-height: 85vh; overflow-y: auto; }
+.import-dialog { max-width: 560px; max-height: 85vh; overflow-y: auto; }
 
-/* ---- Document import wizard (B-import) ----------------------------------- */
-.doc-import-dialog { max-width: 620px; }
-.doc-import-input { width: 100%; font-family: var(--font-mono, monospace); font-size: 0.85rem; resize: vertical; }
-.doc-import-rows { display: flex; flex-direction: column; gap: 0.5rem; max-height: 48vh; overflow-y: auto; margin-top: 0.5rem; }
-.doc-import-row {
-  border: 1px solid var(--border); border-radius: var(--radius);
-  padding: 0.5rem 0.6rem; background: var(--surface-2);
+/* ---- Template import summary --------------------------------------------- */
+.import-summary { margin-top: 0.5rem; }
+.import-counts {
+  display: flex; flex-wrap: wrap; gap: 0.4rem; list-style: none; padding: 0; margin: 0.25rem 0 0;
 }
-.doc-import-row.is-skipped { opacity: 0.5; }
-.doc-import-row-main { display: flex; flex-wrap: wrap; gap: 0.4rem; align-items: center; }
-.doc-import-route { flex: 0 0 auto; }
-.doc-import-name { flex: 1; min-width: 8rem; }
-.doc-import-extra { flex: 0 0 auto; width: 10rem; }
-.doc-import-body { margin: 0.35rem 0 0; font-size: 0.8rem; }
+.import-counts li {
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 0.15rem 0.5rem; font-size: 0.82rem; background: var(--surface-2);
+}
+.import-warnings {
+  margin: 0.5rem 0 0; padding-left: 1rem; font-size: 0.8rem; color: var(--warning, #a86);
+}
 
 /* ---- Tasks (B8) ---------------------------------------------------------- */
 .tasks-board {
