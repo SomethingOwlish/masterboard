@@ -54,6 +54,22 @@ export interface TmplRelation {
   directed: boolean
 }
 
+/** One scene on the session board. `members` are entity names dropped into it;
+ *  `body` (scene prose) is preserved as a linked Misc note so nothing is lost. */
+export interface TmplScene {
+  name: string
+  members: string[]
+  body?: string
+}
+
+/** Optional: build a Session document from the import and drop the scenes onto its
+ *  planner board, mirroring a "session master doc" source. */
+export interface TmplSession {
+  name: string
+  date?: string
+  scenes: TmplScene[]
+}
+
 export interface ParsedTemplate {
   characters: TmplCharacter[]
   npcs: TmplNpc[]
@@ -61,6 +77,7 @@ export interface ParsedTemplate {
   misc: TmplMisc[]
   timeline: TmplEvent[]
   relations: TmplRelation[]
+  session: TmplSession | null
   errors: string[] // human-readable problems; import can still proceed with the valid rows
 }
 
@@ -100,9 +117,16 @@ export function blankTemplate(): unknown {
     locations: [
       { name: 'Example Location', description: 'What it is and why it matters.', image: '', tags: ['city'] },
     ],
-    misc: [{ kind: 'scene', name: 'Example scene / faction / item', body: 'Anything without its own module.', tags: [] }],
+    misc: [{ kind: 'faction', name: 'Example faction / item', body: 'Anything without its own module.', tags: [] }],
     timeline: [{ column: 'Campaign', date: '1247 AD', title: 'Something happened', body: 'Details (optional).' }],
     relations: [{ from: 'Example PC', to: 'Example NPC', label: 'trusts', directed: true }],
+    session: {
+      name: 'Example session',
+      date: '',
+      scenes: [
+        { name: 'Example scene', members: ['Example PC', 'Example NPC'], body: 'What happens in this scene (optional).' },
+      ],
+    },
   }
 }
 
@@ -124,6 +148,7 @@ export function llmFillPrompt(): string {
         misc: [{ kind: 'note', name: '', body: '', tags: [] }],
         timeline: [{ column: 'Campaign', date: '', title: '', body: '' }],
         relations: [{ from: '', to: '', label: '', directed: true }],
+        session: { name: '', date: '', scenes: [{ name: '', members: [], body: '' }] },
       },
       null,
       2,
@@ -132,10 +157,13 @@ export function llmFillPrompt(): string {
     'Rules:',
     '- Every entity needs a non-empty "name" (for timeline events, "title").',
     '- Player characters → characters; other people → npcs; places → locations.',
-    '- Scenes, factions, items, threads, and anything else without its own module → misc,',
-    '  choosing a short "kind" (e.g. "scene", "faction", "item", "thread").',
+    '- Factions, items, and anything else without its own module → misc, choosing a',
+    '  short "kind" (e.g. "faction", "item", "clue").',
     '- Dated events → timeline; group them with "column" (default "Campaign").',
     '- "relations" reference entities by their exact "name".',
+    '- If the document is a play/run session with scenes, fill "session": set its name,',
+    '  and for each scene give a "name", a "members" list of entity names appearing in it,',
+    '  and the scene prose in "body". Otherwise set "session" to null.',
     '- Do NOT invent facts. Preserve the source language. Omit fields you have no value for.',
     '',
     'Here is the document to convert:',
@@ -170,9 +198,15 @@ function rows(json: Record<string, unknown>, key: SectionKey): Record<string, un
 // Example rows shipped in the blank template — dropped silently so a GM who forgot
 // to delete them doesn't import "Example PC".
 const EXAMPLE_NAMES = new Set(
-  ['Example PC', 'Example NPC', 'Example Location', 'Example scene / faction / item', 'Something happened'].map((s) =>
-    s.toLowerCase(),
-  ),
+  [
+    'Example PC',
+    'Example NPC',
+    'Example Location',
+    'Example faction / item',
+    'Something happened',
+    'Example session',
+    'Example scene',
+  ].map((s) => s.toLowerCase()),
 )
 const isExample = (name: string) => EXAMPLE_NAMES.has(name.toLowerCase())
 
@@ -182,7 +216,7 @@ const isExample = (name: string) => EXAMPLE_NAMES.has(name.toLowerCase())
  * valid row so a partially-broken file still imports what it can.
  */
 export function parseTemplate(json: unknown): ParsedTemplate {
-  const out: ParsedTemplate = { characters: [], npcs: [], locations: [], misc: [], timeline: [], relations: [], errors: [] }
+  const out: ParsedTemplate = { characters: [], npcs: [], locations: [], misc: [], timeline: [], relations: [], session: null, errors: [] }
   if (!json || typeof json !== 'object' || Array.isArray(json)) {
     out.errors.push('The file must be a JSON object with the template sections.')
     return out
@@ -250,6 +284,32 @@ export function parseTemplate(json: unknown): ParsedTemplate {
     out.relations.push({ from, to, label: asString(r.label) || undefined, directed: r.directed !== false })
   }
 
+  // Session (optional single object, not an array).
+  const sv = obj.session
+  if (sv != null && (typeof sv !== 'object' || Array.isArray(sv))) {
+    out.errors.push('"session" should be an object; ignoring it.')
+  } else if (sv) {
+    const s = sv as Record<string, unknown>
+    const name = asString(s.name)
+    const rawScenes = Array.isArray(s.scenes) ? (s.scenes as unknown[]) : []
+    const scenes: TmplScene[] = []
+    for (const raw of rawScenes) {
+      if (!raw || typeof raw !== 'object' || Array.isArray(raw)) continue
+      const sc = raw as Record<string, unknown>
+      const scName = asString(sc.name)
+      if (!scName || isExample(scName)) continue
+      const members = Array.isArray(sc.members)
+        ? (sc.members as unknown[]).map((m) => asString(m)).filter((m) => m && !isExample(m))
+        : []
+      scenes.push({ name: scName, members, body: asString(sc.body) || undefined })
+    }
+    // Keep the session only if it carries something (a name or at least one scene)
+    // and isn't the untouched example.
+    if ((name && !isExample(name)) || scenes.length) {
+      out.session = { name: name && !isExample(name) ? name : 'Imported session', date: asString(s.date) || undefined, scenes }
+    }
+  }
+
   return out
 }
 
@@ -266,5 +326,5 @@ export function templateCounts(t: ParsedTemplate): Record<SectionKey, number> {
 }
 
 export function isTemplateEmpty(t: ParsedTemplate): boolean {
-  return SECTION_KEYS.every((k) => (templateCounts(t)[k] ?? 0) === 0)
+  return !t.session && SECTION_KEYS.every((k) => (templateCounts(t)[k] ?? 0) === 0)
 }

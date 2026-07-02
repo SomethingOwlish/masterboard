@@ -35,6 +35,8 @@ interface SessionsState {
   closeCurrent: () => void
 
   create: () => Promise<SessionDoc | null>
+  /** Create a session pre-filled with a name / date / board canvas + scenes (import). */
+  createWith: (input: { name?: string; realDate?: string; canvas?: unknown; scenes?: Scene[] }) => Promise<SessionDoc | null>
   duplicate: (sessionId: string) => Promise<SessionDoc | null>
   remove: (sessionId: string) => Promise<void>
   /** Update name / realDate, kept in sync across the index and the open document. */
@@ -75,6 +77,20 @@ export const useSessions = create<SessionsState>((set, get) => ({
     set(index)
     await data.writeSessionsIndex(campaignId, index)
     void useActivity.getState().log(campaignId, 'Created session', `#${doc.seq}`)
+    return doc
+  },
+
+  createWith: async ({ name = '', realDate, canvas = null, scenes = [] }) => {
+    const { campaignId, sessions, nextSeq } = get()
+    if (!campaignId) return null
+    const doc = makeSession(name, realDate || todayISO(), nextSeq)
+    doc.canvas = canvas
+    doc.scenes = scenes
+    await data.writeSession(campaignId, doc)
+    const index = { sessions: [...sessions, metaOf(doc)], nextSeq: nextSeq + 1 }
+    set(index)
+    await data.writeSessionsIndex(campaignId, index)
+    void useActivity.getState().log(campaignId, 'Imported session', sessionTitle(doc))
     return doc
   },
 

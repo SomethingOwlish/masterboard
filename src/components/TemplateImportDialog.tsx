@@ -64,7 +64,9 @@ export function TemplateImportDialog({
   const result = parsed && !('syntax' in parsed) ? parsed : null
   const counts = result ? templateCounts(result) : null
   const total = counts ? SECTION_KEYS.reduce((n, k) => n + counts[k], 0) : 0
-  const canImport = !!result && !isTemplateEmpty(result) && !importing
+  const session = result?.session ?? null
+  const hasAnything = !!result && !isTemplateEmpty(result)
+  const canImport = hasAnything && !importing
 
   async function onFile(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -138,15 +140,20 @@ export function TemplateImportDialog({
         {result && (
           <div className="import-summary">
             <p className="muted" style={{ margin: '0 0 0.25rem' }}>
-              {total === 0 ? 'No entities found — every section is empty.' : `${total} entit${total === 1 ? 'y' : 'ies'} to import:`}
+              {!hasAnything ? 'Nothing to import — the template is empty.' : 'To import:'}
             </p>
-            {total > 0 && (
+            {hasAnything && (
               <ul className="import-counts">
                 {SECTION_KEYS.filter((k) => counts![k] > 0).map((k) => (
                   <li key={k}>
                     <strong>{counts![k]}</strong> {k}
                   </li>
                 ))}
+                {session && (
+                  <li>
+                    <strong>1</strong> session{session.scenes.length ? ` (${session.scenes.length} scenes)` : ''}
+                  </li>
+                )}
               </ul>
             )}
             {result.errors.length > 0 && (
@@ -164,7 +171,7 @@ export function TemplateImportDialog({
         <div className="row" style={{ justifyContent: 'flex-end', marginTop: '0.75rem', gap: '0.5rem' }}>
           <Button onClick={onClose}>Cancel</Button>
           <Button className="primary" onClick={() => void run()} disabled={!canImport}>
-            {importing ? 'Importing…' : total > 0 ? `Import ${total}` : 'Import'}
+            {importing ? 'Importing…' : total > 0 ? `Import ${total}${session ? ' + session' : ''}` : session ? 'Import session' : 'Import'}
           </Button>
         </div>
       </div>

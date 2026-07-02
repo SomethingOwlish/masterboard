@@ -5,6 +5,8 @@
 
 import { makeCharacter, makeField, makeLocation, makeMisc, makeNpc } from '../model/defaults'
 import type { ParsedTemplate } from '../lib/importTemplate'
+import { deriveScenes, emptyBoard, SCENE_DEFAULT, type SerNode, type TokenKind } from '../lib/board'
+import { newId } from '../model/ids'
 import type { EntityKind } from './entities'
 import { useCampaign } from './campaign'
 import { useChronology } from './chronology'
@@ -12,6 +14,7 @@ import { useLocations } from './locations'
 import { useMisc } from './misc'
 import { useNpcs } from './npcs'
 import { useRelations } from './relations'
+import { useSessions } from './sessions'
 
 export type SourceRecord = Record<string, unknown>
 
@@ -162,6 +165,7 @@ export async function commitTemplate(campaignId: string, tmpl: ParsedTemplate): 
     useMisc.getState().load(campaignId),
     useChronology.getState().load(campaignId),
     useRelations.getState().load(campaignId),
+    useSessions.getState().load(campaignId),
   ])
 
   const seen = {
@@ -243,22 +247,102 @@ export async function commitTemplate(campaignId: string, tmpl: ParsedTemplate): 
     imported++; bump('timeline')
   }
 
-  // Relations: build a name→id map across every kind (now that entities exist) and
-  // link by name. Silently skip a relation whose endpoints can't be found.
+  // Build a name→{id,kind} map across every kind (now that entities exist), shared
+  // by relations and the session board so both resolve links by entity name.
+  const byName = new Map<string, { id: string; kind: TokenKind }>()
+  for (const c of useCampaign.getState().characters) byName.set(c.name.toLowerCase(), { id: c.id, kind: 'pc' })
+  for (const n of useNpcs.getState().npcs) byName.set(n.name.toLowerCase(), { id: n.id, kind: 'npc' })
+  for (const l of useLocations.getState().locations) byName.set(l.name.toLowerCase(), { id: l.id, kind: 'location' })
+  for (const m of useMisc.getState().misc) byName.set(m.name.toLowerCase(), { id: m.id, kind: 'misc' })
+
+  // Relations: link by name; silently skip a relation whose endpoints can't be found.
   if (tmpl.relations.length > 0) {
-    const byName = new Map<string, string>()
-    for (const c of useCampaign.getState().characters) byName.set(c.name.toLowerCase(), c.id)
-    for (const n of useNpcs.getState().npcs) byName.set(n.name.toLowerCase(), n.id)
-    for (const l of useLocations.getState().locations) byName.set(l.name.toLowerCase(), l.id)
-    for (const m of useMisc.getState().misc) byName.set(m.name.toLowerCase(), m.id)
     const existingPairs = new Set(useRelations.getState().relations.map((r) => `${r.fromId}→${r.toId}`))
     for (const rel of tmpl.relations) {
-      const fromId = byName.get(rel.from.toLowerCase())
-      const toId = byName.get(rel.to.toLowerCase())
+      const fromId = byName.get(rel.from.toLowerCase())?.id
+      const toId = byName.get(rel.to.toLowerCase())?.id
       if (!fromId || !toId || existingPairs.has(`${fromId}→${toId}`)) { skipped++; continue }
       existingPairs.add(`${fromId}→${toId}`)
       await useRelations.getState().addRelation({ fromId, toId, label: rel.label, directed: rel.directed })
       imported++; bump('relations')
+    }
+  }
+
+  // Session: build a planner board from the scenes and create a session document.
+  // Scenes are laid out in a grid; each named member becomes an entity token parented
+  // to its scene. A scene's prose ("body") has no field on the Scene model, so it's
+  // preserved as a Misc note (kind "scene") dropped into the scene as a member.
+  if (tmpl.session && tmpl.session.scenes.length > 0) {
+    const board = emptyBoard()
+    const COLS = 3
+    const GAP_X = SCENE_DEFAULT.w + 80
+    const GAP_Y = SCENE_DEFAULT.h + 120
+    const sceneMiscKinds = new Set<string>()
+
+    for (let i = 0; i < tmpl.session.scenes.length; i++) {
+      const scene = tmpl.session.scenes[i]
+      const sceneId = newId('scene')
+      board.nodes.push({
+        id: sceneId,
+        type: 'scene',
+        x: (i % COLS) * GAP_X,
+        y: Math.floor(i / COLS) * GAP_Y,
+        name: scene.name,
+        w: SCENE_DEFAULT.w,
+        h: SCENE_DEFAULT.h,
+      })
+
+      const members: { id: string; kind: TokenKind }[] = []
+      for (const m of scene.members) {
+        const hit = byName.get(m.toLowerCase())
+        if (hit && !members.some((x) => x.id === hit.id)) members.push(hit)
+      }
+      // Scene prose → a Misc note filed under this scene and shown as a member.
+      if (scene.body) {
+        const key = scene.name.toLowerCase()
+        let noteRef = byName.get(key)
+        if (!noteRef) {
+          const note = makeMisc('scene', scene.name)
+          note.body = scene.body
+          await useMisc.getState().add(note)
+          noteRef = { id: note.id, kind: 'misc' }
+          byName.set(key, noteRef)
+          seen.misc.add(key)
+          sceneMiscKinds.add('scene')
+          imported++; bump('misc')
+        }
+        if (!members.some((x) => x.id === noteRef!.id)) members.push(noteRef)
+      }
+      // Grid the tokens inside the scene so they don't overlap the header.
+      members.forEach((mem, j) => {
+        board.nodes.push({
+          id: newId('token'),
+          type: 'token',
+          x: 16 + (j % 2) * 140,
+          y: 44 + Math.floor(j / 2) * 56,
+          parentId: sceneId,
+          entityId: mem.id,
+          entityKind: mem.kind,
+        } satisfies SerNode)
+      })
+    }
+
+    if (sceneMiscKinds.size > 0) {
+      const kinds = useCampaign.getState().campaign?.settings.miscKinds ?? []
+      const merged = [...new Set([...kinds, ...sceneMiscKinds])]
+      if (merged.length !== kinds.length) await useCampaign.getState().updateSettings({ miscKinds: merged })
+    }
+
+    const doc = await useSessions.getState().createWith({
+      name: tmpl.session.name,
+      realDate: tmpl.session.date,
+      canvas: board,
+      scenes: deriveScenes(board.nodes),
+    })
+    if (doc) {
+      imported++
+      bump('session')
+      bySection.scenes = tmpl.session.scenes.length
     }
   }
 
