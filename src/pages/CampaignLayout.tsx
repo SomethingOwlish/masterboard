@@ -12,7 +12,7 @@ import { SidebarNav, Topbar, Logo, IconButton } from '../ds'
 // `g` then one of these jumps to a module (vim/Gmail style). Keys chosen to be
 // memorable per module; surfaced in the rail's footer hint.
 const NAV_KEYS: Record<string, string> = {
-  o: 'overview', c: 'characters', n: 'npcs', r: 'relations', h: 'chronology',
+  o: 'overview', b: 'library', c: 'characters', n: 'npcs', r: 'relations', h: 'chronology',
   s: 'sessions', l: 'locations', m: 'misc', t: 'tasks', u: 'rules',
   a: 'activity', p: 'print', e: 'settings',
 }
