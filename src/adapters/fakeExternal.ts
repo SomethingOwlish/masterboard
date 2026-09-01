@@ -17,6 +17,7 @@ export class FakeExternalGateway implements ExternalGateway {
   constructor(
     private readonly connections: ExternalConnection[],
     private readonly passports: CapabilityPassport[],
+    private readonly failItemIds: ReadonlySet<string> = new Set(),
   ) {}
 
   async listConnections(): Promise<ExternalConnection[]> {
@@ -31,6 +32,7 @@ export class FakeExternalGateway implements ExternalGateway {
 
   async publish(item: PublicationQueueItem): Promise<PublicationQueueItem> {
     if (item.state !== 'ready') throw new Error('Only a confirmed ready item can be published')
+    if (this.failItemIds.has(item.id)) throw new Error(`Configured fake failure for ${item.id}`)
     const completed = { ...item, state: 'succeeded' as const, completedAt: item.confirmedAt ?? item.createdAt }
     this.published.push(structuredClone(completed))
     return completed

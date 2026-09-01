@@ -41,6 +41,7 @@ const passport: CapabilityPassport = {
 const queueItem: PublicationQueueItem = {
   id: 'pub-1',
   entityId: 'npc-1',
+  entityType: 'npc',
   connectionId: connection.id,
   operation: 'update',
   patch: { name: 'The Fox' },
