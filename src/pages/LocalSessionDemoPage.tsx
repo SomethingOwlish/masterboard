@@ -79,6 +79,8 @@ export function LocalSessionDemoPage() {
         <Badge tone="neutral" dot>Local fake workspace</Badge>
       </header>
 
+      <div className="local-session-board-link"><span><strong>Session plan ready?</strong><small>Arrange scenes and linked objects before play.</small></span><Link to="/demo/session-board">Open scene board <Icon name="arrow-right" size={15} /></Link></div>
+
       <section className="local-session-hero">
         <div>
           <span className="panel-kicker">Moon Port · deterministic scenario</span>
