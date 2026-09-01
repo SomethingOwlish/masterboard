@@ -14,6 +14,10 @@ export const DEMO_IDS = {
   session: 'session-opening-night',
   clock: 'clock-red-tide',
   inbox: 'inbox-captain-name',
+  connection: 'connection-lovegame-fake',
+  publicationRename: 'publication-fox-name',
+  publicationFailure: 'publication-gate-status',
+  publicationBlocked: 'publication-rumor-create',
 } as const
 
 export interface DemoWorkspace {
@@ -141,19 +145,29 @@ export function demoWorkspaceSeed(): Record<string, DocumentData> {
       actualLog: [], review: { notes: '', unresolvedItemIds: [], carryForwardItemIds: [] },
       createdAt: CREATED, updatedAt: UPDATED,
     },
-    [campaignPath('connections', 'connection-lovegame-fake')]: {
+    [campaignPath('connections', DEMO_IDS.connection)]: {
       system: 'lovegame', scope: 'campaign', externalId: 'fake-lovegame-campaign',
       label: 'Fake Lovegame campaign', state: 'active', createdAt: CREATED, updatedAt: UPDATED,
     },
     [campaignPath('projections', 'projection-fox-lovegame')]: {
-      entityId: DEMO_IDS.npc, connectionId: 'connection-lovegame-fake', externalId: 'fake-npc-fox',
+      entityId: DEMO_IDS.npc, connectionId: DEMO_IDS.connection, externalId: 'fake-npc-fox',
       externalType: 'npc', visibility: 'masters-only', syncState: 'local-changes', mapping: [],
       createdAt: CREATED, updatedAt: UPDATED,
     },
-    [campaignPath('publicationQueue', 'publication-fox-name')]: {
-      entityId: DEMO_IDS.npc, entityType: 'npc', connectionId: 'connection-lovegame-fake',
+    [campaignPath('publicationQueue', DEMO_IDS.publicationRename)]: {
+      entityId: DEMO_IDS.npc, entityType: 'npc', connectionId: DEMO_IDS.connection,
       projectionId: 'projection-fox-lovegame', operation: 'change-name',
       patch: { name: 'The Silver Fox' }, state: 'draft', createdAt: UPDATED, updatedAt: UPDATED,
+    },
+    [campaignPath('publicationQueue', DEMO_IDS.publicationFailure)]: {
+      entityId: DEMO_IDS.npc, entityType: 'npc', connectionId: DEMO_IDS.connection,
+      projectionId: 'projection-fox-lovegame', operation: 'change-status',
+      patch: { status: 'active' }, state: 'draft', createdAt: '2026-09-01T12:01:00.000Z', updatedAt: UPDATED,
+    },
+    [campaignPath('publicationQueue', DEMO_IDS.publicationBlocked)]: {
+      entityId: DEMO_IDS.rumor, entityType: 'rumor', connectionId: DEMO_IDS.connection,
+      operation: 'create', patch: { name: 'The Red Moon Collects Debts' },
+      state: 'draft', createdAt: '2026-09-01T12:02:00.000Z', updatedAt: UPDATED,
     },
   }
 }

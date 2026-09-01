@@ -51,8 +51,9 @@ describe('demo workspace fixture', () => {
     expect(await workspace.storage.list(`campaigns/${DEMO_IDS.campaign}/connections`)).toHaveLength(1)
     expect(await workspace.storage.list(`campaigns/${DEMO_IDS.campaign}/projections`)).toHaveLength(1)
     const queue = await workspace.storage.list(`campaigns/${DEMO_IDS.campaign}/publicationQueue`)
-    expect(queue).toHaveLength(1)
-    expect(queue[0].data).toMatchObject({ state: 'draft', operation: 'change-name' })
+    expect(queue).toHaveLength(3)
+    expect(queue.map((item) => item.data.operation)).toEqual(['change-name', 'change-status', 'create'])
+    expect(queue.every((item) => item.data.state === 'draft')).toBe(true)
   })
 
   it('rejects an outsider as the active demo master', () => {
