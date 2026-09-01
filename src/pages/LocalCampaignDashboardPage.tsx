@@ -32,7 +32,7 @@ export function LocalCampaignDashboardPage() {
   return (
     <main className="target-dashboard">
       <header className="target-dashboard__topbar">
-        <div className="row target-demo-links"><Link to="/" className="row muted"><Icon name="arrow-left" size={16} /> Campaigns</Link><Link to="/demo/library" className="row muted"><Icon name="library" size={16} /> Library</Link></div>
+        <div className="row target-demo-links"><Link to="/" className="row muted"><Icon name="arrow-left" size={16} /> Campaigns</Link><Link to="/demo/library" className="row muted"><Icon name="library" size={16} /> Library</Link><Link to="/demo/publications" className="row muted"><Icon name="upload" size={16} /> Publications</Link></div>
         <div className="row"><Badge tone="neutral" dot>Local fake workspace</Badge><span className="target-dashboard__master">Owl + Fox</span></div>
       </header>
 

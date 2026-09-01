@@ -115,6 +115,7 @@ export function LocalLibraryPage() {
         <div className="row target-demo-links">
           <Link to="/demo/campaign" className="row muted"><Icon name="layout-dashboard" size={16} /> Dashboard</Link>
           <Link to="/demo/session" className="row muted"><Icon name="clapperboard" size={16} /> Session</Link>
+          <Link to="/demo/publications" className="row muted"><Icon name="upload" size={16} /> Publications</Link>
         </div>
         <Badge tone="neutral" dot>Local fake workspace</Badge>
       </header>
@@ -215,4 +216,3 @@ export function LocalLibraryPage() {
     </main>
   )
 }
-
