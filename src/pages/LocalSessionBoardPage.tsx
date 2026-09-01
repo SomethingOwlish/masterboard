@@ -5,7 +5,7 @@ import { localSessionBoardDemo } from '../fixtures/localDemoRuntime'
 import type { BoardItem, BoardItemKind, LocalSessionBoardSnapshot } from '../fixtures/localSessionBoardDemo'
 
 const KIND_LABEL: Record<BoardItemKind, string> = {
-  character: 'Player', npc: 'NPC', location: 'Location', event: 'Event', misc: 'Clue',
+  character: 'Игрок', npc: 'NPC', location: 'Локация', event: 'Событие', misc: 'Зацепка',
 }
 
 const KIND_ICON: Record<BoardItemKind, string> = {
@@ -32,49 +32,49 @@ export function LocalSessionBoardPage() {
     <main className="session-board-demo">
       <header className="session-board-demo__topbar">
         <div className="session-board-demo__crumbs">
-          <Link to="/demo/campaign">Moon Port</Link><span>/</span><Link to="/demo/session">Opening Night</Link><span>/</span><strong>Plan</strong>
+          <Link to="/demo/campaign">Лунный порт</Link><span>/</span><Link to="/demo/session">Первая ночь</Link><span>/</span><strong>План</strong>
         </div>
         <div className="session-board-demo__top-actions">
-          <Badge tone="neutral" dot>Local fake workspace</Badge>
+          <Badge tone="neutral" dot>Локальные тестовые данные</Badge>
           <Button size="sm" variant={board.ready ? 'soft' : 'primary'} icon="check" onClick={() => setBoard(demo.toggleReady())}>
-            {board.ready ? 'Prepared' : 'Mark prepared'}
+            {board.ready ? 'Готово' : 'Отметить готовой'}
           </Button>
         </div>
       </header>
 
       <section className="session-board-demo__heading">
-        <div><span className="panel-kicker">Session #01 · September 5</span><h1>Opening Night at Moon Port</h1><p>Build the playable path, then conduct it from the same fake workspace.</p></div>
-        <div className="session-board-demo__status"><span>{board.scenes.length} scenes</span><span>{used.size} linked objects</span><span>Revision {board.revision}</span></div>
+        <div><span className="panel-kicker">Сессия №01 · 5 сентября</span><h1>Первая ночь в Лунном порту</h1><p>Соберите игровой маршрут, затем проведите его в том же локальном пространстве.</p></div>
+        <div className="session-board-demo__status"><span>{board.scenes.length} сцены</span><span>{used.size} объектов</span><span>Версия {board.revision}</span></div>
       </section>
 
       <div className={`session-board-demo__workspace${paletteOpen ? '' : ' is-palette-closed'}`}>
-        <aside className="session-palette" aria-label="Linked object palette">
+        <aside className="session-palette" aria-label="Палитра связанных объектов">
           <div className="panel-heading">
-            <div><span className="panel-kicker">Live references</span><h2 className="section-title">Session palette</h2></div>
-            <button className="session-board-demo__close" onClick={() => setPaletteOpen(false)} aria-label="Close palette">×</button>
+            <div><span className="panel-kicker">Живые ссылки</span><h2 className="section-title">Объекты сессии</h2></div>
+            <button className="session-board-demo__close" onClick={() => setPaletteOpen(false)} aria-label="Закрыть палитру">×</button>
           </div>
           <div className="session-palette__filters">
             {(['all', 'character', 'npc', 'location', 'event', 'misc'] as const).map((kind) => (
-              <button key={kind} className={filter === kind ? 'is-active' : ''} onClick={() => setFilter(kind)}>{kind === 'all' ? 'All' : KIND_LABEL[kind]}</button>
+              <button key={kind} className={filter === kind ? 'is-active' : ''} onClick={() => setFilter(kind)}>{kind === 'all' ? 'Все' : KIND_LABEL[kind]}</button>
             ))}
           </div>
           <div className="session-palette__list">
             {palette.map((item) => <ItemCard key={item.id} item={item} used={used.has(item.id)} onSelect={() => setSelectedId(item.id)} />)}
           </div>
-          <p className="session-palette__hint">Select an object, then place it into a scene from the inspector.</p>
+          <p className="session-palette__hint">Выберите объект и поместите его в сцену через инспектор.</p>
         </aside>
 
-        <section className="session-flow" aria-label="Session scene flow">
+        <section className="session-flow" aria-label="Маршрут сцен сессии">
           <div className="session-flow__toolbar">
-            {!paletteOpen && <Button size="sm" icon="plus" onClick={() => setPaletteOpen(true)}>Objects</Button>}
-            <span>Playable order</span><span className="session-flow__legend"><i /> Main path</span>
+            {!paletteOpen && <Button size="sm" icon="plus" onClick={() => setPaletteOpen(true)}>Объекты</Button>}
+            <span>Порядок игры</span><span className="session-flow__legend"><i /> Основной путь</span>
           </div>
           <div className="session-flow__scenes">
             {board.scenes.map((scene, index) => (
               <article className="session-scene" key={scene.id}>
                 <div className="session-scene__sequence"><span>{String(index + 1).padStart(2, '0')}</span>{index < board.scenes.length - 1 && <i />}</div>
                 <div className="session-scene__card">
-                  <header><div><span className="panel-kicker">Scene {index + 1}</span><h2>{scene.title}</h2></div><div className="session-scene__order"><button onClick={() => setBoard(demo.reorderScene(scene.id, -1))} disabled={index === 0} aria-label="Move scene earlier">↑</button><button onClick={() => setBoard(demo.reorderScene(scene.id, 1))} disabled={index === board.scenes.length - 1} aria-label="Move scene later">↓</button></div></header>
+                  <header><div><span className="panel-kicker">Сцена {index + 1}</span><h2>{scene.title}</h2></div><div className="session-scene__order"><button onClick={() => setBoard(demo.reorderScene(scene.id, -1))} disabled={index === 0} aria-label="Переместить сцену раньше">↑</button><button onClick={() => setBoard(demo.reorderScene(scene.id, 1))} disabled={index === board.scenes.length - 1} aria-label="Переместить сцену позже">↓</button></div></header>
                   <p className="session-scene__purpose">{scene.purpose}</p>
                   <blockquote>{scene.beat}</blockquote>
                   <div className="session-scene__items">
@@ -89,18 +89,18 @@ export function LocalSessionBoardPage() {
           </div>
         </section>
 
-        <aside className={`session-inspector${selected ? ' is-open' : ''}`} aria-label="Object inspector">
+        <aside className={`session-inspector${selected ? ' is-open' : ''}`} aria-label="Инспектор объекта">
           {selected ? <>
-            <div className="panel-heading"><div><span className="panel-kicker">Linked object</span><h2 className="section-title">{selected.name}</h2></div><button className="session-board-demo__close" onClick={() => setSelectedId(null)} aria-label="Close inspector">×</button></div>
+            <div className="panel-heading"><div><span className="panel-kicker">Связанный объект</span><h2 className="section-title">{selected.name}</h2></div><button className="session-board-demo__close" onClick={() => setSelectedId(null)} aria-label="Закрыть инспектор">×</button></div>
             <Badge tone="neutral">{KIND_LABEL[selected.kind]}</Badge>
             <p>{selected.detail}</p>
             <div className="session-inspector__tags">{selected.tags.map((tag) => <span key={tag}>#{tag}</span>)}</div>
-            <div className="session-inspector__placement"><span className="panel-kicker">Place in scene</span>{board.scenes.map((scene, index) => <button key={scene.id} className={scene.itemIds.includes(selected.id) ? 'is-current' : ''} onClick={() => move(selected.id, scene.id)}><span>{index + 1}</span>{scene.title}{scene.itemIds.includes(selected.id) && <Icon name="check" size={15} />}</button>)}</div>
-            <p className="session-inspector__sync"><Icon name="refresh-cw" size={14} /> Live fake reference · source changes would appear here.</p>
-          </> : <div className="session-inspector__empty"><Icon name="pointer" size={22} /><p>Select an object to inspect and place it.</p></div>}
+            <div className="session-inspector__placement"><span className="panel-kicker">Поместить в сцену</span>{board.scenes.map((scene, index) => <button key={scene.id} className={scene.itemIds.includes(selected.id) ? 'is-current' : ''} onClick={() => move(selected.id, scene.id)}><span>{index + 1}</span>{scene.title}{scene.itemIds.includes(selected.id) && <Icon name="check" size={15} />}</button>)}</div>
+            <p className="session-inspector__sync"><Icon name="refresh-cw" size={14} /> Живая тестовая ссылка · изменения источника появятся здесь.</p>
+          </> : <div className="session-inspector__empty"><Icon name="pointer" size={22} /><p>Выберите объект, чтобы изучить его и поместить в сцену.</p></div>}
         </aside>
       </div>
-      <footer className="session-board-demo__footer"><span>Simulation only · reload resets the board</span><Link to="/demo/conductor">Conduct this session <Icon name="arrow-right" size={15} /></Link></footer>
+      <footer className="session-board-demo__footer"><span>Только симуляция · перезагрузка сбросит доску</span><Link to="/demo/conductor">Провести сессию <Icon name="arrow-right" size={15} /></Link></footer>
     </main>
   )
 }

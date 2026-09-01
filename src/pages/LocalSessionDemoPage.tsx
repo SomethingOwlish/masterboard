@@ -6,8 +6,8 @@ import type { DocumentSnapshot } from '../storage/gateway'
 import type { SessionLogEntry, SessionStatus, TargetSessionDocument } from '../storage/sessionDocuments'
 
 const STATUS_LABEL: Record<SessionStatus, string> = {
-  draft: 'Draft', prepared: 'Prepared', running: 'Running', closed: 'Closed',
-  review: 'In review', 'review-complete': 'Review complete',
+  draft: 'Черновик', prepared: 'Готова', running: 'Идёт игра', closed: 'Закрыта',
+  review: 'Идёт разбор', 'review-complete': 'Разбор завершён',
 }
 
 function now() {
@@ -46,7 +46,7 @@ export function LocalSessionDemoPage() {
     }
   }
 
-  if (!session) return <main className="local-session-shell"><p className="muted">Loading local session…</p></main>
+  if (!session) return <main className="local-session-shell"><p className="muted">Загружаем локальную сессию…</p></main>
 
   const { data } = session
   const masterId = data.responsibleMasterId
@@ -75,22 +75,20 @@ export function LocalSessionDemoPage() {
   return (
     <main className="local-session-shell">
       <header className="local-session-topbar">
-        <Link to="/demo/campaign" className="row muted" style={{ textDecoration: 'none' }}><Icon name="arrow-left" size={16} /> Campaign dashboard</Link>
-        <Badge tone="neutral" dot>Local fake workspace</Badge>
+        <Link to="/demo/campaign" className="row muted" style={{ textDecoration: 'none' }}><Icon name="arrow-left" size={16} /> Панель кампании</Link>
+        <Badge tone="neutral" dot>Локальные тестовые данные</Badge>
       </header>
 
-      <div className="local-session-board-link"><span><strong>Session plan ready?</strong><small>Arrange scenes and linked objects before play.</small></span><Link to="/demo/session-board">Open scene board <Icon name="arrow-right" size={15} /></Link></div>
+      <div className="local-session-board-link"><span><strong>План сессии готов?</strong><small>Расставьте сцены и связанные объекты перед игрой.</small></span><Link to="/demo/session-board">Открыть доску сцен <Icon name="arrow-right" size={15} /></Link></div>
 
       <section className="local-session-hero">
         <div>
-          <span className="panel-kicker">Moon Port · deterministic scenario</span>
-          <h1>{data.title}</h1>
-          <p>Conduct a complete session without credentials, network requests, or external services.</p>
+          <span className="panel-kicker">Лунный порт · тестовый сценарий</span><h1>Первая ночь в Лунном порту</h1><p>Проведите полную сессию без учётных данных, сети и внешних сервисов.</p>
         </div>
         <div className="local-session-status">
-          <span>Current stage</span>
+          <span>Текущий этап</span>
           <strong>{STATUS_LABEL[data.status]}</strong>
-          <small>Responsible: {masterId === demo.ownerId ? 'Owl' : 'Fox'}</small>
+          <small>Ответственный: {masterId === demo.ownerId ? 'Сова' : 'Лис'}</small>
         </div>
       </section>
 
@@ -99,19 +97,19 @@ export function LocalSessionDemoPage() {
       <div className="local-session-grid">
         <section className="card local-session-panel">
           <div className="panel-heading">
-            <div><span className="panel-kicker">Before play</span><h2 className="section-title">Session plan</h2></div>
+            <div><span className="panel-kicker">До игры</span><h2 className="section-title">План сессии</h2></div>
             <Badge tone={data.status === 'draft' ? 'warning' : 'success'}>{STATUS_LABEL[data.status]}</Badge>
           </div>
           <label className="field" htmlFor="demo-objective">
-            <span>Objective</span>
+            <span>Цель</span>
             <textarea id="demo-objective" name="demo-objective" rows={5} value={objective} disabled={!['draft', 'prepared', 'running'].includes(data.status)} onChange={(event) => setObjective(event.target.value)} />
           </label>
           <div className="row local-session-actions">
-            {['draft', 'prepared', 'running'].includes(data.status) && <Button onClick={() => void savePlan()} disabled={busy}>Save plan</Button>}
-            {data.status === 'draft' && <Button variant="primary" icon="check" onClick={() => void transition('prepared')} disabled={busy}>Mark prepared</Button>}
+            {['draft', 'prepared', 'running'].includes(data.status) && <Button onClick={() => void savePlan()} disabled={busy}>Сохранить план</Button>}
+            {data.status === 'draft' && <Button variant="primary" icon="check" onClick={() => void transition('prepared')} disabled={busy}>Отметить готовой</Button>}
             {data.status === 'prepared' && <Button variant="ghost" onClick={() => void transition('draft')} disabled={busy}>Back to draft</Button>}
-            {data.status === 'prepared' && <Button variant="primary" icon="clapperboard" onClick={() => void transition('running')} disabled={busy}>Start session</Button>}
-            {data.status === 'running' && <Button variant="primary" onClick={() => void transition('closed')} disabled={busy}>Close session</Button>}
+            {data.status === 'prepared' && <Button variant="primary" icon="clapperboard" onClick={() => void transition('running')} disabled={busy}>Начать сессию</Button>}
+            {data.status === 'running' && <Button variant="primary" onClick={() => void transition('closed')} disabled={busy}>Завершить сессию</Button>}
           </div>
           {['draft', 'prepared', 'running'].includes(data.status) && (
             <Button
@@ -130,7 +128,7 @@ export function LocalSessionDemoPage() {
 
         <section className="card local-session-panel">
           <div className="panel-heading">
-            <div><span className="panel-kicker">At the table</span><h2 className="section-title">Actual log</h2></div>
+            <div><span className="panel-kicker">За столом</span><h2 className="section-title">Фактический журнал</h2></div>
             <span className="panel-state">{data.actualLog.length} entries</span>
           </div>
           {data.status === 'running' && (
@@ -166,7 +164,7 @@ export function LocalSessionDemoPage() {
         </section>
       </div>
 
-      <p className="local-session-footnote">Reloading resets this isolated workspace. Everything here is deliberately fake and stays in memory.</p>
+      <p className="local-session-footnote">Перезагрузка сбросит изолированное пространство. Все данные тестовые и остаются в памяти.</p>
     </main>
   )
 }
