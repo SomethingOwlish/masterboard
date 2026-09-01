@@ -202,5 +202,21 @@ export class EntityLibrary {
 
     return Promise.all(ids.map((id) => this.storage.get<TargetEntityDocument>(`${campaignPath}/entities/${id}`)))
   }
-}
 
+  async setArchived(campaignId: string, masterId: string, ids: string[], archived: boolean, now: string): Promise<void> {
+    if (!ids.length) throw new Error('Select at least one entity')
+    const uniqueIds = [...new Set(ids.map((id) => segment(id, 'Entity id')))]
+    const campaignPath = this.campaignPath(campaignId)
+    await this.storage.runTransaction(async (transaction) => {
+      const campaign = await transaction.get<CampaignDocument>(campaignPath)
+      if (!campaign) throw new Error(`Campaign ${campaignId} does not exist`)
+      if (!canAccessCampaign(campaign.data, masterId)) throw new CampaignPermissionError('archive entities in this campaign')
+      for (const id of uniqueIds) {
+        const path = `${campaignPath}/entities/${id}`
+        const entity = await transaction.get<TargetEntityDocument>(path)
+        if (!entity) throw new Error(`Entity ${id} does not exist`)
+        transaction.patch<TargetEntityDocument>(path, { archived, updatedAt: now }, { revision: entity.revision })
+      }
+    })
+  }
+}
