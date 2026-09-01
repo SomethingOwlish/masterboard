@@ -121,6 +121,7 @@ export type PublicationOperation =
 export interface PublicationQueueItem {
   id: ID
   entityId: ID
+  entityType: string
   connectionId: ID
   projectionId?: ID
   operation: PublicationOperation
