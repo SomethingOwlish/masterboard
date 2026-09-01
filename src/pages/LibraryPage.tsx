@@ -63,7 +63,7 @@ export function LibraryPage() {
         <span className="muted">{shown.length} shown</span>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(180px, 230px) minmax(0, 1fr)', gap: '1rem', marginTop: '1rem' }}>
+      <div className="library-layout">
         <Card padding="var(--space-3)" style={{ alignSelf: 'start' }}>
           <strong style={{ display: 'block', marginBottom: '0.5rem' }}>Types</strong>
           <div style={{ display: 'grid', gap: 4 }}>
