@@ -6,13 +6,14 @@ import { useState } from 'react'
 import { addSystem, getSystems } from '../systems'
 
 interface Props {
+  id?: string
   value: string | undefined
   onChange: (system: string | undefined) => void
 }
 
 const ADD = '__add__'
 
-export function SystemSelect({ value, onChange }: Props) {
+export function SystemSelect({ id, value, onChange }: Props) {
   const [systems, setSystems] = useState<string[]>(getSystems)
   const [adding, setAdding] = useState(false)
   const [draft, setDraft] = useState('')
@@ -33,6 +34,8 @@ export function SystemSelect({ value, onChange }: Props) {
     return (
       <div className="row" style={{ gap: '0.4rem' }}>
         <input
+          id={id}
+          name={id ? `${id}-custom` : 'custom-system'}
           autoFocus
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
@@ -53,6 +56,8 @@ export function SystemSelect({ value, onChange }: Props) {
 
   return (
     <select
+      id={id}
+      name={id ?? 'system'}
       value={value ?? ''}
       onChange={(e) => {
         const v = e.target.value

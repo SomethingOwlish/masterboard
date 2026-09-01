@@ -5,7 +5,7 @@ import {
   LayoutDashboard, Waypoints, History, Map, MapPin, Dices, ListChecks, BookOpen, ScrollText,
   Printer, Settings, Plus, Search, Filter, Pencil, Trash2, ExternalLink, Sun, Moon, Palette,
   Github, PanelLeft, PanelLeftClose, Calendar, Users, Tag, Copy, Download, Upload, Link, Globe,
-  Pointer, Image as ImageIcon,
+  Pointer, Image as ImageIcon, Library, SearchX, Shapes,
   MousePointer2, Highlighter, Square, Circle, Minus, Type, Eraser, Undo2, Smile, Clapperboard, ArrowUpRight,
 } from 'lucide-react'
 
@@ -26,6 +26,7 @@ const MAP = {
   'external-link': ExternalLink, sun: Sun, moon: Moon, palette: Palette, github: Github,
   'panel-left': PanelLeft, 'panel-left-close': PanelLeftClose, calendar: Calendar, users: Users, tag: Tag,
   copy: Copy, download: Download, upload: Upload, link: Link, globe: Globe, pointer: Pointer, image: ImageIcon,
+  library: Library, 'search-x': SearchX, shapes: Shapes,
   'mouse-pointer-2': MousePointer2, highlighter: Highlighter, square: Square, circle: Circle, minus: Minus,
   type: Type, eraser: Eraser, 'undo-2': Undo2, smile: Smile, clapperboard: Clapperboard, 'arrow-up-right': ArrowUpRight,
 }

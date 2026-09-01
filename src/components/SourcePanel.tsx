@@ -71,8 +71,8 @@ export function SourcePanel({ campaignId, sites }: { campaignId: string; sites: 
       )}
 
       <div className="source-add">
-        <input value={label} placeholder="Label (e.g. Wiki)" onChange={(e) => setLabel(e.target.value)} />
-        <input value={url} placeholder="https://…/data.json" onChange={(e) => setUrl(e.target.value)} />
+        <input id="source-label" name="source-label" aria-label="Source label" value={label} placeholder="Label (e.g. Wiki)" onChange={(e) => setLabel(e.target.value)} />
+        <input id="source-url" name="source-url" aria-label="Source URL" value={url} placeholder="https://…/data.json" onChange={(e) => setUrl(e.target.value)} />
         <Button icon="plus" onClick={addSite} disabled={!label.trim() || !url.trim()}>Add</Button>
       </div>
 

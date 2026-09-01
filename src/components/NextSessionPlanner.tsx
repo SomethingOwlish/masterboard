@@ -26,12 +26,19 @@ export function NextSessionPlanner({ plan }: { plan: NextSessionPlan }) {
 
   return (
     <section className="card">
-      <h2 className="section-title row" style={{ gap: '0.4rem' }}><Icon name="calendar" size={18} /> Next session</h2>
+      <div className="panel-heading">
+        <div>
+          <span className="panel-kicker">At the table</span>
+          <h2 className="section-title row" style={{ gap: '0.4rem' }}><Icon name="calendar" size={18} /> Next session</h2>
+        </div>
+        <span className="panel-state">{plan.date || 'Date open'}</span>
+      </div>
 
       <div className="field">
         <label htmlFor="ns-date">Date</label>
         <input
           id="ns-date"
+          name="next-session-date"
           type="date"
           value={plan.date ?? ''}
           onChange={(e) => void setNextSession({ date: e.target.value || undefined })}
@@ -39,9 +46,11 @@ export function NextSessionPlanner({ plan }: { plan: NextSessionPlan }) {
       </div>
 
       <div className="field">
-        <label>Attendees</label>
+        <label htmlFor="ns-attendee">Attendees</label>
         <div className="row" style={{ gap: '0.4rem' }}>
           <input
+            id="ns-attendee"
+            name="attendee"
             value={attendee}
             onChange={(e) => setAttendee(e.target.value)}
             onKeyDown={(e) => {
@@ -67,6 +76,7 @@ export function NextSessionPlanner({ plan }: { plan: NextSessionPlan }) {
         <label htmlFor="ns-agenda">Agenda</label>
         <textarea
           id="ns-agenda"
+          name="next-session-agenda"
           rows={4}
           value={plan.agenda}
           onChange={(e) => void setNextSession({ agenda: e.target.value })}
@@ -78,6 +88,7 @@ export function NextSessionPlanner({ plan }: { plan: NextSessionPlan }) {
         <label htmlFor="ns-notes">Notes</label>
         <textarea
           id="ns-notes"
+          name="next-session-notes"
           rows={2}
           value={plan.notes ?? ''}
           onChange={(e) => void setNextSession({ notes: e.target.value || undefined })}
