@@ -21,6 +21,7 @@ import { LocalCampaignDashboardPage } from './pages/LocalCampaignDashboardPage'
 import { LocalLibraryPage } from './pages/LocalLibraryPage'
 import { LocalPublicationManagerPage } from './pages/LocalPublicationManagerPage'
 import { LocalSessionBoardPage } from './pages/LocalSessionBoardPage'
+import { LocalConductorPage } from './pages/LocalConductorPage'
 import { MODULES } from './modules'
 import { lazy, Suspense, type ReactElement } from 'react'
 
@@ -62,6 +63,7 @@ export const router = createBrowserRouter(
     { path: '/demo/library', element: <LocalLibraryPage /> },
     { path: '/demo/publications', element: <LocalPublicationManagerPage /> },
     { path: '/demo/session-board', element: <LocalSessionBoardPage /> },
+    { path: '/demo/conductor', element: <LocalConductorPage /> },
     {
       path: '/campaign/:campaignId',
       element: <CampaignLayout />,

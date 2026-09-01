@@ -4,6 +4,7 @@ import { createLocalSessionDemo } from './localSessionDemo'
 import { createLocalLibraryDemo } from './localLibraryDemo'
 import { createLocalPublicationDemo } from './localPublicationDemo'
 import { createLocalSessionBoardDemo } from './localSessionBoardDemo'
+import { createLocalConductorDemo } from './localConductorDemo'
 
 // One shared in-memory workspace per browser tab. Route changes preserve state;
 // a full reload deterministically resets it to demoWorkspaceSeed().
@@ -14,3 +15,4 @@ export const localSessionDemo = createLocalSessionDemo(workspace)
 export const localLibraryDemo = createLocalLibraryDemo(workspace)
 export const localPublicationDemo = createLocalPublicationDemo(workspace)
 export const localSessionBoardDemo = createLocalSessionBoardDemo()
+export const localConductorDemo = createLocalConductorDemo()
