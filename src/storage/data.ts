@@ -71,7 +71,8 @@ export const data = {
     await Promise.all(sessionsIndex.sessions.map((s) => repo.remove(paths.sessionDoc(g, id, s.id))))
     const mods: ModuleId[] = [
       'campaign', 'log', 'characters', 'npcs', 'locations', 'misc', 'relations',
-      'timeline', 'activity', 'sessions', 'tasks', 'rules',
+      'timeline', 'activity', 'sessions', 'tasks', 'rules', 'connections',
+      'projections', 'publicationQueue',
     ]
     await Promise.all(mods.map((m) => repo.remove(paths.module(g, id, m))))
   },
