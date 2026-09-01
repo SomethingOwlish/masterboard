@@ -11,6 +11,7 @@ export interface ModuleDef {
 
 export const MODULES: ModuleDef[] = [
   { id: 'overview', label: 'Campaign', path: '', icon: 'layout-dashboard', blurb: 'Dashboard, next-session planner & recap log' },
+  { id: 'library', label: 'Library', path: 'library', icon: 'library', blurb: 'All campaign entities and projections' },
   { id: 'characters', label: 'Characters', path: 'characters', icon: 'shield', blurb: 'Player characters' },
   { id: 'npcs', label: 'NPCs', path: 'npcs', icon: 'drama', blurb: 'Non-player characters' },
   { id: 'relations', label: 'Relations', path: 'relations', icon: 'waypoints', blurb: 'Who knows whom' },

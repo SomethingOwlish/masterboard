@@ -111,6 +111,7 @@ export interface Character {
   fields: Field[]
   tags: Tag[]
   links: Link[]
+  archived?: boolean
 }
 
 export interface NPC {
@@ -122,6 +123,7 @@ export interface NPC {
   dead: boolean
   notes?: string
   links: Link[]
+  archived?: boolean
 }
 
 export interface Location {
@@ -131,6 +133,7 @@ export interface Location {
   image?: ImgRef
   tags: Tag[]
   links: Link[]
+  archived?: boolean
 }
 
 export interface Misc {
@@ -141,6 +144,7 @@ export interface Misc {
   fields: Field[]
   tags: Tag[]
   links: Link[]
+  archived?: boolean
 }
 
 export interface Relation {
