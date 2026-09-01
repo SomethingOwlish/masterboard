@@ -47,6 +47,6 @@ export function LocalConductorPage() {
     </div>
 
     {confirmClose && <div className="conductor__scrim" role="presentation"><section className="conductor__modal" role="dialog" aria-modal="true" aria-labelledby="end-session-title"><span className="panel-kicker">Explicit transition</span><h2 id="end-session-title">End live play?</h2><p>The factual log will lock and the review workspace will become the next step.</p><div><Button onClick={() => setConfirmClose(false)}>Keep running</Button><Button variant="primary" icon="check" onClick={() => { setState(demo.close()); setConfirmClose(false) }}>End and prepare review</Button></div></section></div>}
-    {disabled && <div className="conductor__closed"><span><Icon name="check" size={18} /> Live play closed. The factual log is locked.</span><Link to="/demo/session">Open review <Icon name="arrow-right" size={15} /></Link></div>}
+    {disabled && <div className="conductor__closed"><span><Icon name="check" size={18} /> Live play closed. The factual log is locked.</span><Link to="/demo/review">Open review <Icon name="arrow-right" size={15} /></Link></div>}
   </main>
 }
