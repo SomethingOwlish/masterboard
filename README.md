@@ -2,16 +2,14 @@
 
 A planning instrument for tabletop RPG game masters — campaigns, characters, NPCs,
 relationship webs, in-world chronology, session planner boards, locations, notes,
-rules, tasks, and a one-click printable session sheet. All in one place, hosted free
-on GitHub Pages.
+rules, tasks, and a one-click printable session sheet. All in one place.
 
 > See **[DESIGN.md](./DESIGN.md)** for the full architecture and module-by-module spec.
 
 ## Status
 
-**Batch 0 — skeleton & deploy.** Live now: app shell, hub, burger menu, four color
-themes, responsive/mobile layout, GitHub Pages deploy pipeline. Module screens are
-placeholders that get built out batch by batch (see the roadmap in DESIGN.md §8).
+The app shell and campaign modules run as a static SPA. Production hosting is moving
+to Cloudflare; deployment credentials and project binding are configured separately.
 
 ## Stack
 
@@ -31,6 +29,6 @@ npm run lint
 
 ## Deploy
 
-Pushing to `main` triggers `.github/workflows/deploy.yml`, which builds and publishes
-to GitHub Pages. Enable Pages → Source: **GitHub Actions** in repo settings once.
-The production base path is `/masterboard/` (see `vite.config.ts`).
+`npm run build` produces the static application in `dist/`. The production target is
+Cloudflare with `/` as the Vite base path. This repository intentionally contains no
+GitHub Pages workflow and no committed Cloudflare credentials.

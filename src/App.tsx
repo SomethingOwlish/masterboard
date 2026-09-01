@@ -25,8 +25,8 @@ const SessionPlanner = lazy(() =>
   import('./pages/SessionPlanner').then((m) => ({ default: m.SessionPlanner })),
 )
 
-// Vite injects BASE_URL ('/masterboard/' in prod). React Router needs it without
-// the trailing slash as its basename.
+// Vite injects BASE_URL. Cloudflare serves the application from the domain root;
+// keeping this derived still allows a deliberate subpath preview if ever needed.
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 
 // Modules that have a real implementation get their own element; everything else

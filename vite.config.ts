@@ -1,13 +1,13 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-// GitHub Pages serves a project site under /<repo>/, so the base path must
-// match the repo name in production. Locally we serve from root.
-export default defineConfig(({ mode }) => ({
-  base: mode === 'production' ? '/masterboard/' : '/',
+// Cloudflare serves the SPA from the domain root. Deployment credentials and
+// project binding are intentionally configured outside the repository later.
+export default defineConfig({
+  base: '/',
   plugins: [react()],
   resolve: {
-    alias: { '@': path.resolve(__dirname, 'src') },
+    alias: { '@': fileURLToPath(new URL('./src', import.meta.url)) },
   },
-}))
+})

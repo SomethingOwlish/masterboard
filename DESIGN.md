@@ -2,7 +2,7 @@
 
 A planning instrument for tabletop RPG game masters. One place to plan sessions,
 collect campaign data, draw relationships and chronologies, take notes, pull info
-from your other sites, and push tasks to a third. Hosted free on GitHub Pages.
+from your other sites, and push tasks to a third. Deployed as a static SPA on Cloudflare.
 
 > Status: living design doc. Decisions below are settled unless re-opened.
 
@@ -10,7 +10,7 @@ from your other sites, and push tasks to a third. Hosted free on GitHub Pages.
 
 ## 1. Principles & constraints
 
-- **Free + static.** Ships as a static SPA on GitHub Pages. No server we pay for.
+- **Free + static.** Ships as a static SPA on Cloudflare. No application server we pay for.
 - **Offline-first.** IndexedDB is the working copy; GitHub is the synced source of truth.
 - **Adapters everywhere.** Storage, images, imports, and tasks sit behind interfaces
   so any one can be swapped without touching feature code.
@@ -24,7 +24,7 @@ from your other sites, and push tasks to a third. Hosted free on GitHub Pages.
 | Concern | Choice |
 |---|---|
 | Build / SPA | React + TypeScript + Vite |
-| Routing | react-router-dom (hash-free, SPA fallback via 404.html copy) |
+| Routing | react-router-dom (hash-free, Cloudflare SPA fallback) |
 | State | Zustand (per-campaign store) + IndexedDB persistence |
 | Infinite canvas | tldraw (session planner, campaign-page planner) |
 | Node/relationship graph | React Flow (relation board) |
@@ -32,7 +32,7 @@ from your other sites, and push tasks to a third. Hosted free on GitHub Pages.
 | Timeline | custom column/row grid (in-world chronology) |
 | Rich text / markdown | TipTap (notes, rules) |
 | Images | Imgur upload adapter |
-| Deploy | GitHub Actions → Pages |
+| Deploy | Cloudflare (project binding configured separately) |
 
 ---
 
@@ -258,7 +258,7 @@ interface TaskAdapter    { create(task): Promise<{ url: string; id?: string }> }
 
 ## 8. Implementation batches
 
-- **B0 — Skeleton & deploy:** Vite scaffold, Actions→Pages, app shell (hub, burger, themes, responsive). *(in progress)*
+- **B0 — Skeleton & deploy:** Vite scaffold, Cloudflare-ready static build, app shell (hub, burger, themes, responsive). *(in progress)*
 - **B1 — Storage core:** data model, IndexedDB, GitHub adapter (folders + split files), settings + PAT.
 - **B2 — Campaign page:** dashboard, next-session planner, recap log, character block, source panel.
 - **B3 — Characters + NPCs:** custom-field engine, cards, tags, dead.
