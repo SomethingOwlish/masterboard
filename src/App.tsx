@@ -13,6 +13,7 @@ import { TasksPage } from './pages/TasksPage'
 import { RulesPage } from './pages/RulesPage'
 import { PrintPage } from './pages/PrintPage'
 import { ActivityLog } from './pages/ActivityLog'
+import { LibraryPage } from './pages/LibraryPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ModulePlaceholder } from './pages/ModulePlaceholder'
 import { MODULES } from './modules'
@@ -32,6 +33,7 @@ const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 // renders the placeholder until its batch lands.
 const MODULE_ELEMENTS: Record<string, ReactElement> = {
   overview: <CampaignOverview />,
+  library: <LibraryPage />,
   characters: <CharactersPage />,
   npcs: <NpcsPage />,
   relations: <RelationsBoard />,
