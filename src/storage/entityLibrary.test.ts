@@ -94,5 +94,16 @@ describe('EntityLibrary', () => {
     expect(await storage.get<TargetEntityDocument>(`campaigns/${CAMPAIGN}/entities/new-item`)).toBeNull()
     expect(await storage.get(`campaigns/${CAMPAIGN}/inbox/note-bell`)).toMatchObject({ data: { state: 'unprocessed' } })
   })
-})
 
+  it('archives a selected batch atomically', async () => {
+    const { storage, library } = setup()
+    await library.setArchived(CAMPAIGN, 'fox', ['npc-fox', 'location-gate'], true, NOW)
+    expect(await library.list(CAMPAIGN, 'fox')).toEqual([])
+    expect(await library.list(CAMPAIGN, 'fox', { includeArchived: true })).toHaveLength(3)
+
+    await expect(library.setArchived(CAMPAIGN, 'fox', ['npc-fox', 'missing'], false, NOW))
+      .rejects.toThrow('Entity missing does not exist')
+    expect(await storage.get<TargetEntityDocument>(`campaigns/${CAMPAIGN}/entities/npc-fox`))
+      .toMatchObject({ data: { archived: true } })
+  })
+})

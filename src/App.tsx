@@ -18,6 +18,7 @@ import { SettingsPage } from './pages/SettingsPage'
 import { ModulePlaceholder } from './pages/ModulePlaceholder'
 import { LocalSessionDemoPage } from './pages/LocalSessionDemoPage'
 import { LocalCampaignDashboardPage } from './pages/LocalCampaignDashboardPage'
+import { LocalLibraryPage } from './pages/LocalLibraryPage'
 import { MODULES } from './modules'
 import { lazy, Suspense, type ReactElement } from 'react'
 
@@ -56,6 +57,7 @@ export const router = createBrowserRouter(
     { path: '/settings', element: <SettingsPage /> },
     { path: '/demo/session', element: <LocalSessionDemoPage /> },
     { path: '/demo/campaign', element: <LocalCampaignDashboardPage /> },
+    { path: '/demo/library', element: <LocalLibraryPage /> },
     {
       path: '/campaign/:campaignId',
       element: <CampaignLayout />,
