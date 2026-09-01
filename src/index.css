@@ -500,6 +500,40 @@ kbd {
 .print-empty, .print-note { font-size: 0.85rem; }
 
 /* ---- Mobile passes (B10) ------------------------------------------------- */
+.demo-workspace-card { display: flex; justify-content: space-between; align-items: center; gap: var(--space-4); margin-bottom: var(--space-5); }
+.demo-workspace-card p { margin: var(--space-1) 0 0; }
+.local-session-shell { width: min(1180px, 100%); margin: 0 auto; padding: var(--space-5); }
+.local-session-topbar { display: flex; justify-content: space-between; align-items: center; margin-bottom: var(--space-5); }
+.local-session-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-6); align-items: end; padding: var(--space-6) 0; border-block: 1px solid var(--border-strong); }
+.local-session-hero h1 { margin: var(--space-1) 0; font: var(--type-hero); }
+.local-session-hero p { max-width: 62ch; margin: 0; color: var(--muted); }
+.local-session-status { min-width: 190px; padding-left: var(--space-4); border-left: 3px solid var(--accent); display: grid; gap: 2px; }
+.local-session-status span, .local-session-status small { color: var(--muted); font: var(--type-meta); }
+.local-session-status strong { font: var(--type-display); }
+.local-session-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--space-4); margin-top: var(--space-5); align-items: start; }
+.local-session-panel { min-width: 0; }
+.local-session-review { grid-column: 1 / -1; }
+.local-session-actions { flex-wrap: wrap; margin-top: var(--space-3); }
+.local-session-error { padding: var(--space-3); color: var(--danger); background: var(--danger-soft); border-left: 3px solid var(--danger); }
+.local-log-composer { display: grid; grid-template-columns: 150px minmax(0, 1fr) auto; gap: var(--space-2); align-items: start; }
+.local-log-composer > * { margin-bottom: 0 !important; }
+.local-log-list { list-style: none; margin: var(--space-3) 0 0; padding: 0; display: grid; gap: var(--space-2); }
+.local-log-list li { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; gap: var(--space-3); align-items: center; padding: var(--space-2) 0; border-bottom: 1px solid var(--border); }
+.local-log-list time { color: var(--muted); font: var(--type-data); }
+.local-session-lock { display: flex; gap: var(--space-2); align-items: center; }
+.local-session-footnote { margin: var(--space-4) 0 0; color: var(--muted); text-align: center; font: var(--type-meta); }
+
+@media (max-width: 720px) {
+  .demo-workspace-card { align-items: flex-start; flex-direction: column; }
+  .local-session-shell { padding: var(--space-3); }
+  .local-session-hero { grid-template-columns: 1fr; gap: var(--space-4); padding: var(--space-4) 0; }
+  .local-session-hero h1 { font-size: var(--text-3xl); line-height: 1.02; }
+  .local-session-status { padding: var(--space-2) 0 0; border-left: 0; border-top: 3px solid var(--accent); }
+  .local-session-grid { grid-template-columns: 1fr; }
+  .local-session-review { grid-column: auto; }
+  .local-log-composer { grid-template-columns: 1fr; }
+}
+
 @media (max-width: 760px) {
   .drawer { max-width: 100%; }
   .modal { max-width: 100%; }

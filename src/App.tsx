@@ -16,6 +16,7 @@ import { ActivityLog } from './pages/ActivityLog'
 import { LibraryPage } from './pages/LibraryPage'
 import { SettingsPage } from './pages/SettingsPage'
 import { ModulePlaceholder } from './pages/ModulePlaceholder'
+import { LocalSessionDemoPage } from './pages/LocalSessionDemoPage'
 import { MODULES } from './modules'
 import { lazy, Suspense, type ReactElement } from 'react'
 
@@ -52,6 +53,7 @@ export const router = createBrowserRouter(
   [
     { path: '/', element: <Hub /> },
     { path: '/settings', element: <SettingsPage /> },
+    { path: '/demo/session', element: <LocalSessionDemoPage /> },
     {
       path: '/campaign/:campaignId',
       element: <CampaignLayout />,
