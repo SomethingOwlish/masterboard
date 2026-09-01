@@ -24,11 +24,13 @@ const EMPTY_CLASS: Record<Variant, string> = {
 }
 
 export function ImageField({
+  id,
   value,
   onChange,
   variant = 'thumb',
   glyph = 'image',
 }: {
+  id?: string
   value?: string
   onChange: (url: string | undefined) => void
   variant?: Variant
@@ -75,6 +77,8 @@ export function ImageField({
 
         <div className="image-field-actions">
           <input
+            id={id}
+            name={id ?? 'image-file'}
             ref={fileRef}
             type="file"
             accept="image/*"
@@ -97,6 +101,9 @@ export function ImageField({
       {!adapter && (
         <input
           className="image-field-url"
+          id={id ? `${id}-url` : undefined}
+          name={id ? `${id}-url` : 'image-url'}
+          aria-label="Image URL"
           value={value ?? ''}
           placeholder="…or paste an image URL"
           onChange={(e) => onChange(e.target.value || undefined)}

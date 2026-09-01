@@ -27,7 +27,8 @@ export function CampaignOverview() {
     <div className="content campaign-overview">
       <CampaignDetails campaign={campaign} finishedCount={recaps.length} />
 
-      <div className="overview-grid" style={{ marginTop: '1rem' }}>
+      <div className="workspace-rule" aria-hidden />
+      <div className="overview-grid">
         <div className="overview-col">
           <NextSessionPlanner plan={campaign.nextSession} />
           <CharacterBlock campaignId={campaign.id} characters={characters} />

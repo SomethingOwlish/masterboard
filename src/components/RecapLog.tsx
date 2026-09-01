@@ -38,13 +38,16 @@ export function RecapLog({ recaps }: { recaps: SessionRecap[] }) {
 
   return (
     <section className="card">
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <h2 className="section-title row" style={{ margin: 0, gap: '0.4rem' }}><Icon name="scroll-text" size={18} /> Session recaps</h2>
+      <div className="panel-heading">
+        <div>
+          <span className="panel-kicker">Campaign record</span>
+          <h2 className="section-title row" style={{ margin: 0, gap: '0.4rem' }}><Icon name="scroll-text" size={18} /> Session recaps</h2>
+        </div>
         {!adding && <Button variant="primary" icon="plus" onClick={() => setAdding(true)}>Add recap</Button>}
       </div>
 
       {adding && (
-        <div className="card" style={{ marginTop: '0.75rem', background: 'var(--surface-2)' }}>
+        <div className="inline-editor">
           <div className="row" style={{ gap: '0.6rem', alignItems: 'flex-start' }}>
             <div className="field" style={{ flex: 2 }}>
               <label htmlFor="r-title">Title</label>
@@ -124,22 +127,23 @@ function RecapEditor({
   const [title, setTitle] = useState(recap.title)
   const [realDate, setRealDate] = useState(recap.realDate)
   const [body, setBody] = useState(recap.body)
+  const fieldId = (name: string) => `recap-${recap.id}-${name}`
 
   return (
     <li className="recap-item" style={{ background: 'var(--surface-2)' }}>
       <div className="row" style={{ gap: '0.6rem', alignItems: 'flex-start' }}>
         <div className="field" style={{ flex: 2 }}>
-          <label>Title</label>
-          <input value={title} onChange={(e) => setTitle(e.target.value)} />
+          <label htmlFor={fieldId('title')}>Title</label>
+          <input id={fieldId('title')} name="recap-title" value={title} onChange={(e) => setTitle(e.target.value)} />
         </div>
         <div className="field" style={{ flex: 1 }}>
-          <label>Date played</label>
-          <input type="date" value={realDate} onChange={(e) => setRealDate(e.target.value)} />
+          <label htmlFor={fieldId('date')}>Date played</label>
+          <input id={fieldId('date')} name="recap-date" type="date" value={realDate} onChange={(e) => setRealDate(e.target.value)} />
         </div>
       </div>
       <div className="field">
-        <label>What happened</label>
-        <textarea rows={4} value={body} onChange={(e) => setBody(e.target.value)} />
+        <label htmlFor={fieldId('body')}>What happened</label>
+        <textarea id={fieldId('body')} name="recap-body" rows={4} value={body} onChange={(e) => setBody(e.target.value)} />
       </div>
       <div className="row" style={{ justifyContent: 'flex-end' }}>
         <button onClick={onCancel}>Cancel</button>

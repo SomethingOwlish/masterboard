@@ -8,7 +8,7 @@ import type { Campaign } from '../model/types'
 import { useCampaign } from '../store/campaign'
 import { ImageField } from './ImageField'
 import { SystemSelect } from './SystemSelect'
-import { Icon, IconButton, Button, StatBlock } from '../ds'
+import { Badge, Icon, IconButton, Button, StatBlock } from '../ds'
 
 export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaign; finishedCount: number }) {
   const { rename, update } = useCampaign()
@@ -28,8 +28,8 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
   }
 
   return (
-    <section className="card">
-      <div className="overview-header">
+    <section className="campaign-masthead">
+      <div className="campaign-masthead__main">
         <div className="cover-slot">
           {campaign.cover ? (
             <img className="overview-cover" src={campaign.cover} alt="" />
@@ -41,7 +41,13 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
           </button>
         </div>
 
-        <div style={{ flex: 1, minWidth: 0 }}>
+        <div className="campaign-masthead__identity">
+          <div className="campaign-eyebrow">
+            <span>Campaign workspace</span>
+            <Badge tone={campaign.lastPlayed ? 'success' : 'neutral'} dot size="sm">
+              {campaign.lastPlayed ? 'Active' : 'New'}
+            </Badge>
+          </div>
           {editTitle ? (
             <div className="row" style={{ gap: '0.4rem' }}>
               <input
@@ -59,11 +65,11 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
             </div>
           ) : (
             <div className="row" style={{ gap: '0.5rem' }}>
-              <h1 style={{ margin: 0 }}>{campaign.name}</h1>
+              <h1 className="campaign-title">{campaign.name}</h1>
               <IconButton icon="pencil" label="Rename" size="sm" onClick={() => { setTitleDraft(campaign.name); setEditTitle(true) }} />
             </div>
           )}
-          <p className="muted" style={{ margin: '0.25rem 0 0' }}>
+          <p className="campaign-meta">
             Created {campaign.createdAt.slice(0, 10)}
             {campaign.lastPlayed && ` · last played ${campaign.lastPlayed}`}
           </p>
@@ -72,8 +78,9 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
 
       {editCover && (
         <div className="field" style={{ marginTop: '0.5rem' }}>
-          <label>Cover image</label>
+          <label htmlFor="cd-cover">Cover image</label>
           <ImageField
+            id="cd-cover"
             value={campaign.cover}
             variant="cover"
             glyph="dices"
@@ -82,10 +89,12 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
         </div>
       )}
 
-      <div className="stats-strip">
+      <div className="campaign-ledger" aria-label="Campaign statistics">
         <label className="stat">
           <span className="stat-label">Players</span>
           <input
+            id="cd-players"
+            name="player-count"
             className="stat-input"
             type="number"
             min={0}
@@ -97,6 +106,8 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
         <label className="stat">
           <span className="stat-label">Sessions planned</span>
           <input
+            id="cd-planned-sessions"
+            name="planned-sessions"
             className="stat-input"
             type="number"
             min={0}
@@ -105,23 +116,26 @@ export function CampaignDetails({ campaign, finishedCount }: { campaign: Campaig
             placeholder="0"
           />
         </label>
-        <StatBlock label="Sessions finished" value={finishedCount} accent hint="From the recap log" />
+        <StatBlock className="campaign-stat-block" label="Sessions finished" value={finishedCount} accent hint="From the recap log" />
       </div>
 
-      <div className="field" style={{ marginTop: '0.75rem' }}>
-        <label htmlFor="cd-system">System</label>
-        <SystemSelect value={campaign.system} onChange={(system) => void update({ system })} />
-      </div>
+      <div className="campaign-brief">
+        <div className="field campaign-system-field">
+          <label htmlFor="cd-system">System</label>
+          <SystemSelect id="cd-system" value={campaign.system} onChange={(system) => void update({ system })} />
+        </div>
 
-      <div className="field">
-        <label htmlFor="cd-desc">Description</label>
-        <textarea
-          id="cd-desc"
-          rows={3}
-          value={campaign.description ?? ''}
-          onChange={(e) => void update({ description: e.target.value || undefined })}
-          placeholder="Premise, tone, table expectations…"
-        />
+        <div className="field campaign-description-field">
+          <label htmlFor="cd-desc">Campaign brief</label>
+          <textarea
+            id="cd-desc"
+            name="campaign-description"
+            rows={3}
+            value={campaign.description ?? ''}
+            onChange={(e) => void update({ description: e.target.value || undefined })}
+            placeholder="Premise, tone, table expectations…"
+          />
+        </div>
       </div>
     </section>
   )
