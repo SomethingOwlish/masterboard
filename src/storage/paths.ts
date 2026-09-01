@@ -17,6 +17,9 @@ const MODULE_FILE: Record<ModuleId, string> = {
   rules: 'rules.md',
   sessions: 'sessions/index.json',
   activity: 'activity.json',
+  connections: 'connections.json',
+  projections: 'projections.json',
+  publicationQueue: 'publication-queue.json',
 }
 
 export const paths = {

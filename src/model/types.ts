@@ -53,6 +53,9 @@ export type ModuleId =
   | 'rules'
   | 'sessions'
   | 'activity'
+  | 'connections'
+  | 'projections'
+  | 'publicationQueue'
 
 export interface SourceSite {
   id: ID
