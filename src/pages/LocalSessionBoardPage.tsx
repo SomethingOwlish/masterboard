@@ -100,7 +100,7 @@ export function LocalSessionBoardPage() {
           </> : <div className="session-inspector__empty"><Icon name="pointer" size={22} /><p>Select an object to inspect and place it.</p></div>}
         </aside>
       </div>
-      <footer className="session-board-demo__footer"><span>Simulation only · reload resets the board</span><Link to="/demo/session">Continue to lifecycle <Icon name="arrow-right" size={15} /></Link></footer>
+      <footer className="session-board-demo__footer"><span>Simulation only · reload resets the board</span><Link to="/demo/conductor">Conduct this session <Icon name="arrow-right" size={15} /></Link></footer>
     </main>
   )
 }
