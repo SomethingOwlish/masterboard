@@ -1,13 +1,12 @@
 import type { DocumentSnapshot } from '../storage/gateway'
 import type { TargetSessionDocument } from '../storage/sessionDocuments'
 import { SessionLifecycle } from '../storage/sessionLifecycle'
-import { createDemoWorkspace, DEMO_IDS } from './demoWorkspace'
+import { createDemoWorkspace, DEMO_IDS, type DemoWorkspace } from './demoWorkspace'
 
 const INITIAL_TIME = '2026-09-01T18:00:00.000Z'
 
 /** Isolated, network-free runtime for exercising the target session model in UI tests. */
-export function createLocalSessionDemo() {
-  const workspace = createDemoWorkspace()
+export function createLocalSessionDemo(workspace: DemoWorkspace = createDemoWorkspace()) {
   const lifecycle = new SessionLifecycle(workspace.storage)
   const path = `campaigns/${workspace.campaignId}/sessions/${DEMO_IDS.session}`
   let setup: Promise<DocumentSnapshot<TargetSessionDocument>> | null = null
@@ -47,4 +46,3 @@ export function createLocalSessionDemo() {
     readSession: () => workspace.storage.get<TargetSessionDocument>(path),
   }
 }
-

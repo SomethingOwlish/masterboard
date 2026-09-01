@@ -12,6 +12,8 @@ export const DEMO_IDS = {
   faction: 'entity-lantern-guild',
   rumor: 'entity-red-moon-rumor',
   session: 'session-opening-night',
+  clock: 'clock-red-tide',
+  inbox: 'inbox-captain-name',
 } as const
 
 export interface DemoWorkspace {
@@ -89,6 +91,14 @@ export function demoWorkspaceSeed(): Record<string, DocumentData> {
       title: 'The red tide', direction: 'Discover who moves the harbor', stakes: 'The city loses its shoreline',
       ownerId: 'plot', state: 'active', tags: ['main'], createdAt: CREATED, updatedAt: UPDATED,
     },
+    [campaignPath('arcs', 'arc-lantern-festival')]: {
+      title: 'The Lantern Festival', state: 'active', summary: 'Three nights before the harbor wakes.',
+      createdAt: CREATED, updatedAt: UPDATED,
+    },
+    [campaignPath('goals', 'goal-open-gate')]: {
+      title: 'Reach the eastern gate', priority: 'must', state: 'active', lineId: 'line-red-tide',
+      createdAt: CREATED, updatedAt: UPDATED,
+    },
     [campaignPath('events', 'event-gate-opens')]: {
       title: 'The eastern gate opens', plannedDescription: 'The Fox offers a map.',
       plannedTime: 'Festival night 3, midnight', factualDescription: '', groupStates: [
@@ -99,6 +109,14 @@ export function demoWorkspaceSeed(): Record<string, DocumentData> {
     [campaignPath('secrets', 'secret-moving-harbor')]: {
       title: 'The harbor is a sleeping creature', truth: 'The city is built on its shell.',
       state: 'hidden', knownByEntityIds: [DEMO_IDS.npc], revealConditions: ['Read the oldest tide chart'],
+      createdAt: CREATED, updatedAt: UPDATED,
+    },
+    [campaignPath('clocks', DEMO_IDS.clock)]: {
+      title: 'The harbor wakes', value: 3, max: 6, state: 'active', visibleToPlayers: false,
+      createdAt: CREATED, updatedAt: UPDATED,
+    },
+    [campaignPath('inbox', DEMO_IDS.inbox)]: {
+      text: 'Name the night-watch captain', targetType: 'npc', state: 'unprocessed', order: 10,
       createdAt: CREATED, updatedAt: UPDATED,
     },
     [campaignPath('tasks', 'task-prepare-map')]: {
@@ -112,6 +130,16 @@ export function demoWorkspaceSeed(): Record<string, DocumentData> {
     [campaignPath('materials', 'material-gate-map')]: {
       title: 'Eastern Gate map', kind: 'map', urls: ['https://example.test/eastern-gate-map'],
       mainImageIndex: 0, sessionIds: [DEMO_IDS.session], createdAt: CREATED, updatedAt: UPDATED,
+    },
+    [campaignPath('sessions', DEMO_IDS.session)]: {
+      title: 'Opening Night at Moon Port', status: 'draft', responsibleMasterId: DEMO_IDS.owner,
+      primaryArcId: 'arc-lantern-festival', backgroundArcIds: [], groupIds: ['group-party'],
+      plan: {
+        objective: 'Open the eastern gate and introduce the Silver Fox.',
+        opening: 'The red tide reaches the lantern stairs at midnight.',
+      },
+      actualLog: [], review: { notes: '', unresolvedItemIds: [], carryForwardItemIds: [] },
+      createdAt: CREATED, updatedAt: UPDATED,
     },
     [campaignPath('connections', 'connection-lovegame-fake')]: {
       system: 'lovegame', scope: 'campaign', externalId: 'fake-lovegame-campaign',

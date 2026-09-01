@@ -76,7 +76,7 @@ export function Hub() {
           <strong>Run the complete session lifecycle</strong>
           <p className="muted">A deterministic Moon Port scenario using only in-memory fake data.</p>
         </div>
-        <Link to="/demo/session" className="button-link primary"><Icon name="clapperboard" size={16} /> Open demo session</Link>
+        <Link to="/demo/campaign" className="button-link primary"><Icon name="layout-dashboard" size={16} /> Open demo workspace</Link>
       </Card>
 
       {loading && !loaded && <p className="muted">Loading…</p>}

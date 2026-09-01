@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Icon, Select } from '../ds'
-import { createLocalSessionDemo } from '../fixtures/localSessionDemo'
+import { localSessionDemo } from '../fixtures/localDemoRuntime'
 import type { DocumentSnapshot } from '../storage/gateway'
 import type { SessionLogEntry, SessionStatus, TargetSessionDocument } from '../storage/sessionDocuments'
 
@@ -15,7 +15,7 @@ function now() {
 }
 
 export function LocalSessionDemoPage() {
-  const demo = useMemo(() => createLocalSessionDemo(), [])
+  const demo = useMemo(() => localSessionDemo, [])
   const [session, setSession] = useState<DocumentSnapshot<TargetSessionDocument> | null>(null)
   const [objective, setObjective] = useState('')
   const [reviewNotes, setReviewNotes] = useState('')
@@ -75,7 +75,7 @@ export function LocalSessionDemoPage() {
   return (
     <main className="local-session-shell">
       <header className="local-session-topbar">
-        <Link to="/" className="row muted" style={{ textDecoration: 'none' }}><Icon name="arrow-left" size={16} /> Campaigns</Link>
+        <Link to="/demo/campaign" className="row muted" style={{ textDecoration: 'none' }}><Icon name="arrow-left" size={16} /> Campaign dashboard</Link>
         <Badge tone="neutral" dot>Local fake workspace</Badge>
       </header>
 
@@ -168,4 +168,3 @@ export function LocalSessionDemoPage() {
     </main>
   )
 }
-
