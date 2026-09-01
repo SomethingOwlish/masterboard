@@ -70,6 +70,15 @@ export function Hub() {
         </p>
       )}
 
+      <Card pattern="paper" padding="var(--space-4)" className="demo-workspace-card">
+        <div>
+          <span className="panel-kicker">Local test workspace</span>
+          <strong>Run the complete session lifecycle</strong>
+          <p className="muted">A deterministic Moon Port scenario using only in-memory fake data.</p>
+        </div>
+        <Link to="/demo/session" className="button-link primary"><Icon name="clapperboard" size={16} /> Open demo session</Link>
+      </Card>
+
       {loading && !loaded && <p className="muted">Loading…</p>}
 
       {loaded && campaigns.length === 0 && (
