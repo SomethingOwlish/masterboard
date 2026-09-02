@@ -39,4 +39,10 @@ describe('local campaign dashboard runtime', () => {
 
     expect((await dashboard.load()).session?.status).toBe('prepared')
   })
+
+  it('edits campaign details through the target repository', async () => {
+    const demo = createLocalDashboardDemo()
+    await demo.updateCampaign({ name: 'Лунная гавань', idea: 'Новая идея', activeTime: 'Четвёртая ночь' })
+    expect((await demo.load()).campaign).toMatchObject({ name: 'Лунная гавань', idea: 'Новая идея', activeTime: 'Четвёртая ночь' })
+  })
 })

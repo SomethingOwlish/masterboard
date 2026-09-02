@@ -10,9 +10,12 @@ export function LocalCampaignDashboardPage() {
   const [capture, setCapture] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
+  const [details, setDetails] = useState({ name: '', idea: '', activeTime: '' })
 
   const reload = useCallback(() => demo.load().then(setSnapshot), [demo])
   useEffect(() => { void reload().catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load dashboard')) }, [reload])
+  useEffect(() => { if (!editing) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setEditing(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [editing])
 
   const act = async (work: () => Promise<unknown>) => {
     setBusy(true)
@@ -25,6 +28,8 @@ export function LocalCampaignDashboardPage() {
     if (!text) return
     void act(() => demo.captureInbox(text)).then(() => setCapture(''))
   }
+  const beginEdit = () => { if (!snapshot) return; setDetails({ name: snapshot.campaign.name, idea: String(snapshot.campaign.idea ?? ''), activeTime: String(snapshot.campaign.activeTime ?? '') }); setEditing(true) }
+  const saveCampaign = () => void act(() => demo.updateCampaign(details)).then(() => setEditing(false))
 
   if (!snapshot) return <main className="target-dashboard"><p className="muted">Загружаем Лунный порт…</p></main>
   const { session, lines, clocks, secrets, tasks, inbox } = snapshot
@@ -38,9 +43,9 @@ export function LocalCampaignDashboardPage() {
 
       <section className="target-dashboard__hero">
         <div>
-          <span className="panel-kicker">Панель кампании</span><h1>Лунный порт</h1><p>Город в гавани заключает сделки с красной луной.</p>
+          <span className="panel-kicker">Панель кампании</span><h1>{snapshot.campaign.name}</h1><p>{String(snapshot.campaign.idea ?? '')}</p>
         </div>
-        <div className="target-dashboard__time"><span>Текущее время</span><strong>Третья ночь Фестиваля фонарей</strong></div>
+        <div className="target-dashboard__hero-actions"><Button icon="pencil" onClick={beginEdit}>Редактировать</Button><div className="target-dashboard__time"><span>Текущее время</span><strong>{String(snapshot.campaign.activeTime ?? 'Не задано')}</strong></div></div>
       </section>
       {error && <p className="local-session-error" role="alert">{error}</p>}
 
@@ -87,6 +92,7 @@ export function LocalCampaignDashboardPage() {
       </div>
 
       <p className="local-session-footnote">Кампания работает на локальных тестовых данных. Перезагрузка сбросит изменения.</p>
+      {editing && <div className="campaign-workspace__scrim" onMouseDown={(event) => { if (event.currentTarget === event.target) setEditing(false) }}><section className="campaign-workspace__modal" role="dialog" aria-modal="true" aria-labelledby="edit-campaign-title"><span className="panel-kicker">Основные параметры</span><h2 id="edit-campaign-title">Редактировать кампанию</h2><label htmlFor="edit-campaign-name">Название<input id="edit-campaign-name" name="edit-campaign-name" autoFocus value={details.name} onChange={(event) => setDetails({ ...details, name: event.target.value })} /></label><label htmlFor="edit-campaign-idea">Короткая идея<textarea id="edit-campaign-idea" name="edit-campaign-idea" rows={4} value={details.idea} onChange={(event) => setDetails({ ...details, idea: event.target.value })} /></label><label htmlFor="edit-campaign-time">Текущее время<input id="edit-campaign-time" name="edit-campaign-time" value={details.activeTime} onChange={(event) => setDetails({ ...details, activeTime: event.target.value })} /></label><div><Button onClick={() => setEditing(false)}>Отмена</Button><Button variant="primary" icon="check" disabled={busy || !details.name.trim()} onClick={saveCampaign}>Сохранить</Button></div></section></div>}
     </main>
   )
 }

@@ -77,6 +77,22 @@ export class SessionLifecycle {
     })
   }
 
+  async updateDetails(input: {
+    campaignId: string
+    sessionId: string
+    masterId: string
+    title: string
+    now: string
+  }): Promise<DocumentSnapshot<TargetSessionDocument>> {
+    const title = input.title.trim()
+    if (!title) throw new Error('Session title is required')
+    return this.update(input.campaignId, input.sessionId, async (_campaign, session, transaction, path) => {
+      requireResponsible(session.data, input.masterId)
+      requireStatus(session.data, ['draft', 'prepared'], 'edit session details')
+      transaction.patch<TargetSessionDocument>(path, { title, updatedAt: input.now }, { revision: session.revision })
+    })
+  }
+
   async transition(input: {
     campaignId: string
     sessionId: string
