@@ -106,6 +106,9 @@ export function createLocalDashboardDemo(workspace: DemoWorkspace = createDemoWo
     new Date().toISOString(),
   )
 
-  return { ...workspace, load, toggleTask, captureInbox }
-}
+  const updateCampaign = (patch: { name: string; idea: string; activeTime: string }) => campaigns.updateDetails(
+    workspace.campaignId, workspace.activeMasterId, patch, new Date().toISOString(),
+  )
 
+  return { ...workspace, load, toggleTask, captureInbox, updateCampaign }
+}

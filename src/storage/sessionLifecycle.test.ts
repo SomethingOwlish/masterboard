@@ -56,6 +56,15 @@ describe('SessionLifecycle', () => {
     })).rejects.toThrow('Invalid session transition draft → running')
   })
 
+  it('edits session details before play and locks them once running', async () => {
+    const { lifecycle } = setup(); await create(lifecycle)
+    const edited = await lifecycle.updateDetails({ campaignId: CAMPAIGN, sessionId: SESSION, masterId: 'owner', title: 'Новая встреча', now: NOW })
+    expect(edited.data.title).toBe('Новая встреча')
+    await lifecycle.transition({ campaignId: CAMPAIGN, sessionId: SESSION, masterId: 'owner', to: 'prepared', now: NOW })
+    await lifecycle.transition({ campaignId: CAMPAIGN, sessionId: SESSION, masterId: 'owner', to: 'running', now: NOW })
+    await expect(lifecycle.updateDetails({ campaignId: CAMPAIGN, sessionId: SESSION, masterId: 'owner', title: 'Поздняя правка', now: NOW })).rejects.toThrow('Cannot edit session details while session is running')
+  })
+
   it('allows only the responsible master to edit and conduct while co-master watches', async () => {
     const { lifecycle } = setup()
     await create(lifecycle)

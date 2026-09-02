@@ -19,6 +19,8 @@ export function LocalSessionDemoPage() {
   const [session, setSession] = useState<DocumentSnapshot<TargetSessionDocument> | null>(null)
   const [objective, setObjective] = useState('')
   const [reviewNotes, setReviewNotes] = useState('')
+  const [sessionTitle, setSessionTitle] = useState('')
+  const [editingDetails, setEditingDetails] = useState(false)
   const [entryText, setEntryText] = useState('')
   const [entryKind, setEntryKind] = useState<SessionLogEntry['kind']>('note')
   const [busy, setBusy] = useState(false)
@@ -28,11 +30,13 @@ export function LocalSessionDemoPage() {
     setSession(next)
     setObjective(String(next.data.plan.objective ?? ''))
     setReviewNotes(next.data.review.notes)
+    setSessionTitle(next.data.title)
   }
 
   useEffect(() => {
     void demo.ensureSession().then(adopt).catch((reason) => setError(reason instanceof Error ? reason.message : 'Не удалось загрузить тестовую сессию'))
   }, [demo])
+  useEffect(() => { if (!editingDetails) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setEditingDetails(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [editingDetails])
 
   const run = async (work: () => Promise<DocumentSnapshot<TargetSessionDocument>>) => {
     setBusy(true)
@@ -58,6 +62,7 @@ export function LocalSessionDemoPage() {
   const savePlan = () => run(() => demo.lifecycle.updatePlan({
     ...lifecycleInput, plan: { ...data.plan, objective: objective.trim() },
   }))
+  const saveDetails = () => run(() => demo.lifecycle.updateDetails({ ...lifecycleInput, title: sessionTitle })).then(() => setEditingDetails(false))
 
   const appendEntry = () => {
     const text = entryText.trim()
@@ -83,7 +88,7 @@ export function LocalSessionDemoPage() {
 
       <section className="local-session-hero">
         <div>
-          <span className="panel-kicker">Лунный порт · тестовый сценарий</span><h1>Первая ночь в Лунном порту</h1><p>Проведите полную сессию без учётных данных, сети и внешних сервисов.</p>
+          <span className="panel-kicker">Лунный порт · тестовый сценарий</span><div className="local-session-title-row"><h1>{data.title}</h1>{['draft', 'prepared'].includes(data.status) && <Button size="sm" icon="pencil" onClick={() => setEditingDetails(true)}>Редактировать</Button>}</div><p>Проведите полную сессию без учётных данных, сети и внешних сервисов.</p>
         </div>
         <div className="local-session-status">
           <span>Текущий этап</span>
@@ -165,6 +170,7 @@ export function LocalSessionDemoPage() {
       </div>
 
       <p className="local-session-footnote">Перезагрузка сбросит изолированное пространство. Все данные тестовые и остаются в памяти.</p>
+      {editingDetails && <div className="campaign-workspace__scrim" onMouseDown={(event) => { if (event.currentTarget === event.target) setEditingDetails(false) }}><section className="campaign-workspace__modal" role="dialog" aria-modal="true" aria-labelledby="edit-session-title"><span className="panel-kicker">Параметры сессии</span><h2 id="edit-session-title">Редактировать сессию</h2><label htmlFor="session-name">Название<input id="session-name" name="session-name" autoFocus value={sessionTitle} onChange={(event) => setSessionTitle(event.target.value)} /></label><p>Название можно менять до начала игры. План и фактический журнал редактируются на основном экране.</p><div><Button onClick={() => setEditingDetails(false)}>Отмена</Button><Button variant="primary" icon="check" disabled={busy || !sessionTitle.trim()} onClick={() => void saveDetails()}>Сохранить</Button></div></section></div>}
     </main>
   )
 }
