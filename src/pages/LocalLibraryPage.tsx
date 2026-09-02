@@ -5,14 +5,14 @@ import { localLibraryDemo } from '../fixtures/localDemoRuntime'
 import type { EntityLibraryRecord, EntityOrigin, TargetEntityType } from '../storage/entityLibrary'
 
 const TYPES: Array<{ value: TargetEntityType | ''; label: string }> = [
-  { value: '', label: 'All types' },
-  { value: 'character', label: 'Characters' },
+  { value: '', label: 'Все типы' },
+  { value: 'character', label: 'Персонажи' },
   { value: 'npc', label: 'NPCs' },
-  { value: 'location', label: 'Locations' },
-  { value: 'faction', label: 'Factions' },
-  { value: 'rumor', label: 'Rumors' },
-  { value: 'item', label: 'Items' },
-  { value: 'note', label: 'Notes' },
+  { value: 'location', label: 'Локации' },
+  { value: 'faction', label: 'Фракции' },
+  { value: 'rumor', label: 'Слухи' },
+  { value: 'item', label: 'Предметы' },
+  { value: 'note', label: 'Заметки' },
 ]
 
 const CREATE_TYPES = TYPES.filter((item) => item.value !== '') as Array<{ value: TargetEntityType; label: string }>
@@ -113,47 +113,47 @@ export function LocalLibraryPage() {
     <main className="target-library">
       <header className="target-library__topbar">
         <div className="row target-demo-links">
-          <Link to="/demo/campaign" className="row muted"><Icon name="layout-dashboard" size={16} /> Dashboard</Link>
-          <Link to="/demo/session" className="row muted"><Icon name="clapperboard" size={16} /> Session</Link>
-          <Link to="/demo/publications" className="row muted"><Icon name="upload" size={16} /> Publications</Link>
+          <Link to="/demo/campaign" className="row muted"><Icon name="layout-dashboard" size={16} /> Кампания</Link>
+          <Link to="/demo/session" className="row muted"><Icon name="clapperboard" size={16} /> Сессия</Link>
+          <Link to="/demo/publications" className="row muted"><Icon name="upload" size={16} /> Публикации</Link>
         </div>
-        <Badge tone="neutral" dot>Local fake workspace</Badge>
+        <Badge tone="neutral" dot>Локальные тестовые данные</Badge>
       </header>
 
       <section className="target-library__heading">
-        <div><span className="panel-kicker">Moon Port workspace</span><h1>Library</h1><p>Campaign entities, their origin, and local working context.</p></div>
-        <Button variant="primary" icon="plus" onClick={() => { setCreating(true); setInspected(null) }}>New entity</Button>
+        <div><span className="panel-kicker">Пространство Лунного порта</span><h1>Библиотека</h1><p>Сущности кампании, их происхождение и рабочий контекст.</p></div>
+        <Button variant="primary" icon="plus" onClick={() => { setCreating(true); setInspected(null) }}>Новая сущность</Button>
       </section>
       {error && <p className="local-session-error" role="alert">{error}</p>}
 
-      <section className="target-library__toolbar" aria-label="Library filters">
-        <div className="target-library__search"><Icon name="search" size={17} /><input id="target-library-search" name="target-library-search" value={query} placeholder="Search name or tag…" onChange={(event) => setQuery(event.target.value)} /></div>
+      <section className="target-library__toolbar" aria-label="Фильтры библиотеки">
+        <div className="target-library__search"><Icon name="search" size={17} /><input id="target-library-search" name="target-library-search" value={query} placeholder="Поиск по имени или тегу…" onChange={(event) => setQuery(event.target.value)} /></div>
         <Select aria-label="Entity type" value={type} onChange={(event) => setType(event.target.value as TargetEntityType | '')} containerStyle={{ marginBottom: 0 }}>
           {TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
         </Select>
         <Select aria-label="Entity origin" value={origin} onChange={(event) => setOrigin(event.target.value as EntityOrigin | '')} containerStyle={{ marginBottom: 0 }}>
-          <option value="">All origins</option>
+          <option value="">Все источники</option>
           {Object.entries(ORIGIN_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </Select>
-        <Checkbox label="Archive" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} />
+        <Checkbox label="Архив" checked={includeArchived} onChange={(event) => setIncludeArchived(event.target.checked)} />
         <div className="target-library__view" aria-label="View mode">
           <button className={view === 'grid' ? 'active' : ''} aria-label="Grid view" onClick={() => setView('grid')}><Icon name="layout-dashboard" size={17} /></button>
           <button className={view === 'list' ? 'active' : ''} aria-label="List view" onClick={() => setView('list')}><Icon name="list-checks" size={17} /></button>
         </div>
-        <Button variant={selectMode ? 'soft' : 'secondary'} icon="check" onClick={() => { setSelectMode((value) => !value); setSelectedIds([]) }}>{selectMode ? 'Cancel select' : 'Select'}</Button>
+        <Button variant={selectMode ? 'soft' : 'secondary'} icon="check" onClick={() => { setSelectMode((value) => !value); setSelectedIds([]) }}>{selectMode ? 'Отменить выбор' : 'Выбрать'}</Button>
       </section>
 
       {selectMode && (
         <div className="target-library__selection">
-          <strong>{selectedIds.length} selected</strong>
-          <Button size="sm" tone="danger" icon="trash-2" disabled={!selectedIds.length || busy} onClick={() => void archiveSelected()}>Archive selected</Button>
+          <strong>Выбрано: {selectedIds.length}</strong>
+          <Button size="sm" tone="danger" icon="trash-2" disabled={!selectedIds.length || busy} onClick={() => void archiveSelected()}>В архив</Button>
         </div>
       )}
 
       <div className={`target-library__workspace ${creating || inspected ? 'has-inspector' : ''}`}>
         <section>
-          <div className="target-library__count"><span>{records.length} shown</span><span>{type ? TYPES.find((item) => item.value === type)?.label : 'Entire library'}</span></div>
-          {records.length === 0 ? <EmptyState icon="search-x" title="Nothing found" hint="Try another type, origin, or search phrase." /> : (
+          <div className="target-library__count"><span>Показано: {records.length}</span><span>{type ? TYPES.find((item) => item.value === type)?.label : 'Вся библиотека'}</span></div>
+          {records.length === 0 ? <EmptyState icon="search-x" title="Ничего не найдено" hint="Измените тип, источник или поисковую фразу." /> : (
             <div className={`target-library__records target-library__records--${view}`}>
               {records.map((record) => {
                 const checked = selectedIds.includes(record.id)
