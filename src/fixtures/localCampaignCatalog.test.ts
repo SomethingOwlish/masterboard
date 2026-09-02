@@ -12,6 +12,7 @@ describe('local campaign catalog', () => {
     expect(loaded.campaigns.at(-1)?.firstSessionObjective).toBe('')
     expect(loaded.campaigns.at(-1)?.entities).toEqual([])
     expect(loaded.campaigns.at(-1)?.relations).toEqual([])
+    expect(loaded.campaigns.at(-1)).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [] })
   })
   it('migrates campaigns saved before session objectives existed', () => {
     const storage = memory()
@@ -19,6 +20,7 @@ describe('local campaign catalog', () => {
     expect(createLocalCampaignCatalog(storage).find('old')?.firstSessionObjective).toBe('')
     expect(createLocalCampaignCatalog(storage).find('old')?.entities).toEqual([])
     expect(createLocalCampaignCatalog(storage).find('old')?.relations).toEqual([])
+    expect(createLocalCampaignCatalog(storage).find('old')).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [] })
   })
   it('updates campaign preparation', () => {
     const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
