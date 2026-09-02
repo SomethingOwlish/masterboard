@@ -8,6 +8,7 @@ import { LocalSessionBoardPage } from './pages/LocalSessionBoardPage'
 import { LocalConductorPage } from './pages/LocalConductorPage'
 import { LocalReviewPage } from './pages/LocalReviewPage'
 import { LocalStoryMapPage } from './pages/LocalStoryMapPage'
+import { LocalNewCampaignPage } from './pages/LocalNewCampaignPage'
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 
@@ -23,5 +24,6 @@ export const router = createBrowserRouter([
   { path: '/demo/conductor', element: <LocalConductorPage /> },
   { path: '/demo/review', element: <LocalReviewPage /> },
   { path: '/demo/story-map', element: <LocalStoryMapPage /> },
+  { path: '/local/campaign/:campaignId', element: <LocalNewCampaignPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ], { basename })
