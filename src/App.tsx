@@ -7,6 +7,7 @@ import { LocalPublicationManagerPage } from './pages/LocalPublicationManagerPage
 import { LocalSessionBoardPage } from './pages/LocalSessionBoardPage'
 import { LocalConductorPage } from './pages/LocalConductorPage'
 import { LocalReviewPage } from './pages/LocalReviewPage'
+import { LocalStoryMapPage } from './pages/LocalStoryMapPage'
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 
@@ -21,5 +22,6 @@ export const router = createBrowserRouter([
   { path: '/demo/session-board', element: <LocalSessionBoardPage /> },
   { path: '/demo/conductor', element: <LocalConductorPage /> },
   { path: '/demo/review', element: <LocalReviewPage /> },
+  { path: '/demo/story-map', element: <LocalStoryMapPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ], { basename })
