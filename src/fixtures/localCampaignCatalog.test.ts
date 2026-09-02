@@ -10,11 +10,13 @@ describe('local campaign catalog', () => {
     const loaded = createLocalCampaignCatalog(storage).load()
     expect(loaded.campaigns.at(-1)).toMatchObject({ name: 'Город под стеклом', sessions: 0, notes: [] })
     expect(loaded.campaigns.at(-1)?.firstSessionObjective).toBe('')
+    expect(loaded.campaigns.at(-1)?.entities).toEqual([])
   })
   it('migrates campaigns saved before session objectives existed', () => {
     const storage = memory()
     storage.setItem('masterboard.local-campaigns.v1', JSON.stringify([{ id: 'old', name: 'Старая', notes: [], firstSessionTitle: 'Старт' }]))
     expect(createLocalCampaignCatalog(storage).find('old')?.firstSessionObjective).toBe('')
+    expect(createLocalCampaignCatalog(storage).find('old')?.entities).toEqual([])
   })
   it('updates campaign preparation', () => {
     const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
