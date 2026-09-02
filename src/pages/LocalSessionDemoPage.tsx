@@ -31,7 +31,7 @@ export function LocalSessionDemoPage() {
   }
 
   useEffect(() => {
-    void demo.ensureSession().then(adopt).catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load demo'))
+    void demo.ensureSession().then(adopt).catch((reason) => setError(reason instanceof Error ? reason.message : 'Не удалось загрузить тестовую сессию'))
   }, [demo])
 
   const run = async (work: () => Promise<DocumentSnapshot<TargetSessionDocument>>) => {
@@ -40,7 +40,7 @@ export function LocalSessionDemoPage() {
     try {
       adopt(await work())
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Action failed')
+      setError(reason instanceof Error ? reason.message : 'Не удалось выполнить действие')
     } finally {
       setBusy(false)
     }
@@ -107,7 +107,7 @@ export function LocalSessionDemoPage() {
           <div className="row local-session-actions">
             {['draft', 'prepared', 'running'].includes(data.status) && <Button onClick={() => void savePlan()} disabled={busy}>Сохранить план</Button>}
             {data.status === 'draft' && <Button variant="primary" icon="check" onClick={() => void transition('prepared')} disabled={busy}>Отметить готовой</Button>}
-            {data.status === 'prepared' && <Button variant="ghost" onClick={() => void transition('draft')} disabled={busy}>Back to draft</Button>}
+            {data.status === 'prepared' && <Button variant="ghost" onClick={() => void transition('draft')} disabled={busy}>Вернуть в черновик</Button>}
             {data.status === 'prepared' && <Button variant="primary" icon="clapperboard" onClick={() => void transition('running')} disabled={busy}>Начать сессию</Button>}
             {data.status === 'running' && <Button variant="primary" onClick={() => void transition('closed')} disabled={busy}>Завершить сессию</Button>}
           </div>
@@ -121,7 +121,7 @@ export function LocalSessionDemoPage() {
                 ...lifecycleInput, nextMasterId: masterId === demo.ownerId ? demo.coMasterId : demo.ownerId,
               }))}
             >
-              Hand over to {masterId === demo.ownerId ? 'Fox' : 'Owl'}
+              Передать ведущему: {masterId === demo.ownerId ? 'Лис' : 'Сова'}
             </Button>
           )}
         </section>
@@ -129,38 +129,38 @@ export function LocalSessionDemoPage() {
         <section className="card local-session-panel">
           <div className="panel-heading">
             <div><span className="panel-kicker">За столом</span><h2 className="section-title">Фактический журнал</h2></div>
-            <span className="panel-state">{data.actualLog.length} entries</span>
+            <span className="panel-state">{data.actualLog.length} записей</span>
           </div>
           {data.status === 'running' && (
             <div className="local-log-composer">
-              <Select aria-label="Entry kind" value={entryKind} onChange={(event) => setEntryKind(event.target.value as SessionLogEntry['kind'])}>
-                {['note', 'scene', 'event', 'clock', 'secret', 'consequence', 'task', 'material'].map((kind) => <option key={kind}>{kind}</option>)}
+              <Select aria-label="Тип записи" value={entryKind} onChange={(event) => setEntryKind(event.target.value as SessionLogEntry['kind'])}>
+                {([['note', 'Заметка'], ['scene', 'Сцена'], ['event', 'Событие'], ['clock', 'Часы'], ['secret', 'Секрет'], ['consequence', 'Последствие'], ['task', 'Задача'], ['material', 'Материал']] as const).map(([kind, label]) => <option key={kind} value={kind}>{label}</option>)}
               </Select>
-              <input id="demo-log-entry" name="demo-log-entry" value={entryText} placeholder="What happened at the table?" onChange={(event) => setEntryText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') appendEntry() }} />
-              <Button variant="primary" icon="plus" onClick={appendEntry} disabled={busy || !entryText.trim()}>Add</Button>
+              <input id="demo-log-entry" name="demo-log-entry" value={entryText} placeholder="Что произошло за столом?" onChange={(event) => setEntryText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') appendEntry() }} />
+              <Button variant="primary" icon="plus" onClick={appendEntry} disabled={busy || !entryText.trim()}>Добавить</Button>
             </div>
           )}
-          {data.actualLog.length === 0 ? <p className="muted">The factual log opens when the session starts.</p> : (
+          {data.actualLog.length === 0 ? <p className="muted">Фактический журнал откроется после начала сессии.</p> : (
             <ol className="local-log-list">
               {data.actualLog.map((entry) => <li key={entry.id}><Badge tone="neutral">{entry.kind}</Badge><span>{entry.text}</span><time>{entry.at.slice(11, 16)}</time></li>)}
             </ol>
           )}
-          {data.status !== 'running' && data.status !== 'draft' && data.status !== 'prepared' && <p className="muted local-session-lock"><Icon name="shield" size={15} /> Factual log is locked after play.</p>}
+          {data.status !== 'running' && data.status !== 'draft' && data.status !== 'prepared' && <p className="muted local-session-lock"><Icon name="shield" size={15} /> Фактический журнал заблокирован после игры.</p>}
         </section>
 
         <section className="card local-session-panel local-session-review">
-          <div className="panel-heading"><div><span className="panel-kicker">After play</span><h2 className="section-title">Review and carry-forward</h2></div></div>
+          <div className="panel-heading"><div><span className="panel-kicker">После игры</span><h2 className="section-title">Разбор и перенос последствий</h2></div></div>
           <label className="field" htmlFor="demo-review">
-            <span>Review notes</span>
-            <textarea id="demo-review" name="demo-review" rows={4} value={reviewNotes} disabled={!['closed', 'review'].includes(data.status)} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Consequences, unresolved threads, preparation for next time…" />
+            <span>Заметки разбора</span>
+            <textarea id="demo-review" name="demo-review" rows={4} value={reviewNotes} disabled={!['closed', 'review'].includes(data.status)} onChange={(event) => setReviewNotes(event.target.value)} placeholder="Последствия, открытые линии и подготовка к следующей игре…" />
           </label>
           <div className="row local-session-actions">
-            {data.status === 'closed' && <Button variant="primary" onClick={() => void startReview()} disabled={busy}>Begin review</Button>}
-            {data.status === 'review' && <Button onClick={() => void startReview()} disabled={busy}>Save review</Button>}
-            {data.status === 'review' && <Button variant="primary" icon="check" onClick={() => void run(() => demo.lifecycle.completeReview(lifecycleInput))} disabled={busy}>Complete review</Button>}
-            {data.status === 'review-complete' && <Button icon="refresh-cw" onClick={() => void run(() => demo.lifecycle.reopenReview(lifecycleInput))} disabled={busy}>Reopen review</Button>}
+            {data.status === 'closed' && <Button variant="primary" onClick={() => void startReview()} disabled={busy}>Начать разбор</Button>}
+            {data.status === 'review' && <Button onClick={() => void startReview()} disabled={busy}>Сохранить разбор</Button>}
+            {data.status === 'review' && <Button variant="primary" icon="check" onClick={() => void run(() => demo.lifecycle.completeReview(lifecycleInput))} disabled={busy}>Завершить разбор</Button>}
+            {data.status === 'review-complete' && <Button icon="refresh-cw" onClick={() => void run(() => demo.lifecycle.reopenReview(lifecycleInput))} disabled={busy}>Открыть разбор снова</Button>}
           </div>
-          {!['closed', 'review', 'review-complete'].includes(data.status) && <p className="muted">Available after the session is closed.</p>}
+          {!['closed', 'review', 'review-complete'].includes(data.status) && <p className="muted">Станет доступно после завершения сессии.</p>}
         </section>
       </div>
 
