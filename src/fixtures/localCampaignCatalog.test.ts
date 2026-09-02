@@ -9,6 +9,12 @@ describe('local campaign catalog', () => {
     createLocalCampaignCatalog(storage, () => '2026-09-02T08:00:00.000Z').create(' Город под стеклом ', '')
     const loaded = createLocalCampaignCatalog(storage).load()
     expect(loaded.campaigns.at(-1)).toMatchObject({ name: 'Город под стеклом', sessions: 0, notes: [] })
+    expect(loaded.campaigns.at(-1)?.firstSessionObjective).toBe('')
+  })
+  it('migrates campaigns saved before session objectives existed', () => {
+    const storage = memory()
+    storage.setItem('masterboard.local-campaigns.v1', JSON.stringify([{ id: 'old', name: 'Старая', notes: [], firstSessionTitle: 'Старт' }]))
+    expect(createLocalCampaignCatalog(storage).find('old')?.firstSessionObjective).toBe('')
   })
   it('updates campaign preparation', () => {
     const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
