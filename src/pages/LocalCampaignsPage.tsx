@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Icon } from '../ds'
 import { localCampaignCatalog } from '../fixtures/localCampaignCatalog'
@@ -10,6 +10,7 @@ export function LocalCampaignsPage() {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [idea, setIdea] = useState('')
+  useEffect(() => { if (!creating) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setCreating(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [creating])
   const create = () => { if (!name.trim()) return; const campaign = localCampaignCatalog.create(name, idea); setCampaigns(localCampaignCatalog.load().campaigns); setCreating(false); setName(''); setIdea(''); window.setTimeout(() => document.getElementById(`campaign-${campaign.id}`)?.focus(), 0) }
   return <main className="campaign-workspace">
     <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div><Badge tone="neutral" dot>Локальные тестовые данные</Badge><button aria-label="Профиль ведущего">С</button></div></header>

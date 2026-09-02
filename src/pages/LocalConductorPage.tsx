@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Icon, Select } from '../ds'
 import { localConductorDemo } from '../fixtures/localDemoRuntime'
@@ -14,6 +14,7 @@ export function LocalConductorPage() {
   const [confirmClose, setConfirmClose] = useState(false)
   const scene = state.scenes[state.currentScene]
   const disabled = state.status === 'closed'
+  useEffect(() => { if (!confirmClose) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setConfirmClose(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [confirmClose])
 
   const capture = () => {
     if (!text.trim()) return

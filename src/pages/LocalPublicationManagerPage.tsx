@@ -9,7 +9,7 @@ const STATE_TONE: Record<StoredPublicationItem['state'], 'neutral' | 'accent' | 
 }
 
 function entityLabel(item: StoredPublicationItem) {
-  return item.entityId === 'entity-silver-fox' ? 'The Silver Fox' : item.entityId === 'entity-red-moon-rumor' ? 'The Red Moon Collects Debts' : item.entityId
+  return item.entityId === 'entity-silver-fox' ? 'Серебряный Лис' : item.entityId === 'entity-red-moon-rumor' ? 'Красная луна собирает долги' : item.entityId
 }
 
 export function LocalPublicationManagerPage() {
@@ -24,7 +24,8 @@ export function LocalPublicationManagerPage() {
   const [notice, setNotice] = useState<string | null>(null)
 
   const reload = useCallback(() => demo.snapshot().then(setSnapshot), [demo])
-  useEffect(() => { void reload().catch((reason) => setError(reason instanceof Error ? reason.message : 'Could not load publication queue')) }, [reload])
+  useEffect(() => { void reload().catch((reason) => setError(reason instanceof Error ? reason.message : 'Не удалось загрузить очередь публикаций')) }, [reload])
+  useEffect(() => { if (!sendPrompt) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setSendPrompt(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [sendPrompt])
 
   const run = async (work: () => Promise<PublicationManagerSnapshot>, success: string) => {
     setBusy(true)
@@ -37,7 +38,7 @@ export function LocalPublicationManagerPage() {
       setInspected((current) => current ? [...next.active, ...next.history].find((item) => item.id === current.id) ?? null : null)
       setNotice(success)
     } catch (reason) {
-      setError(reason instanceof Error ? reason.message : 'Publication action failed')
+      setError(reason instanceof Error ? reason.message : 'Не удалось выполнить действие с публикацией')
     } finally {
       setBusy(false)
     }
@@ -66,7 +67,7 @@ export function LocalPublicationManagerPage() {
       {error && <p className="local-session-error" role="alert">{error}</p>}
       {notice && <p className="publication-manager__notice" role="status"><Icon name="check" size={16} /> {notice}</p>}
 
-      <section className="publication-manager__workflow" aria-label="Publication workflow">
+      <section className="publication-manager__workflow" aria-label="Этапы публикации">
         <div className={`publication-step ${snapshot.counts.draft ? 'current' : 'done'}`}><span>1</span><div><strong>Предпросмотр</strong><small>{snapshot.counts.draft ? `${snapshot.counts.draft} черновика` : 'Возможности проверены'}</small></div></div>
         <div className={`publication-step ${snapshot.counts.ready ? 'current' : snapshot.counts.draft ? '' : 'done'}`}><span>2</span><div><strong>Подтверждение</strong><small>{confirmed.length ? `${confirmed.length} подтверждено` : `${snapshot.counts.ready} готово`}</small></div></div>
         <div className={`publication-step ${confirmed.length ? 'current' : ''}`}><span>3</span><div><strong>Тестовая отправка</strong><small>Только вручную</small></div></div>
@@ -75,48 +76,48 @@ export function LocalPublicationManagerPage() {
       <div className="publication-manager__actions">
         <Button icon="search" disabled={!snapshot.counts.draft || busy} onClick={() => void run(() => demo.preview(), 'Предпросмотр завершён. Ничего не отправлено.')}>Проверить черновики</Button>
         <Button variant="primary" icon="check" disabled={!readyToConfirm.length || busy} onClick={() => void run(() => demo.confirm(readyToConfirm.map((item) => item.id)), `Подтверждено операций: ${readyToConfirm.length}.`)}>Подтвердить выбранное</Button>
-        <Button tone="danger" icon="refresh-cw" disabled={!failedToRetry.length || busy} onClick={() => void run(() => demo.retry(failedToRetry.map((item) => item.id)), `${failedToRetry.length} failed operation(s) returned to ready.`)}>Retry selected</Button>
-        <Button variant="primary" tone="success" icon="upload" disabled={!confirmed.length || busy} onClick={() => setSendPrompt(true)}>Send confirmed ({confirmed.length})</Button>
+        <Button tone="danger" icon="refresh-cw" disabled={!failedToRetry.length || busy} onClick={() => void run(() => demo.retry(failedToRetry.map((item) => item.id)), `Операций возвращено к повторной проверке: ${failedToRetry.length}.`)}>Повторить выбранное</Button>
+        <Button variant="primary" tone="success" icon="upload" disabled={!confirmed.length || busy} onClick={() => setSendPrompt(true)}>Отправить подтверждённые ({confirmed.length})</Button>
       </div>
 
       <div className={`publication-manager__workspace ${inspected ? 'has-inspector' : ''}`}>
         <section>
           <Card className="publication-destination" padding="0">
-            <header><div><span className="panel-kicker">Fake Lovegame destination</span><h2>Moon Port campaign</h2></div><Badge tone="accent">{demo.connection.label}</Badge></header>
-            <div className="publication-table" role="table" aria-label="Active publication operations">
-              <div className="publication-row publication-row--head" role="row"><span /><span>Entity</span><span>Operation</span><span>Change</span><span>State</span></div>
+            <header><div><span className="panel-kicker">Тестовая цель Lovegame</span><h2>Кампания «Лунный порт»</h2></div><Badge tone="accent">{demo.connection.label}</Badge></header>
+            <div className="publication-table" aria-label="Активные операции публикации">
+              <div className="publication-row publication-row--head"><span /><span>Сущность</span><span>Операция</span><span>Изменение</span><span>Состояние</span></div>
               {snapshot.active.map((item) => {
                 const canSelect = (item.state === 'ready' && !item.confirmedAt) || item.state === 'failed'
                 return (
-                  <button key={item.id} className={`publication-row ${inspected?.id === item.id ? 'is-inspected' : ''}`} role="row" onClick={() => setInspected(item)}>
-                    <span onClick={(event) => event.stopPropagation()}>{canSelect ? <input aria-label={`Select ${entityLabel(item)}`} type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> : null}</span>
-                    <span data-label="Entity"><strong>{entityLabel(item)}</strong><small>{item.entityType}</small></span>
-                    <span data-label="Operation">{item.operation}</span>
-                    <span data-label="Change" className="mb-data">{Object.keys(item.patch).join(', ')}</span>
-                    <span data-label="State"><Badge tone={STATE_TONE[item.state]} size="sm" dot>{item.confirmedAt && item.state === 'ready' ? 'confirmed' : item.state}</Badge></span>
+                  <button key={item.id} className={`publication-row ${inspected?.id === item.id ? 'is-inspected' : ''}`} onClick={() => setInspected(item)}>
+                    <span onClick={(event) => event.stopPropagation()}>{canSelect ? <input aria-label={`Выбрать: ${entityLabel(item)}`} type="checkbox" checked={selected.includes(item.id)} onChange={() => toggle(item.id)} /> : null}</span>
+                    <span data-label="Сущность"><strong>{entityLabel(item)}</strong><small>{item.entityType}</small></span>
+                    <span data-label="Операция">{item.operation}</span>
+                    <span data-label="Изменение" className="mb-data">{Object.keys(item.patch).join(', ')}</span>
+                    <span data-label="Состояние"><Badge tone={STATE_TONE[item.state]} size="sm" dot>{item.confirmedAt && item.state === 'ready' ? 'подтверждено' : item.state}</Badge></span>
                   </button>
                 )
               })}
             </div>
           </Card>
 
-          <button className="publication-history-toggle" onClick={() => setShowHistory((value) => !value)}><span><Icon name="history" size={16} /> History</span><span>{snapshot.history.length} {showHistory ? '−' : '+'}</span></button>
-          {showHistory && <div className="publication-history">{snapshot.history.length ? snapshot.history.map((item) => <div key={item.id}><span>{entityLabel(item)} · {item.operation}</span><Badge tone="success" size="sm">succeeded</Badge></div>) : <p className="muted">No completed fake operations yet.</p>}</div>}
+          <button className="publication-history-toggle" onClick={() => setShowHistory((value) => !value)}><span><Icon name="history" size={16} /> История</span><span>{snapshot.history.length} {showHistory ? '−' : '+'}</span></button>
+          {showHistory && <div className="publication-history">{snapshot.history.length ? snapshot.history.map((item) => <div key={item.id}><span>{entityLabel(item)} · {item.operation}</span><Badge tone="success" size="sm">успешно</Badge></div>) : <p className="muted">Завершённых тестовых операций пока нет.</p>}</div>}
         </section>
 
         {inspected && (
           <aside className="publication-inspector">
-            <button className="target-inspector__close" aria-label="Close inspector" onClick={() => setInspected(null)}>×</button>
-            <span className="panel-kicker">Operation diff</span>
+            <button className="target-inspector__close" aria-label="Закрыть инспектор" onClick={() => setInspected(null)}>×</button>
+            <span className="panel-kicker">Изменения операции</span>
             <h2>{entityLabel(inspected)}</h2>
-            <div className="target-inspector__origins"><Badge tone={STATE_TONE[inspected.state]}>{inspected.state}</Badge><Badge tone="accent">Fake Lovegame</Badge></div>
-            <dl className="target-inspector__facts"><dt>Operation</dt><dd>{inspected.operation}</dd><dt>Entity type</dt><dd>{inspected.entityType}</dd><dt>Destination</dt><dd>Moon Port</dd></dl>
+            <div className="target-inspector__origins"><Badge tone={STATE_TONE[inspected.state]}>{inspected.state}</Badge><Badge tone="accent">Тестовый Lovegame</Badge></div>
+            <dl className="target-inspector__facts"><dt>Операция</dt><dd>{inspected.operation}</dd><dt>Тип сущности</dt><dd>{inspected.entityType}</dd><dt>Назначение</dt><dd>Лунный порт</dd></dl>
             <div className="publication-diff">
-              <div className="publication-diff__head"><span>Field</span><span>Would become</span></div>
+              <div className="publication-diff__head"><span>Поле</span><span>Новое значение</span></div>
               {Object.entries(inspected.patch).map(([field, value]) => <div key={field}><code>{field}</code><strong>{JSON.stringify(value)}</strong></div>)}
             </div>
-            {inspected.error && <div className="publication-inspector__error"><strong>Needs attention</strong><p>{inspected.error}</p></div>}
-            <p className="muted target-inspector__note">This inspector shows a simulation. No external data is changed.</p>
+            {inspected.error && <div className="publication-inspector__error"><strong>Требует внимания</strong><p>{inspected.error}</p></div>}
+            <p className="muted target-inspector__note">Инспектор показывает симуляцию. Внешние данные не изменяются.</p>
           </aside>
         )}
       </div>
@@ -124,11 +125,11 @@ export function LocalPublicationManagerPage() {
       {sendPrompt && (
         <div className="publication-send-scrim" role="presentation" onMouseDown={() => setSendPrompt(false)}>
           <section className="publication-send-confirm" role="dialog" aria-modal="true" aria-labelledby="fake-send-title" onMouseDown={(event) => event.stopPropagation()}>
-            <Badge tone="warning" icon="triangle-alert">Simulation boundary</Badge>
-            <h2 id="fake-send-title">Run fake publication batch?</h2>
-            <p>{confirmed.length} confirmed operation(s) will be passed to the deterministic fake adapter. One configured row will fail so partial-result handling can be tested.</p>
+            <Badge tone="warning" icon="triangle-alert">Граница симуляции</Badge>
+            <h2 id="fake-send-title">Запустить тестовую публикацию?</h2>
+            <p>Подтверждённых операций: {confirmed.length}. Они будут переданы детерминированному тестовому адаптеру. Одна настроенная операция завершится ошибкой для проверки частичного результата.</p>
             <div className="publication-send-list">{confirmed.map((item) => <span key={item.id}>{entityLabel(item)} · {item.operation}</span>)}</div>
-            <div className="row"><Button variant="primary" tone="success" icon="upload" disabled={busy} onClick={() => { setSendPrompt(false); void run(() => demo.execute(), 'Fake batch completed. Successes moved to history; failures remain active.') }}>Run fake send</Button><Button variant="ghost" onClick={() => setSendPrompt(false)}>Cancel</Button></div>
+            <div className="row"><Button variant="primary" tone="success" icon="upload" disabled={busy} onClick={() => { setSendPrompt(false); void run(() => demo.execute(), 'Тестовая отправка завершена. Успешные операции перенесены в историю, ошибки остались активными.') }}>Запустить тестовую отправку</Button><Button variant="ghost" onClick={() => setSendPrompt(false)}>Отмена</Button></div>
           </section>
         </div>
       )}

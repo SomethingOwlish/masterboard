@@ -8,10 +8,10 @@ import { Icon } from './Icon'
 export function Badge({ children, tone = 'neutral', dot = false, icon, size = 'md', style, ...rest }) {
   const tones = {
     neutral: { bg: 'var(--surface-2)', fg: 'var(--muted)', dot: 'var(--muted)' },
-    accent: { bg: 'var(--accent-soft)', fg: 'var(--accent)', dot: 'var(--accent)' },
+    accent: { bg: 'var(--accent-soft)', fg: 'color-mix(in oklab, var(--accent) 78%, var(--text))', dot: 'var(--accent)' },
     success: { bg: 'var(--success-soft)', fg: 'var(--success)', dot: 'var(--success)' },
     danger: { bg: 'var(--danger-soft)', fg: 'var(--danger)', dot: 'var(--danger)' },
-    warning: { bg: 'var(--warning-soft)', fg: 'var(--warning)', dot: 'var(--warning)' },
+    warning: { bg: 'var(--warning-soft)', fg: 'color-mix(in oklab, var(--warning) 68%, var(--text))', dot: 'var(--warning)' },
   }
   const t = tones[tone] || tones.neutral
   const pad = size === 'sm' ? '2px 8px' : '3px 10px'

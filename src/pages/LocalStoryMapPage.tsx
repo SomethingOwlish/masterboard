@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Icon } from '../ds'
 import { localStoryMapDemo } from '../fixtures/localDemoRuntime'
@@ -17,6 +17,7 @@ export function LocalStoryMapPage() {
   const visibleRelations = map.relations.filter((item) => visibility === 'all' || item.visibility === visibility)
   const connected = visibleRelations.filter((item) => item.from === selected.id || item.to === selected.id)
   const relevantEvents = map.events.filter((item) => item.entityIds.includes(selected.id))
+  useEffect(() => { if (!adding) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setAdding(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [adding])
   const entity = (id: string) => map.entities.find((item) => item.id === id)!
 
   const submit = () => {
