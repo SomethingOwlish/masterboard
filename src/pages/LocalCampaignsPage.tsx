@@ -1,21 +1,22 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Icon } from '../ds'
-
-interface CampaignCard { id: string; name: string; idea: string; activeTime: string; masters: string; sessions: number }
-const INITIAL: CampaignCard[] = [{ id: 'moon-port', name: 'Лунный порт', idea: 'Город в гавани заключает сделки с красной луной.', activeTime: 'Третья ночь Фестиваля фонарей', masters: 'Сова + Лис', sessions: 1 }]
+import { localCampaignCatalog } from '../fixtures/localCampaignCatalog'
 
 export function LocalCampaignsPage() {
-  const [campaigns, setCampaigns] = useState(INITIAL)
+  const initial = localCampaignCatalog.load()
+  const [campaigns, setCampaigns] = useState(initial.campaigns)
+  const [recovered, setRecovered] = useState(initial.recovered)
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [idea, setIdea] = useState('')
-  const create = () => { if (!name.trim()) return; setCampaigns((items) => [...items, { id: `local-${items.length + 1}`, name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: 'Сова', sessions: 0 }]); setCreating(false); setName(''); setIdea('') }
+  const create = () => { if (!name.trim()) return; const campaign = localCampaignCatalog.create(name, idea); setCampaigns(localCampaignCatalog.load().campaigns); setCreating(false); setName(''); setIdea(''); window.setTimeout(() => document.getElementById(`campaign-${campaign.id}`)?.focus(), 0) }
   return <main className="campaign-workspace">
     <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div><Badge tone="neutral" dot>Локальные тестовые данные</Badge><button aria-label="Профиль ведущего">С</button></div></header>
     <section className="campaign-workspace__hero"><div><span className="panel-kicker">Рабочее пространство ведущего</span><h1>Кампании</h1><p>Истории, подготовка и сессии вашей команды — в одном месте.</p></div><Button variant="primary" icon="plus" onClick={() => setCreating(true)}>Создать кампанию</Button></section>
+    {recovered && <div className="campaign-workspace__recovery" role="alert"><Icon name="triangle-alert" size={18} /><span><strong>Локальные данные были повреждены.</strong> Мы безопасно вернули тестовую кампанию.</span><button onClick={() => setRecovered(false)} aria-label="Закрыть сообщение"><Icon name="x" size={16} /></button></div>}
     <section className="campaign-workspace__grid" aria-label="Список кампаний">
-      {campaigns.map((campaign, index) => <article key={campaign.id} className="campaign-workspace__card"><Link to={index === 0 ? '/demo/campaign' : '#'} onClick={(event) => { if (index > 0) event.preventDefault() }}><div className="campaign-workspace__cover"><span>{String(index + 1).padStart(2, '0')}</span><i>{campaign.name.slice(0, 1)}</i></div><div className="campaign-workspace__body"><span className="panel-kicker">{campaign.sessions ? `${campaign.sessions} сессия` : 'Без сессий'}</span><h2>{campaign.name}</h2><p>{campaign.idea}</p><dl><div><dt>Текущее время</dt><dd>{campaign.activeTime}</dd></div><div><dt>Ведущие</dt><dd>{campaign.masters}</dd></div></dl></div><footer><span>{index === 0 ? 'Открыть кампанию' : 'Кампания создана локально'}</span><Icon name="arrow-right" size={17} /></footer></Link></article>)}
+      {campaigns.map((campaign, index) => <article key={campaign.id} className="campaign-workspace__card"><Link id={`campaign-${campaign.id}`} to={campaign.id === 'moon-port' ? '/demo/campaign' : `/local/campaign/${campaign.id}`}><div className="campaign-workspace__cover"><span>{String(index + 1).padStart(2, '0')}</span><i>{campaign.name.slice(0, 1)}</i></div><div className="campaign-workspace__body"><span className="panel-kicker">{campaign.sessions ? `${campaign.sessions} сессия` : 'Без сессий'}</span><h2>{campaign.name}</h2><p>{campaign.idea}</p><dl><div><dt>Текущее время</dt><dd>{campaign.activeTime}</dd></div><div><dt>Ведущие</dt><dd>{campaign.masters}</dd></div></dl></div><footer><span>{campaign.id === 'moon-port' ? 'Открыть кампанию' : 'Продолжить подготовку'}</span><Icon name="arrow-right" size={17} /></footer></Link></article>)}
       <button className="campaign-workspace__new" onClick={() => setCreating(true)}><Icon name="plus" size={24} /><strong>Новая кампания</strong><span>Начать с чистого пространства</span></button>
     </section>
     <p className="campaign-workspace__boundary"><Icon name="hard-drive" size={15} /> Всё остаётся в браузере. Интеграции пока отключены.</p>
