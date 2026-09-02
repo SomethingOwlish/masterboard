@@ -75,6 +75,14 @@ export interface ManualEntityInput {
   fields?: Record<string, unknown>
 }
 
+export interface ManualEntityUpdate {
+  name: string
+  status: string
+  tags: string[]
+  description?: string
+  fields?: Record<string, unknown>
+}
+
 function segment(value: string, label: string) {
   const result = value.trim()
   if (!result || result.includes('/')) throw new Error(`${label} must be a path segment`)
@@ -159,6 +167,27 @@ export class EntityLibrary {
     const created = await this.storage.get<TargetEntityDocument>(path)
     if (!created) throw new Error(`Failed to create ${path}`)
     return created
+  }
+
+  async updateManual(campaignId: string, masterId: string, id: string, input: ManualEntityUpdate, now: string): Promise<DocumentSnapshot<TargetEntityDocument>> {
+    const campaignPath = this.campaignPath(campaignId)
+    const path = `${campaignPath}/entities/${segment(id, 'Entity id')}`
+    const name = input.name.trim()
+    if (!name) throw new Error('Entity name is required')
+    await this.storage.runTransaction(async (transaction) => {
+      const campaign = await transaction.get<CampaignDocument>(campaignPath)
+      if (!campaign) throw new Error(`Campaign ${campaignId} does not exist`)
+      if (!canAccessCampaign(campaign.data, masterId)) throw new CampaignPermissionError('edit an entity in this campaign')
+      const entity = await transaction.get<TargetEntityDocument>(path)
+      if (!entity) throw new Error(`Entity ${id} does not exist`)
+      transaction.patch<TargetEntityDocument>(path, {
+        ...input.fields, name, status: input.status.trim() || 'active', tags: normalizeTags(input.tags),
+        description: input.description?.trim() || undefined, updatedAt: now,
+      }, { revision: entity.revision })
+    })
+    const updated = await this.storage.get<TargetEntityDocument>(path)
+    if (!updated) throw new Error(`Failed to update ${path}`)
+    return updated
   }
 
   async convertInbox(campaignId: string, inboxId: string, masterId: string, entities: ManualEntityInput[], now: string) {

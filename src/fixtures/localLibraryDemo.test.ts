@@ -12,5 +12,14 @@ describe('local library demo runtime', () => {
     expect(await demo.load({ query: 'tide key' })).toEqual([])
     expect(await demo.load({ query: 'tide key', includeArchived: true })).toHaveLength(1)
   })
-})
 
+  it('edits a manual entity without changing its type or origin', async () => {
+    const demo = createLocalLibraryDemo()
+    const created = await demo.create({ entityType: 'creature', name: 'Туманный зверь' })
+    const id = created.path.split('/').at(-1)!
+    await demo.update(id, { name: 'Туманный гончий', status: 'спит', tags: [' Туман ', 'туман'], description: 'Охраняет мост.', fields: { behavior: 'Слушает колокола' } })
+    const [record] = await demo.load({ query: 'гончий' })
+    expect(record.entity).toMatchObject({ entityType: 'creature', name: 'Туманный гончий', status: 'спит', tags: ['туман'], behavior: 'Слушает колокола' })
+    expect(record.origins).toEqual(['masterboard'])
+  })
+})

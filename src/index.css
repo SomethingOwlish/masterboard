@@ -92,6 +92,7 @@ input:focus, select:focus, textarea:focus {
 }
 
 textarea { width: 100%; resize: vertical; font: inherit; }
+.target-inspector__title { display: flex; justify-content: space-between; align-items: flex-start; gap: var(--space-2); }.target-inspector__title h2 { margin-right: auto; }.target-inspector__edit { display: grid; gap: 2px; margin-top: var(--space-3); }.target-inspector__edit textarea { min-height: 88px; }
 
 /* ---- Target story map ---------------------------------------------------- */
 .story-map { min-height: 100vh; padding: var(--space-4); background: radial-gradient(circle at 16% 8%, var(--accent-soft), transparent 25%), var(--bg); }
