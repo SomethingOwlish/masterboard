@@ -8,6 +8,14 @@ export interface LocalCampaignEntity {
   tags: string[]
 }
 
+export interface LocalCampaignRelation {
+  id: string
+  fromId: string
+  toId: string
+  label: string
+  visibility: 'master' | 'public'
+}
+
 export interface LocalCampaignRecord {
   id: string
   name: string
@@ -19,6 +27,7 @@ export interface LocalCampaignRecord {
   firstSessionTitle: string
   firstSessionObjective: string
   entities: LocalCampaignEntity[]
+  relations: LocalCampaignRelation[]
   updatedAt: string
 }
 
@@ -34,7 +43,7 @@ const KEY = 'masterboard.local-campaigns.v1'
 export const MOON_PORT: LocalCampaignRecord = {
   id: 'moon-port', name: 'Лунный порт', idea: 'Город в гавани заключает сделки с красной луной.',
   activeTime: 'Третья ночь Фестиваля фонарей', masters: 'Сова + Лис', sessions: 1,
-  notes: [], firstSessionTitle: 'Первая ночь в Лунном порту', firstSessionObjective: 'Провести героев через первую ночь фестиваля.', entities: [], updatedAt: '2026-09-01T12:00:00.000Z',
+  notes: [], firstSessionTitle: 'Первая ночь в Лунном порту', firstSessionObjective: 'Провести героев через первую ночь фестиваля.', entities: [], relations: [], updatedAt: '2026-09-01T12:00:00.000Z',
 }
 
 const valid = (value: unknown): value is LocalCampaignRecord[] => Array.isArray(value) && value.every((item) => {
@@ -51,7 +60,7 @@ export function createLocalCampaignCatalog(storage: KeyValueStorage, now = () =>
     try {
       const parsed: unknown = JSON.parse(raw)
       if (!valid(parsed)) throw new Error('invalid local campaign data')
-      return { campaigns: structuredClone(parsed).map((campaign) => ({ ...campaign, firstSessionObjective: campaign.firstSessionObjective ?? '', entities: Array.isArray(campaign.entities) ? campaign.entities : [] })), recovered: false }
+      return { campaigns: structuredClone(parsed).map((campaign) => ({ ...campaign, firstSessionObjective: campaign.firstSessionObjective ?? '', entities: Array.isArray(campaign.entities) ? campaign.entities : [], relations: Array.isArray(campaign.relations) ? campaign.relations : [] })), recovered: false }
     } catch {
       storage.removeItem(KEY)
       return { campaigns: [structuredClone(MOON_PORT)], recovered: true }
@@ -70,7 +79,7 @@ export function createLocalCampaignCatalog(storage: KeyValueStorage, now = () =>
     create(name: string, idea: string) {
       const campaigns = load().campaigns
       const stamp = now()
-      const campaign: LocalCampaignRecord = { id: `local-${stamp.replace(/\D/g, '')}`, name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: 'Сова', sessions: 0, notes: [], firstSessionTitle: '', firstSessionObjective: '', entities: [], updatedAt: stamp }
+      const campaign: LocalCampaignRecord = { id: `local-${stamp.replace(/\D/g, '')}`, name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: 'Сова', sessions: 0, notes: [], firstSessionTitle: '', firstSessionObjective: '', entities: [], relations: [], updatedAt: stamp }
       save([...campaigns, campaign])
       return structuredClone(campaign)
     },
