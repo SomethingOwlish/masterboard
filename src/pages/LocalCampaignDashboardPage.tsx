@@ -32,7 +32,7 @@ export function LocalCampaignDashboardPage() {
   return (
     <main className="target-dashboard">
       <header className="target-dashboard__topbar">
-        <div className="row target-demo-links"><Link to="/" className="row muted"><Icon name="arrow-left" size={16} /> Кампании</Link><Link to="/demo/library" className="row muted"><Icon name="library" size={16} /> Библиотека</Link><Link to="/demo/publications" className="row muted"><Icon name="upload" size={16} /> Публикации</Link></div>
+        <div className="row target-demo-links"><Link to="/" className="row muted"><Icon name="arrow-left" size={16} /> Кампании</Link><Link to="/demo/story-map" className="row muted"><Icon name="share-2" size={16} /> Карта</Link><Link to="/demo/library" className="row muted"><Icon name="library" size={16} /> Библиотека</Link><Link to="/demo/publications" className="row muted"><Icon name="upload" size={16} /> Публикации</Link></div>
         <div className="row"><Badge tone="neutral" dot>Локальные тестовые данные</Badge><span className="target-dashboard__master">Сова + Лис</span></div>
       </header>
 
