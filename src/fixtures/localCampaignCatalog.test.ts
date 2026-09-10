@@ -12,7 +12,7 @@ describe('local campaign catalog', () => {
     expect(loaded.campaigns.at(-1)?.firstSessionObjective).toBe('')
     expect(loaded.campaigns.at(-1)?.entities).toEqual([])
     expect(loaded.campaigns.at(-1)?.relations).toEqual([])
-    expect(loaded.campaigns.at(-1)).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [] })
+    expect(loaded.campaigns.at(-1)).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [] })
   })
   it('migrates campaigns saved before session objectives existed', () => {
     const storage = memory()
@@ -20,7 +20,7 @@ describe('local campaign catalog', () => {
     expect(createLocalCampaignCatalog(storage).find('old')?.firstSessionObjective).toBe('')
     expect(createLocalCampaignCatalog(storage).find('old')?.entities).toEqual([])
     expect(createLocalCampaignCatalog(storage).find('old')?.relations).toEqual([])
-    expect(createLocalCampaignCatalog(storage).find('old')).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [] })
+    expect(createLocalCampaignCatalog(storage).find('old')).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [] })
   })
   it('updates campaign preparation', () => {
     const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
@@ -37,6 +37,15 @@ describe('local campaign catalog', () => {
     ]
     catalog.update({ ...campaign, entities, relations: [{ id: 'route', fromId: 'hero', toId: 'city', label: 'ищет путь', visibility: 'master' }] })
     expect(catalog.find(campaign.id)).toMatchObject({ entities, relations: [{ label: 'ищет путь', visibility: 'master' }] })
+  })
+  it('persists a complete live-session lifecycle', () => {
+    const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
+    const campaign = catalog.create('Игра', 'Полный цикл')
+    const scene = { id: 'scene-gate', title: 'У ворот', purpose: 'Найти проводника' }
+    catalog.update({ ...campaign, firstSessionTitle: 'Ночь', firstSessionStatus: 'active', firstSessionScenes: [scene], firstSessionCurrentSceneId: scene.id, firstSessionLog: [{ id: 'log-1', text: 'Ворота открылись', createdAt: '2026-09-02T20:00:00.000Z' }] })
+    expect(catalog.find(campaign.id)).toMatchObject({ firstSessionStatus: 'active', firstSessionCurrentSceneId: scene.id, firstSessionLog: [{ text: 'Ворота открылись' }] })
+    catalog.update({ ...catalog.find(campaign.id)!, firstSessionStatus: 'completed' })
+    expect(catalog.find(campaign.id)?.firstSessionStatus).toBe('completed')
   })
   it('recovers safely from corrupt browser data', () => {
     const storage = memory(); storage.setItem('masterboard.local-campaigns.v1', '{broken')
