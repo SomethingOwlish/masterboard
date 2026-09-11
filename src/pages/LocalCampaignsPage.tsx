@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Icon } from '../ds'
 import { localCampaignCatalog } from '../fixtures/localCampaignCatalog'
+import { LocalThemeControl } from '../components/LocalThemeControl'
 
 export function LocalCampaignsPage() {
   const initial = localCampaignCatalog.load()
@@ -13,7 +14,7 @@ export function LocalCampaignsPage() {
   useEffect(() => { if (!creating) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setCreating(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [creating])
   const create = () => { if (!name.trim()) return; const campaign = localCampaignCatalog.create(name, idea); setCampaigns(localCampaignCatalog.load().campaigns); setCreating(false); setName(''); setIdea(''); window.setTimeout(() => document.getElementById(`campaign-${campaign.id}`)?.focus(), 0) }
   return <main className="campaign-workspace">
-    <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div><Badge tone="neutral" dot>Локальные тестовые данные</Badge><button aria-label="Профиль ведущего">С</button></div></header>
+    <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div><Badge tone="neutral" dot>Локальные тестовые данные</Badge><LocalThemeControl /></div></header>
     <section className="campaign-workspace__hero"><div><span className="panel-kicker">Рабочее пространство ведущего</span><h1>Кампании</h1><p>Истории, подготовка и сессии вашей команды — в одном месте.</p></div><Button variant="primary" icon="plus" onClick={() => setCreating(true)}>Создать кампанию</Button></section>
     {recovered && <div className="campaign-workspace__recovery" role="alert"><Icon name="triangle-alert" size={18} /><span><strong>Локальные данные были повреждены.</strong> Мы безопасно вернули тестовую кампанию.</span><button onClick={() => setRecovered(false)} aria-label="Закрыть сообщение"><Icon name="x" size={16} /></button></div>}
     <section className="campaign-workspace__grid" aria-label="Список кампаний">
