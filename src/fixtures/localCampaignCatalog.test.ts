@@ -12,6 +12,7 @@ describe('local campaign catalog', () => {
     expect(loaded.campaigns.at(-1)?.firstSessionObjective).toBe('')
     expect(loaded.campaigns.at(-1)?.entities).toEqual([])
     expect(loaded.campaigns.at(-1)?.relations).toEqual([])
+    expect(loaded.campaigns.at(-1)?.storyArcs).toEqual([])
     expect(loaded.campaigns.at(-1)).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [] })
   })
   it('migrates campaigns saved before session objectives existed', () => {
@@ -20,6 +21,7 @@ describe('local campaign catalog', () => {
     expect(createLocalCampaignCatalog(storage).find('old')?.firstSessionObjective).toBe('')
     expect(createLocalCampaignCatalog(storage).find('old')?.entities).toEqual([])
     expect(createLocalCampaignCatalog(storage).find('old')?.relations).toEqual([])
+    expect(createLocalCampaignCatalog(storage).find('old')?.storyArcs).toEqual([])
     expect(createLocalCampaignCatalog(storage).find('old')).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [] })
   })
   it('updates campaign preparation', () => {
@@ -37,6 +39,13 @@ describe('local campaign catalog', () => {
     ]
     catalog.update({ ...campaign, entities, relations: [{ id: 'route', fromId: 'hero', toId: 'city', label: 'ищет путь', visibility: 'master' }] })
     expect(catalog.find(campaign.id)).toMatchObject({ entities, relations: [{ label: 'ищет путь', visibility: 'master' }] })
+  })
+  it('persists story arcs and their progress', () => {
+    const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
+    const campaign = catalog.create('Арки', 'Сюжет')
+    const storyArcs = [{ id: 'arc-moon', title: 'Красная луна', direction: 'Луна требует новую сделку', stakes: 'Порт уйдёт под воду', status: 'active' as const, progress: 60 }]
+    catalog.update({ ...campaign, storyArcs })
+    expect(catalog.find(campaign.id)?.storyArcs).toEqual(storyArcs)
   })
   it('persists a complete live-session lifecycle', () => {
     const storage = memory(); const catalog = createLocalCampaignCatalog(storage)

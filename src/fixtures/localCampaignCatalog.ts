@@ -16,6 +16,15 @@ export interface LocalCampaignRelation {
   visibility: 'master' | 'public'
 }
 
+export interface LocalStoryArc {
+  id: string
+  title: string
+  direction: string
+  stakes: string
+  status: 'planned' | 'active' | 'resolved'
+  progress: number
+}
+
 export interface LocalSessionScene {
   id: string
   title: string
@@ -45,6 +54,7 @@ export interface LocalCampaignRecord {
   firstSessionLog: LocalSessionLogEntry[]
   entities: LocalCampaignEntity[]
   relations: LocalCampaignRelation[]
+  storyArcs: LocalStoryArc[]
   updatedAt: string
 }
 
@@ -60,7 +70,7 @@ const KEY = 'masterboard.local-campaigns.v1'
 export const MOON_PORT: LocalCampaignRecord = {
   id: 'moon-port', name: 'Лунный порт', idea: 'Город в гавани заключает сделки с красной луной.',
   activeTime: 'Третья ночь Фестиваля фонарей', masters: 'Сова + Лис', sessions: 1,
-  notes: [], firstSessionTitle: 'Первая ночь в Лунном порту', firstSessionObjective: 'Провести героев через первую ночь фестиваля.', firstSessionOpening: 'Красный прилив доходит до лестниц с фонарями.', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [], entities: [], relations: [], updatedAt: '2026-09-01T12:00:00.000Z',
+  notes: [], firstSessionTitle: 'Первая ночь в Лунном порту', firstSessionObjective: 'Провести героев через первую ночь фестиваля.', firstSessionOpening: 'Красный прилив доходит до лестниц с фонарями.', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [], entities: [], relations: [], storyArcs: [], updatedAt: '2026-09-01T12:00:00.000Z',
 }
 
 const valid = (value: unknown): value is LocalCampaignRecord[] => Array.isArray(value) && value.every((item) => {
@@ -77,7 +87,7 @@ export function createLocalCampaignCatalog(storage: KeyValueStorage, now = () =>
     try {
       const parsed: unknown = JSON.parse(raw)
       if (!valid(parsed)) throw new Error('invalid local campaign data')
-      return { campaigns: structuredClone(parsed).map((campaign) => ({ ...campaign, firstSessionObjective: campaign.firstSessionObjective ?? '', firstSessionOpening: campaign.firstSessionOpening ?? '', firstSessionStatus: ['ready', 'active', 'completed'].includes(campaign.firstSessionStatus) ? campaign.firstSessionStatus : 'draft', firstSessionScenes: Array.isArray(campaign.firstSessionScenes) ? campaign.firstSessionScenes : [], firstSessionCurrentSceneId: campaign.firstSessionCurrentSceneId ?? '', firstSessionLog: Array.isArray(campaign.firstSessionLog) ? campaign.firstSessionLog : [], entities: Array.isArray(campaign.entities) ? campaign.entities : [], relations: Array.isArray(campaign.relations) ? campaign.relations : [] } as LocalCampaignRecord)), recovered: false }
+      return { campaigns: structuredClone(parsed).map((campaign) => ({ ...campaign, firstSessionObjective: campaign.firstSessionObjective ?? '', firstSessionOpening: campaign.firstSessionOpening ?? '', firstSessionStatus: ['ready', 'active', 'completed'].includes(campaign.firstSessionStatus) ? campaign.firstSessionStatus : 'draft', firstSessionScenes: Array.isArray(campaign.firstSessionScenes) ? campaign.firstSessionScenes : [], firstSessionCurrentSceneId: campaign.firstSessionCurrentSceneId ?? '', firstSessionLog: Array.isArray(campaign.firstSessionLog) ? campaign.firstSessionLog : [], entities: Array.isArray(campaign.entities) ? campaign.entities : [], relations: Array.isArray(campaign.relations) ? campaign.relations : [], storyArcs: Array.isArray(campaign.storyArcs) ? campaign.storyArcs : [] } as LocalCampaignRecord)), recovered: false }
     } catch {
       storage.removeItem(KEY)
       return { campaigns: [structuredClone(MOON_PORT)], recovered: true }
@@ -96,7 +106,7 @@ export function createLocalCampaignCatalog(storage: KeyValueStorage, now = () =>
     create(name: string, idea: string) {
       const campaigns = load().campaigns
       const stamp = now()
-      const campaign: LocalCampaignRecord = { id: `local-${stamp.replace(/\D/g, '')}`, name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: 'Сова', sessions: 0, notes: [], firstSessionTitle: '', firstSessionObjective: '', firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [], entities: [], relations: [], updatedAt: stamp }
+      const campaign: LocalCampaignRecord = { id: `local-${stamp.replace(/\D/g, '')}`, name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: 'Сова', sessions: 0, notes: [], firstSessionTitle: '', firstSessionObjective: '', firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [], entities: [], relations: [], storyArcs: [], updatedAt: stamp }
       save([...campaigns, campaign])
       return structuredClone(campaign)
     },
