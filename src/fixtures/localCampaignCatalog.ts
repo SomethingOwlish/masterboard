@@ -94,6 +94,8 @@ export interface LocalSessionFlow {
   condition: string
 }
 
+export type LocalReviewDecision = 'carry' | 'library' | 'cancel' | 'keep'
+
 export interface LocalCampaignRecord {
   id: string
   name: string
@@ -115,6 +117,9 @@ export interface LocalCampaignRecord {
   firstSessionLog: LocalSessionLogEntry[]
   firstSessionItems?: LocalSessionItem[]
   firstSessionFlows?: LocalSessionFlow[]
+  firstSessionReviewNotes?: string
+  firstSessionReviewStatus?: 'draft' | 'completed'
+  firstSessionReviewDecisions?: Record<string, LocalReviewDecision>
   entities: LocalCampaignEntity[]
   relations: LocalCampaignRelation[]
   storyArcs: LocalStoryArc[]
