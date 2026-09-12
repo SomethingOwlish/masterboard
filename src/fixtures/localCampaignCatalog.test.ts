@@ -45,7 +45,7 @@ describe('local campaign catalog', () => {
   it('persists story arcs and their progress', () => {
     const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
     const campaign = catalog.create('Арки', 'Сюжет')
-    const storyArcs = [{ id: 'arc-moon', title: 'Красная луна', direction: 'Луна требует новую сделку', stakes: 'Порт уйдёт под воду', status: 'active' as const, progress: 60 }]
+    const storyArcs = [{ id: 'arc-moon', title: 'Красная луна', direction: 'Луна требует новую сделку', stakes: 'Порт уйдёт под воду', status: 'active' as const, progress: 60, owner: '', mode: 'foreground' as const }]
     catalog.update({ ...campaign, storyArcs })
     expect(catalog.find(campaign.id)?.storyArcs).toEqual(storyArcs)
   })
