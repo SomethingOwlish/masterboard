@@ -13,6 +13,7 @@ describe('local campaign catalog', () => {
     expect(loaded.campaigns.at(-1)?.entities).toEqual([])
     expect(loaded.campaigns.at(-1)?.relations).toEqual([])
     expect(loaded.campaigns.at(-1)?.storyArcs).toEqual([])
+    expect(loaded.campaigns.at(-1)).toMatchObject({ clocks: [], secrets: [], tasks: [], inbox: [] })
     expect(loaded.campaigns.at(-1)).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [] })
   })
   it('migrates campaigns saved before session objectives existed', () => {
@@ -22,6 +23,7 @@ describe('local campaign catalog', () => {
     expect(createLocalCampaignCatalog(storage).find('old')?.entities).toEqual([])
     expect(createLocalCampaignCatalog(storage).find('old')?.relations).toEqual([])
     expect(createLocalCampaignCatalog(storage).find('old')?.storyArcs).toEqual([])
+    expect(createLocalCampaignCatalog(storage).find('old')).toMatchObject({ clocks: [], secrets: [], tasks: [], inbox: [] })
     expect(createLocalCampaignCatalog(storage).find('old')).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [] })
   })
   it('updates campaign preparation', () => {
@@ -46,6 +48,17 @@ describe('local campaign catalog', () => {
     const storyArcs = [{ id: 'arc-moon', title: 'Красная луна', direction: 'Луна требует новую сделку', stakes: 'Порт уйдёт под воду', status: 'active' as const, progress: 60 }]
     catalog.update({ ...campaign, storyArcs })
     expect(catalog.find(campaign.id)?.storyArcs).toEqual(storyArcs)
+  })
+  it('persists the local beta control-center data', () => {
+    const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
+    const campaign = catalog.create('Пульт', 'Оперативные данные')
+    catalog.update({ ...campaign,
+      clocks: [{ id: 'clock-1', title: 'Прилив', kind: 'threat', value: 2, segments: 6, visibility: 'master', trigger: 'Порт затоплен', history: [{ id: 'change-1', delta: 1, reason: 'Луна взошла', createdAt: '2026-09-12T10:00:00.000Z' }] }],
+      secrets: [{ id: 'secret-1', title: 'Цена договора', truth: 'Луна забирает имена', publicVersion: 'Договор требует жертвы', recipients: 'Ира', status: 'partial' }],
+      tasks: [{ id: 'task-1', text: 'Подготовить карту', source: 'masterboard', done: false }],
+      inbox: [{ id: 'inbox-1', text: 'Имя капитана', tags: ['npc'], createdAt: '2026-09-12T10:00:00.000Z' }],
+    })
+    expect(catalog.find(campaign.id)).toMatchObject({ clocks: [{ value: 2 }], secrets: [{ status: 'partial' }], tasks: [{ done: false }], inbox: [{ tags: ['npc'] }] })
   })
   it('persists a complete live-session lifecycle', () => {
     const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
