@@ -77,6 +77,23 @@ export interface LocalSessionLogEntry {
   createdAt: string
 }
 
+export interface LocalSessionItem {
+  id: string
+  entityId: string
+  role: string
+  priority: 'required' | 'desired' | 'useful' | 'backup'
+  status: 'prepared' | 'current' | 'used' | 'skipped' | 'moved' | 'cancelled'
+  alternative: string
+  note: string
+}
+
+export interface LocalSessionFlow {
+  id: string
+  fromItemId: string
+  toItemId: string
+  condition: string
+}
+
 export interface LocalCampaignRecord {
   id: string
   name: string
@@ -96,6 +113,8 @@ export interface LocalCampaignRecord {
   firstSessionScenes: LocalSessionScene[]
   firstSessionCurrentSceneId: string
   firstSessionLog: LocalSessionLogEntry[]
+  firstSessionItems?: LocalSessionItem[]
+  firstSessionFlows?: LocalSessionFlow[]
   entities: LocalCampaignEntity[]
   relations: LocalCampaignRelation[]
   storyArcs: LocalStoryArc[]
