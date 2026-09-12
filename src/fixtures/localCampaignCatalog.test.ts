@@ -14,7 +14,7 @@ describe('local campaign catalog', () => {
     expect(loaded.campaigns.at(-1)?.relations).toEqual([])
     expect(loaded.campaigns.at(-1)?.storyArcs).toEqual([])
     expect(loaded.campaigns.at(-1)).toMatchObject({ clocks: [], secrets: [], tasks: [], inbox: [] })
-    expect(loaded.campaigns.at(-1)).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [] })
+    expect(loaded.campaigns.at(-1)).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [], firstSessionItems: [], firstSessionFlows: [] })
   })
   it('migrates campaigns saved before session objectives existed', () => {
     const storage = memory()
@@ -24,7 +24,7 @@ describe('local campaign catalog', () => {
     expect(createLocalCampaignCatalog(storage).find('old')?.relations).toEqual([])
     expect(createLocalCampaignCatalog(storage).find('old')?.storyArcs).toEqual([])
     expect(createLocalCampaignCatalog(storage).find('old')).toMatchObject({ clocks: [], secrets: [], tasks: [], inbox: [] })
-    expect(createLocalCampaignCatalog(storage).find('old')).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [] })
+    expect(createLocalCampaignCatalog(storage).find('old')).toMatchObject({ firstSessionOpening: '', firstSessionStatus: 'draft', firstSessionScenes: [], firstSessionCurrentSceneId: '', firstSessionLog: [], firstSessionItems: [], firstSessionFlows: [] })
   })
   it('updates campaign preparation', () => {
     const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
@@ -68,6 +68,15 @@ describe('local campaign catalog', () => {
     expect(catalog.find(campaign.id)).toMatchObject({ firstSessionStatus: 'active', firstSessionCurrentSceneId: scene.id, firstSessionLog: [{ text: 'Ворота открылись' }] })
     catalog.update({ ...catalog.find(campaign.id)!, firstSessionStatus: 'completed' })
     expect(catalog.find(campaign.id)?.firstSessionStatus).toBe('completed')
+  })
+  it('keeps library records linked to a session without copying them', () => {
+    const storage = memory(); const catalog = createLocalCampaignCatalog(storage)
+    const campaign = catalog.create('Подборка', 'Связи сессии')
+    const entity = { id: 'npc-guide', type: 'npc' as const, name: 'Проводник', description: 'Знает тропу', tags: [] }
+    const firstSessionItems = [{ id: 'use-guide', entityId: entity.id, role: 'Открывает путь', priority: 'required' as const, status: 'prepared' as const, alternative: 'Горная тропа', note: '' }]
+    const firstSessionFlows = [{ id: 'flow-1', fromItemId: 'use-guide', toItemId: 'use-guide', condition: 'После сделки' }]
+    catalog.update({ ...campaign, entities: [entity], firstSessionItems, firstSessionFlows })
+    expect(catalog.find(campaign.id)).toMatchObject({ entities: [{ id: entity.id }], firstSessionItems: [{ entityId: entity.id, role: 'Открывает путь' }], firstSessionFlows: [{ condition: 'После сделки' }] })
   })
   it('recovers safely from corrupt browser data', () => {
     const storage = memory(); storage.setItem('masterboard.local-campaigns.v1', '{broken')
