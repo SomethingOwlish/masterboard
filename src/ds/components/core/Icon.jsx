@@ -7,7 +7,7 @@ import {
   Github, PanelLeft, PanelLeftClose, Calendar, Users, Tag, Copy, Download, Upload, Link, Globe,
   Pointer, Image as ImageIcon, Library, SearchX, Shapes,
   MousePointer2, Highlighter, Square, Circle, Minus, Type, Eraser, Undo2, Smile, Clapperboard, ArrowUpRight,
-  Eye, EyeOff, Share2,
+  Eye, EyeOff, Share2, Play,
 } from 'lucide-react'
 
 /**
@@ -30,7 +30,7 @@ const MAP = {
   library: Library, 'search-x': SearchX, shapes: Shapes,
   'mouse-pointer-2': MousePointer2, highlighter: Highlighter, square: Square, circle: Circle, minus: Minus,
   type: Type, eraser: Eraser, 'undo-2': Undo2, smile: Smile, clapperboard: Clapperboard, 'arrow-up-right': ArrowUpRight,
-  eye: Eye, 'eye-off': EyeOff, 'share-2': Share2,
+  eye: Eye, 'eye-off': EyeOff, 'share-2': Share2, play: Play,
 }
 
 export function Icon({ name, size = 20, className = '', style, ...rest }) {
