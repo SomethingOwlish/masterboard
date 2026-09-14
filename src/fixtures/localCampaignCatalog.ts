@@ -94,6 +94,47 @@ export interface LocalSessionFlow {
   condition: string
 }
 
+export type LocalSessionPlanKind = 'scene' | 'idea' | 'goal' | 'event' | 'question' | 'secret' | 'npc' | 'material' | 'note' | 'consequence'
+export interface LocalSessionPlanItem {
+  id: string
+  source: 'library' | 'text'
+  entityId?: string
+  text: string
+  kind: LocalSessionPlanKind
+  priority: 'required' | 'desired' | 'useful' | 'backup'
+  status: 'prepared' | 'current' | 'used' | 'skipped' | 'moved' | 'cancelled'
+  role: string
+  alternative: string
+  note: string
+  origin: 'prepared' | 'live' | 'review'
+}
+
+export interface LocalSessionRecord {
+  id: string
+  number: number
+  title: string
+  status: 'draft' | 'ready' | 'active' | 'completed'
+  master: string
+  arcId: string
+  group: string
+  participants: string
+  inGameTime: string
+  timelinePosition: string
+  idea: string
+  focus: string
+  opening: string
+  lines: string
+  layers: string
+  systems: string
+  planItems: LocalSessionPlanItem[]
+  flows: LocalSessionFlow[]
+  log: LocalSessionLogEntry[]
+  reviewNotes: string
+  reviewStatus: 'draft' | 'completed'
+  reviewDecisions: Record<string, LocalReviewDecision>
+  createdAt: string
+}
+
 export type LocalReviewDecision = 'carry' | 'library' | 'cancel' | 'keep'
 
 export interface LocalCampaignRecord {
@@ -120,6 +161,8 @@ export interface LocalCampaignRecord {
   firstSessionReviewNotes?: string
   firstSessionReviewStatus?: 'draft' | 'completed'
   firstSessionReviewDecisions?: Record<string, LocalReviewDecision>
+  sessionRecords?: LocalSessionRecord[]
+  activeSessionId?: string
   entities: LocalCampaignEntity[]
   relations: LocalCampaignRelation[]
   storyArcs: LocalStoryArc[]
@@ -128,6 +171,18 @@ export interface LocalCampaignRecord {
   tasks: LocalCampaignTask[]
   inbox: LocalInboxItem[]
   updatedAt: string
+}
+
+export function getLocalSessions(campaign: LocalCampaignRecord): LocalSessionRecord[] {
+  if (campaign.sessionRecords?.length) return campaign.sessionRecords
+  if (!campaign.firstSessionTitle) return []
+  const sceneItems: LocalSessionPlanItem[] = campaign.firstSessionScenes.map((scene) => ({ id: scene.id, source: 'text', text: scene.title, kind: scene.kind ?? 'scene', priority: scene.priority ?? 'desired', status: scene.status ?? 'prepared', role: '', alternative: '', note: scene.purpose, origin: 'prepared' }))
+  const linkedItems: LocalSessionPlanItem[] = (campaign.firstSessionItems ?? []).map((item) => ({ ...item, source: 'library', text: '', kind: 'note', origin: 'prepared' }))
+  return [{ id: 'session-1', number: 1, title: campaign.firstSessionTitle, status: campaign.firstSessionStatus, master: campaign.firstSessionMaster, arcId: campaign.firstSessionArcId, group: '', participants: '', inGameTime: campaign.firstSessionInGameTime, timelinePosition: '', idea: campaign.firstSessionIdea, focus: campaign.firstSessionObjective, opening: campaign.firstSessionOpening, lines: '', layers: '', systems: '', planItems: [...sceneItems, ...linkedItems], flows: campaign.firstSessionFlows ?? [], log: campaign.firstSessionLog, reviewNotes: campaign.firstSessionReviewNotes ?? '', reviewStatus: campaign.firstSessionReviewStatus ?? 'draft', reviewDecisions: campaign.firstSessionReviewDecisions ?? {}, createdAt: campaign.updatedAt }]
+}
+
+export function withLocalSessions(campaign: LocalCampaignRecord, sessions: LocalSessionRecord[], activeSessionId?: string): LocalCampaignRecord {
+  return { ...campaign, sessionRecords: sessions, activeSessionId: activeSessionId ?? campaign.activeSessionId ?? sessions[0]?.id, sessions: sessions.length }
 }
 
 export interface KeyValueStorage {

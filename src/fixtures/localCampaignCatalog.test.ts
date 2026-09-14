@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { createLocalCampaignCatalog, type KeyValueStorage } from './localCampaignCatalog'
+import { createLocalCampaignCatalog, getLocalSessions, withLocalSessions, type KeyValueStorage } from './localCampaignCatalog'
 
 const memory = (): KeyValueStorage => { const data = new Map<string, string>(); return { getItem: (key) => data.get(key) ?? null, setItem: (key, value) => { data.set(key, value) }, removeItem: (key) => { data.delete(key) } } }
 
@@ -68,6 +68,26 @@ describe('local campaign catalog', () => {
     expect(catalog.find(campaign.id)).toMatchObject({ firstSessionStatus: 'active', firstSessionCurrentSceneId: scene.id, firstSessionLog: [{ text: 'Ворота открылись' }] })
     catalog.update({ ...catalog.find(campaign.id)!, firstSessionStatus: 'completed' })
     expect(catalog.find(campaign.id)?.firstSessionStatus).toBe('completed')
+  })
+  it('migrates the legacy first session into the multi-session model', () => {
+    const catalog = createLocalCampaignCatalog(memory())
+    const campaign = catalog.create('Миграция', 'Без потери данных')
+    const legacy = { ...campaign, firstSessionTitle: 'Старая первая', firstSessionObjective: 'Сохранить цель', firstSessionScenes: [{ id: 'scene-1', title: 'Ворота', purpose: 'Войти' }] }
+    const sessions = getLocalSessions(legacy)
+    expect(sessions).toHaveLength(1)
+    expect(sessions[0]).toMatchObject({ number: 1, title: 'Старая первая', focus: 'Сохранить цель' })
+    expect(sessions[0].planItems[0]).toMatchObject({ source: 'text', kind: 'scene', text: 'Ворота', note: 'Войти' })
+  })
+  it('persists several sessions with linked and free-text plan items', () => {
+    const catalog = createLocalCampaignCatalog(memory())
+    const campaign = catalog.create('Несколько игр', 'Планируем заранее')
+    const base = getLocalSessions({ ...campaign, firstSessionTitle: 'Первая' })[0]
+    const second = { ...base, id: 'session-2', number: 2, title: 'Вторая', planItems: [{ id: 'free-1', source: 'text' as const, text: 'Неожиданный свидетель', kind: 'idea' as const, priority: 'useful' as const, status: 'prepared' as const, role: '', alternative: '', note: '', origin: 'prepared' as const }] }
+    catalog.update(withLocalSessions(campaign, [base, second], second.id))
+    const loaded = catalog.find(campaign.id)!
+    expect(loaded.sessions).toBe(2)
+    expect(loaded.activeSessionId).toBe('session-2')
+    expect(getLocalSessions(loaded)[1].planItems[0]).toMatchObject({ source: 'text', text: 'Неожиданный свидетель' })
   })
   it('recovers safely from corrupt browser data', () => {
     const storage = memory(); storage.setItem('masterboard.local-campaigns.v1', '{broken')
