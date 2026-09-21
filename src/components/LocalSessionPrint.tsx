@@ -1,3 +1,4 @@
+import { LocalEntityDetails } from './LocalEntityDetails'
 import { selectedSessionNumber, sessionPath } from '../lib/localSessions'
 import { Link } from 'react-router-dom'
 import { SessionBoardSnapshot } from './SessionBoardSnapshot'
@@ -13,7 +14,7 @@ export function LocalSessionPrint({ campaign }: { campaign: LocalCampaignRecord 
     <h2>Вступление</h2><p>{campaign.firstSessionOpening}</p>
     <h2>Доска сцен</h2><SessionBoardSnapshot scenes={campaign.firstSessionScenes} entities={campaign.entities} />
     <h2>План</h2>{campaign.firstSessionScenes.map((scene, index) => <article key={scene.id}><h3>{index + 1}. {scene.title}</h3><p>{scene.purpose}</p><p>{(scene.memberIds ?? []).map((id) => campaign.entities.find((entity) => entity.id === id)?.name).filter(Boolean).join(' · ')}</p></article>)}
-    <h2>Персонажи и материалы сцен</h2>{entities.map((entity) => <article key={entity.id}><h3>{entity.name}</h3><p>{entity.description}</p><small>{entity.tags.join(', ')}</small></article>)}
+    <h2>Персонажи и материалы сцен</h2>{entities.map((entity) => <article key={entity.id}><h3>{entity.name}</h3><LocalEntityDetails entity={entity} /><small>{entity.tags.join(', ')}</small></article>)}
     {campaign.firstSessionRecap && <><h2>Итоги сессии</h2><p>{campaign.firstSessionRecap}</p></>}
     {!!campaign.firstSessionLog.length && <><h2>Журнал игры</h2>{campaign.firstSessionLog.map((entry) => <p key={entry.id}>{entry.text}</p>)}</>}
   </main>

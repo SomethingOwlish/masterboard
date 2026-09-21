@@ -1,3 +1,5 @@
+import type { Field } from '../model/types'
+import { validEntityDetails } from '../lib/localEntityDetails'
 import { createLocalSession, syncLocalSessions, validSessionDate, validSessionDocuments, type LocalSessionDocument } from '../lib/localSessions'
 import { validSceneLayout, type ScenePoint } from '../lib/localSessionBoard'
 
@@ -9,6 +11,9 @@ export interface LocalCampaignEntity {
   name: string
   description: string
   tags: string[]
+  playerName?: string
+  dead?: boolean
+  fields?: Field[]
 }
 
 export interface LocalCampaignRelation {
@@ -162,7 +167,7 @@ function normalize(value: unknown): LocalCampaignRecord[] {
     if (!campaign.notes.every((note) => typeof note === 'string')) throw new Error('Повреждены заметки')
     // Reject malformed nested data before it can crash a screen or replace a good backup.
     const strings = (row: unknown, keys: string[]) => !!row && typeof row === 'object' && keys.every((key) => typeof (row as Record<string, unknown>)[key] === 'string')
-    if (!campaign.entities.every((row) => strings(row, ['id', 'type', 'name', 'description']) && Array.isArray(row.tags) && row.tags.every((tag) => typeof tag === 'string')) ||
+    if (!campaign.entities.every((row) => strings(row, ['id', 'type', 'name', 'description']) && Array.isArray(row.tags) && row.tags.every((tag) => typeof tag === 'string') && validEntityDetails(row)) ||
         !campaign.relations.every((row) => strings(row, ['id', 'fromId', 'toId', 'label', 'visibility'])) ||
         !campaign.firstSessionScenes.every((row) => strings(row, ['id', 'title', 'purpose']) && validSceneLayout(row) && (row.memberIds === undefined || Array.isArray(row.memberIds) && row.memberIds.every((id) => typeof id === 'string'))) ||
         !campaign.firstSessionLog.every((row) => strings(row, ['id', 'text', 'createdAt'])) ||

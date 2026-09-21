@@ -20,23 +20,25 @@ export function FieldsEditor({ fields, onChange }: { fields: Field[]; onChange: 
           <div className="field-row-head">
             <input
               value={f.label}
-              placeholder="Field label"
+              aria-label="Название поля"
+              placeholder="Название поля"
               onChange={(e) => patch(f.id, { label: e.target.value })}
               style={{ flex: 1 }}
             />
-            <select value={f.type} onChange={(e) => patch(f.id, { type: e.target.value as Field['type'] })}>
+            <select aria-label={`Тип поля ${f.label}`} value={f.type} onChange={(e) => patch(f.id, { type: e.target.value as Field['type'] })}>
               {TYPES.map((t) => (
                 <option key={t} value={t}>
-                  {t}
+                  {{ text: 'Текст', number: 'Число', longtext: 'Большой текст' }[t]}
                 </option>
               ))}
             </select>
-            <IconButton icon="trash-2" label="Remove field" size="sm" tone="danger" onClick={() => onChange(fields.filter((x) => x.id !== f.id))} />
+            <IconButton icon="trash-2" label={`Удалить поле ${f.label}`} size="sm" tone="danger" onClick={() => onChange(fields.filter((x) => x.id !== f.id))} />
           </div>
           {f.type === 'longtext' ? (
-            <textarea rows={3} value={f.value} onChange={(e) => patch(f.id, { value: e.target.value })} />
+            <textarea aria-label={`Значение поля ${f.label}`} rows={3} value={f.value} onChange={(e) => patch(f.id, { value: e.target.value })} />
           ) : (
             <input
+              aria-label={`Значение поля ${f.label}`}
               type={f.type === 'number' ? 'number' : 'text'}
               value={f.value}
               onChange={(e) => patch(f.id, { value: e.target.value })}
@@ -44,7 +46,7 @@ export function FieldsEditor({ fields, onChange }: { fields: Field[]; onChange: 
           )}
         </div>
       ))}
-      <Button size="sm" icon="plus" onClick={() => onChange([...fields, makeField()])}>Add field</Button>
+      <Button size="sm" icon="plus" onClick={() => onChange([...fields, makeField()])}>Добавить поле</Button>
     </div>
   )
 }

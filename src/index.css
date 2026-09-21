@@ -1187,3 +1187,7 @@ kbd {
 .session-catalog__card header { display: flex; align-items: start; justify-content: space-between; gap: 1rem; }
 .session-catalog__card .row { flex-wrap: wrap; }
 .session-catalog__trash { display: flex; justify-content: space-between; align-items: center; gap: 1rem; margin: .75rem 0; }
+.local-entity-details p, .local-entity-details dd { white-space: pre-wrap; overflow-wrap: anywhere; }
+.local-entity-details dl { display: grid; gap: .6rem; margin: .75rem 0; }
+.local-entity-details dt { font-weight: 600; }
+.local-entity-details dd { margin: .2rem 0 0; }
