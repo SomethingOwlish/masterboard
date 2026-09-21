@@ -10,7 +10,8 @@
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vitest run",
+    "check": "npm run typecheck && npm run lint && npm test && npm run build"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.1",

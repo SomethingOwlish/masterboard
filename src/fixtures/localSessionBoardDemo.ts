@@ -1,3 +1,5 @@
+import type { LocalSessionScene } from './localCampaignCatalog'
+
 export type BoardItemKind = 'character' | 'npc' | 'location' | 'event' | 'misc'
 
 export interface BoardItem {
@@ -8,7 +10,7 @@ export interface BoardItem {
   tags: string[]
 }
 
-export interface BoardScene {
+export interface BoardScene extends Omit<LocalSessionScene, 'memberIds'> {
   id: string
   title: string
   purpose: string
@@ -54,6 +56,9 @@ export function createLocalSessionBoardDemo() {
 
   return {
     read,
+    replaceScenes(scenes: LocalSessionScene[]) {
+      return commit(scenes.map(({ memberIds, ...scene }) => ({ ...scene, itemIds: memberIds ?? [], beat: snapshot.scenes.find((item) => item.id === scene.id)?.beat ?? '' })), false)
+    },
     moveItem(itemId: string, sceneId: string) {
       if (!snapshot.items.some((item) => item.id === itemId)) throw new Error('Unknown board item')
       if (!snapshot.scenes.some((scene) => scene.id === sceneId)) throw new Error('Unknown scene')

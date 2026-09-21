@@ -1,34 +1,38 @@
-# 🎲 Masterboard
+# Masterboard
 
-A planning instrument for tabletop RPG game masters — campaigns, characters, NPCs,
-relationship webs, in-world chronology, session planner boards, locations, notes,
-rules, tasks, and a one-click printable session sheet. All in one place.
+Рабочее пространство ведущего настольных ролевых игр.
 
-> See **[DESIGN.md](./DESIGN.md)** for the full architecture and module-by-module spec.
+## Фактическое состояние
 
-## Status
+Рабочий интерфейс: `/` → `/local/campaign/:campaignId`. Кампании сохраняются
+в этом браузере (localStorage). Есть библиотека, связи, сюжетные линии, часы,
+секреты, задачи, подготовка и ведение последовательных сессий, архив и печатный лист.
 
-The app shell and campaign modules run as a static SPA. Production hosting is moving
-to Cloudflare; deployment credentials and project binding are configured separately.
+На главной странице доступны резервное копирование и восстановление JSON.
+Восстановление добавляет независимые копии кампаний. Перед сменой браузера или
+устройства скачайте резервную копию: автоматической синхронизации в рабочем
+интерфейсе пока нет.
 
-## Stack
+`/demo/*` — отдельные демонстрационные прототипы. Их состояние в памяти
+сбрасывается при перезагрузке. Это не место для реальной кампании.
 
-React + TypeScript + Vite · React Router · Zustand · (coming) tldraw, React Flow,
-Recharts, TipTap. Storage = a private GitHub repo (folders per GM, split files per
-module) with IndexedDB offline cache; images via Imgur.
+[DESIGN.md](./DESIGN.md) содержит исходное ТЗ; [BETA_READINESS.md](./BETA_READINESS.md)
+— проверенные сценарии, исправления и оставшиеся расхождения. GitHub/IndexedDB
+адаптеры присутствуют в старом слое приложения, но не обслуживают текущие кампании.
 
-## Develop
+## Разработка и проверка
 
 ```bash
-npm install
-npm run dev        # http://localhost:5173
-npm run build      # production build into dist/
-npm run typecheck
-npm run lint
+npm ci
+npm run dev
+npm run check
 ```
 
-## Deploy
+React + TypeScript + Vite, React Router, Zustand. `npm run check` проверяет типы,
+линтер, тесты и production-сборку. Результат сборки находится в `dist/`.
 
-`npm run build` produces the static application in `dist/`. The production target is
-Cloudflare with `/` as the Vite base path. This repository intentionally contains no
-GitHub Pages workflow and no committed Cloudflare credentials.
+## Развёртывание
+
+Целевая платформа — Cloudflare со SPA fallback и базовым путём `/`.
+Проект, домен и учётные данные настраиваются отдельно. Сам факт успешной сборки
+не означает, что она опубликована или прошла приёмку на сервере.
