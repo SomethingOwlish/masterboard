@@ -123,3 +123,8 @@ export function secretSessions(secret: LocalCampaignSecret, campaign: LocalCampa
 export function toggleId(list: string[], id: string): string[] {
   return list.includes(id) ? list.filter((item) => item !== id) : [...list, id]
 }
+
+export const ENTITY_STATUS_LABEL: Record<LocalCampaignEntity['status'], string> = { active: 'Активна', inactive: 'Неактивна', archived: 'В архиве' }
+
+/** Fields from another system that have no slot in this type keep their label as the key; they are shown but not edited here. */
+export const extraFields = (entity: Pick<LocalCampaignEntity, 'type' | 'fields'>) => Object.entries(entity.fields).filter(([key, value]) => value && !ENTITY_FIELDS[entity.type].some((field) => field.id === key))

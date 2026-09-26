@@ -45,12 +45,14 @@ describe('beta acceptance', () => {
 
     // 3. Plan the session.
     await user.click(within(nav()).getByRole('link', { name: /Сессии/ }))
-    await user.selectOptions(await screen.findByLabelText('Приоритет пункта'), 'required')
+    await user.click(await screen.findByRole('button', { name: 'Добавить в план' }))
+    await user.selectOptions(screen.getByLabelText('Тип пункта плана'), 'event')
+    await user.selectOptions(screen.getByLabelText('Приоритет пункта'), 'required')
     await user.type(screen.getByLabelText('Свободный текст пункта плана'), 'Спуск в штольню{Enter}')
     await user.type(screen.getByLabelText('Свободный текст пункта плана'), 'Встреча с рудокопами{Enter}')
-    await user.click(screen.getByRole('button', { name: 'Из секретов' }))
-    await user.click(screen.getByRole('button', { name: /Старая карта/ }))
-    await user.click(screen.getByRole('button', { name: 'Готово' }))
+    await user.click(screen.getByRole('button', { name: 'Из библиотеки' }))
+    await user.click(screen.getByRole('checkbox', { name: /Старая карта/ }))
+    await user.click(screen.getByRole('button', { name: 'Добавить (1)' }))
 
     // 4. Play: log, clock, reveal, close.
     await user.click(screen.getByRole('button', { name: 'Начать' }))
@@ -75,7 +77,7 @@ describe('beta acceptance', () => {
 
     // 6. Second session carries the item.
     await user.click(await screen.findByRole('button', { name: /Открыть сессию №2/ }))
-    expect(await screen.findByRole('heading', { name: 'Встреча с рудокопами' })).toBeInTheDocument()
+    expect(await screen.findByRole('article', { name: 'Пункт плана: Встреча с рудокопами' })).toBeInTheDocument()
 
     // 7. Print: the player sheet shows the revealed secret's public version only.
     await user.click(within(nav()).getByRole('link', { name: /Печать/ }))

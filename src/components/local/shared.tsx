@@ -1,4 +1,4 @@
-import type { ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Icon } from '../../ds'
 import { LocalThemeControl } from '../LocalThemeControl'
@@ -60,6 +60,25 @@ export function MergeNotice({ message, dismiss }: { message: string | null; dism
 
 export function Editor({ title, close, children, kicker = 'Локальные параметры' }: { title: string; close: () => void; children: ReactNode; kicker?: string }) {
   return <div className="campaign-workspace__scrim" onMouseDown={(e) => { if (e.currentTarget === e.target) close() }} onKeyDown={(e) => { if (e.key === 'Escape') close() }}><section className="campaign-workspace__modal" role="dialog" aria-modal="true" aria-label={title}><span className="panel-kicker">{kicker}</span><h2>{title}</h2>{children}</section></div>
+}
+
+/**
+ * A text field that saves only on submit (Enter or «Сохранить»), not on every
+ * keystroke; Escape puts the saved value back. Keeps writes to the server rare.
+ */
+export function SubmitField({ label, value, onSubmit, placeholder, className }: { label: string; value: string; onSubmit: (value: string) => void; placeholder?: string; className?: string }) {
+  const [draft, setDraft] = useState(value)
+  useEffect(() => setDraft(value), [value])
+  const dirty = draft.trim() !== value.trim()
+  return <form className={`submit-field${className ? ` ${className}` : ''}`} onSubmit={(event) => { event.preventDefault(); if (dirty) onSubmit(draft.trim()) }}>
+    <input aria-label={label} value={draft} placeholder={placeholder} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); setDraft(value) } }} />
+    <Button type="submit" size="sm" icon="check" disabled={!dirty} aria-label={`Сохранить: ${label}`}>Сохранить</Button>
+  </form>
+}
+
+/** Wide dialog of the sessions workspace (passport, library picker). Escape or a click outside closes it. */
+export function SessionModal({ title, close, children }: { title: string; close: () => void; children: ReactNode }) {
+  return <div className="campaign-workspace__scrim" onMouseDown={(event) => { if (event.currentTarget === event.target) close() }} onKeyDown={(event) => { if (event.key === 'Escape') close() }}><section className="campaign-workspace__modal sessions-modal" role="dialog" aria-modal="true" aria-label={title}><h2>{title}</h2>{children}</section></div>
 }
 
 export function Capture({ value, setValue, add, label = 'Добавить' }: { value: string; setValue: (value: string) => void; add: () => void; label?: string }) {
