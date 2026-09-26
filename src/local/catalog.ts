@@ -46,7 +46,7 @@ export interface CatalogOptions {
 export type LocalCampaignCatalog = ReturnType<typeof createLocalCampaignCatalog>
 
 export function blankCampaign(name: string, idea: string, stamp: string): LocalCampaignRecord {
-  return { id: newId('local'), name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: [newMaster('Ведущий', 'owner')], players: [], groups: [], archived: false, improv: [], dashboardLayouts: {}, publications: [], notes: [], sessionRecords: [], entities: [], relations: [], storyArcs: [], clocks: [], secrets: [], tasks: [], inbox: [], relationLayout: {}, createdAt: stamp, updatedAt: stamp }
+  return { id: newId('local'), name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: [newMaster('Ведущий', 'owner')], players: [], groups: [], archived: false, improv: [], dashboardLayouts: {}, publications: [], integrations: {}, notes: [], sessionRecords: [], entities: [], relations: [], storyArcs: [], clocks: [], secrets: [], tasks: [], inbox: [], relationLayout: {}, createdAt: stamp, updatedAt: stamp }
 }
 
 /** Reads a file made by «Экспорт»; throws a readable error for anything else. */

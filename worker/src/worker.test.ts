@@ -107,3 +107,33 @@ describe('Cloudflare Access JWT', () => {
     await expect(verifyAccessJwt(`${head}.${forged}.${signature}`, env, fetcher, 1_000_000_000_000)).rejects.toThrow('Подпись')
   })
 })
+
+describe('door to lorebridge', () => {
+  it('forwards /api/ext/* to /mb/* with the secret and the signed-in email', async () => {
+    const seen: Request[] = []
+    const LOREBRIDGE = { fetch: async (request: Request) => { seen.push(request); return new Response(JSON.stringify({ connections: [] }), { headers: { 'content-type': 'application/json' } }) } }
+    const response = await handleApi(new Request('https://mb.test/api/ext/entities?system=lorebook&externalId=w1&since=5'), { ...env, DEV_USER_EMAIL: OWNER, LOREBRIDGE, MASTERBOARD_BRIDGE_SECRET: 's3cret' })
+    expect(response.status).toBe(200)
+    expect(seen[0].url).toBe('https://lorebridge/mb/entities?system=lorebook&externalId=w1&since=5')
+    expect(seen[0].headers.get('x-masterboard-secret')).toBe('s3cret')
+    expect(seen[0].headers.get('x-masterboard-user')).toBe(OWNER)
+  })
+
+  it('passes a publish body and the bridge status through, including 409', async () => {
+    let body = ''
+    const LOREBRIDGE = { fetch: async (request: Request) => { body = await request.text(); return new Response(JSON.stringify({ error: 'Запись изменили', current: { id: 'e1' } }), { status: 409 }) } }
+    const response = await handleApi(new Request('https://mb.test/api/ext/publish', { method: 'POST', body: JSON.stringify({ system: 'lorebook', operation: 'update' }) }), { ...env, DEV_USER_EMAIL: OWNER, LOREBRIDGE, MASTERBOARD_BRIDGE_SECRET: 's' })
+    expect(JSON.parse(body)).toEqual({ system: 'lorebook', operation: 'update' })
+    expect(response.status).toBe(409)
+    expect(await response.json()).toMatchObject({ current: { id: 'e1' } })
+  })
+
+  it('says the door is not configured without the binding or the secret, and needs sign-in first', async () => {
+    const unconfigured = await handleApi(new Request('https://mb.test/api/ext/connections'), { ...env, DEV_USER_EMAIL: OWNER })
+    expect(unconfigured.status).toBe(501)
+    expect(await unconfigured.json()).toMatchObject({ kind: 'unconfigured' })
+    const anonymous = await handleApi(new Request('https://mb.test/api/ext/connections'), { DB: env.DB, ACCESS_TEAM_DOMAIN: 't', ACCESS_AUD: 'a' })
+    expect(anonymous.status).toBe(401)
+    expect((await handleApi(new Request('https://mb.test/api/ext/secrets'), { ...env, DEV_USER_EMAIL: OWNER })).status).toBe(404)
+  })
+})

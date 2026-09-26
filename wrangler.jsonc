@@ -20,6 +20,10 @@
       "migrations_dir": "worker/migrations"
     }
   ],
+  // Door to lorebook / lovegame / systemsetup (docs/contracts/lorebridge-masterboard.md).
+  // Both Workers live in one Cloudflare account. The shared secret is set with
+  // `wrangler secret put MASTERBOARD_BRIDGE_SECRET` here and in lorebridge — never in vars.
+  "services": [{ "binding": "LOREBRIDGE", "service": "lorebridge" }],
   "vars": {
     // Cloudflare Access (decision I2): team domain and the application's AUD tag.
     "ACCESS_TEAM_DOMAIN": "",

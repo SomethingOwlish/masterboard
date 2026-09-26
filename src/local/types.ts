@@ -1,6 +1,6 @@
 // Data model of the real local campaign workspace (`/local`).
 
-import type { PublicationQueueItem } from '../model/external'
+import type { ExternalSystem, PublicationQueueItem } from '../model/external'
 
 export type LocalCampaignEntityType = 'character' | 'npc' | 'creature' | 'location' | 'faction' | 'rumor' | 'item' | 'audience' | 'note' | 'letter' | 'handout' | 'map' | 'home-rule'
 
@@ -15,6 +15,43 @@ export interface LocalCampaignEntity {
   /** Type-specific card fields, keyed by the field id from `ENTITY_FIELDS`. */
   fields: Record<string, string>
   origin: LocalEntityOrigin
+  /** Records in lorebook / lovegame / systemsetup this entity was imported from or published to. */
+  sources: EntitySource[]
+}
+
+/** The part of an entity that travels between Masterboard and another system. */
+export interface EntitySnapshot {
+  name: string
+  description: string
+  tags: string[]
+  fields: Record<string, string>
+  visibility: 'master' | 'public'
+}
+
+/**
+ * Link to a record in another system (decision F2). `snapshot` is the entity as
+ * both sides last agreed on it — the base for the field-by-field comparison on refresh.
+ */
+export interface EntitySource {
+  system: ExternalSystem
+  /** World / campaign / system on the other side. */
+  containerId: string
+  /** Record id on the other side. */
+  id: string
+  /** Record type on the other side. */
+  type: string
+  url?: string
+  /** Other side's time of change (ms) when last read or written. */
+  updatedAt: number
+  syncedAt: string
+  snapshot: EntitySnapshot
+}
+
+/** World / campaign on the other side this campaign is linked to (decision F4: set by the owner). */
+export interface CampaignLink {
+  externalId: string
+  label: string
+  url?: string
 }
 
 export interface LocalEntityOrigin {
@@ -216,8 +253,10 @@ export interface LocalCampaignRecord {
   improv: LocalImprovItem[]
   /** Personal overview layouts, by master id. */
   dashboardLayouts: Record<string, LocalDashboardLayout>
-  /** Batch publication queue (fake destinations until integrations exist). */
+  /** Batch publication queue to lorebook / lovegame. */
   publications: PublicationQueueItem[]
+  /** Where this campaign reads from and publishes to, per system. */
+  integrations: Partial<Record<ExternalSystem, CampaignLink>>
   notes: string[]
   sessionRecords: LocalSessionRecord[]
   activeSessionId?: string

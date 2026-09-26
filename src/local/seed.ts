@@ -23,6 +23,7 @@ export const MOON_PORT: LocalCampaignRecord = {
   ],
   dashboardLayouts: {},
   publications: [],
+  integrations: {},
   notes: ['Красный прилив поднимается каждую ночь фестиваля.', 'Гильдия фонарщиков хранит старый договор с луной.'],
   sessionRecords: [{
     id: 'session-moon-1', number: 1, title: 'Первая ночь в Лунном порту', status: 'draft', masterId: 'master-owl', handovers: [], arcId: 'arc-moon-pact', backgroundArcIds: [],

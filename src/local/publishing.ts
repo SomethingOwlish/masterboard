@@ -1,61 +1,35 @@
-import { FakeExternalGateway, type ExternalGateway } from '../adapters/fakeExternal'
+import type { ExternalGateway } from '../adapters/fakeExternal'
 import { confirmReady, executeBatch, previewBatch, retryFailed } from '../lib/publicationQueue'
-import type { CapabilityPassport, ExternalConnection, PublicationOperation, PublicationQueueItem } from '../model/external'
-import { ENTITY_FIELDS } from './domain'
-import type { LocalCampaignEntity, LocalCampaignRecord } from './types'
-
-// ─── Fake destinations (decision: batch manager before integrations) ────────
-
-const FETCHED_AT = '2026-09-26T00:00:00.000Z'
-
-export const FAKE_CONNECTIONS: ExternalConnection[] = [
-  { id: 'fake-lorebook', system: 'lorebook', scope: 'world', externalId: 'lorebook-demo', label: 'Лорбук мира (тест)', state: 'active' },
-  { id: 'fake-lovegame', system: 'lovegame', scope: 'campaign', externalId: 'lovegame-demo', label: 'Сайт кампании для игроков (тест)', state: 'active' },
-  { id: 'fake-systemsetup', system: 'systemsetup', scope: 'system', externalId: 'systemsetup-demo', label: 'Настройки системы (тест)', state: 'active' },
-]
-
-export const FAKE_PASSPORTS: CapabilityPassport[] = [
-  { connectionId: 'fake-lorebook', fetchedAt: FETCHED_AT, entities: [
-    { entityType: 'npc', label: 'Персонаж', enabled: true, operations: ['create', 'update', 'archive', 'change-visibility'] },
-    { entityType: 'location', label: 'Локация', enabled: true, operations: ['create', 'update', 'archive'] },
-    { entityType: 'faction', label: 'Фракция', enabled: true, operations: ['create', 'update'] },
-    { entityType: 'item', label: 'Предмет', enabled: false, operations: [], unavailableReason: 'Лорбук пока не принимает предметы' },
-  ] },
-  { connectionId: 'fake-lovegame', fetchedAt: FETCHED_AT, entities: [
-    { entityType: 'character', label: 'Персонаж игрока', enabled: true, operations: ['create', 'update'] },
-    { entityType: 'handout', label: 'Раздатка', enabled: true, operations: ['create', 'update', 'change-visibility'] },
-    { entityType: 'letter', label: 'Письмо', enabled: true, operations: ['create'] },
-    { entityType: 'map', label: 'Карта', enabled: true, operations: ['create', 'update'] },
-  ] },
-  { connectionId: 'fake-systemsetup', fetchedAt: FETCHED_AT, entities: [
-    { entityType: 'home-rule', label: 'Домашнее правило', enabled: true, operations: ['create', 'update'] },
-  ] },
-]
-
-/** A gateway that never touches the network; `failing` connections simulate an outage. */
-export function fakeGateway(items: PublicationQueueItem[], failing: ReadonlySet<string> = new Set()): ExternalGateway {
-  const failIds = new Set(items.filter((item) => failing.has(item.connectionId)).map((item) => item.id))
-  return new FakeExternalGateway(FAKE_CONNECTIONS, FAKE_PASSPORTS, failIds)
-}
+import type { CapabilityPassport, PublicationOperation, PublicationQueueItem } from '../model/external'
+import { effectiveOperation, parseConnectionKey, patchFor, recordPublished, sourceFor } from './integration'
+import type { LocalCampaignRecord } from './types'
 
 // ─── Queue operations on the campaign ───────────────────────────────────────
 
 export const OPERATION_LABEL: Record<PublicationOperation, string> = { create: 'Создать', update: 'Обновить', archive: 'Архивировать', 'change-status': 'Сменить статус', 'change-visibility': 'Сменить видимость', 'change-tags': 'Сменить теги', 'change-name': 'Переименовать' }
 export const STATE_LABEL: Record<PublicationQueueItem['state'], string> = { draft: 'Черновик', ready: 'Готово к отправке', blocked: 'Заблокировано', succeeded: 'Отправлено', failed: 'Ошибка' }
 
-/** Fields sent for an entity: only what players or the destination may see. */
-export function entityPatch(entity: LocalCampaignEntity, operation: PublicationOperation): Record<string, unknown> {
-  if (operation === 'archive') return { status: 'archived' }
-  if (operation === 'change-visibility') return { visibility: entity.visibility }
-  const fields = Object.fromEntries(ENTITY_FIELDS[entity.type].filter((field) => entity.fields[field.id]).map((field) => [field.id, entity.fields[field.id]]))
-  return { name: entity.name, description: entity.description, tags: entity.tags, ...fields }
-}
-
-export function enqueue(campaign: LocalCampaignRecord, entityId: string, connectionId: string, operation: PublicationOperation, now: string): LocalCampaignRecord {
+/** Queues an entity for a destination; `targetType` is the record type there (decision F3). */
+export function enqueue(campaign: LocalCampaignRecord, entityId: string, connectionId: string, operation: PublicationOperation, now: string, targetType?: string): LocalCampaignRecord {
   const entity = campaign.entities.find((item) => item.id === entityId)
   if (!entity) return campaign
-  const item: PublicationQueueItem = { id: `pub-${crypto.randomUUID()}`, entityId, entityType: entity.type, connectionId, operation, patch: entityPatch(entity, operation), state: 'draft', createdAt: now }
+  const { system, externalId } = parseConnectionKey(connectionId)
+  const effective = effectiveOperation(entity, system, externalId, operation)
+  const linkedType = sourceFor(entity, system, externalId)?.type
+  const item: PublicationQueueItem = { id: `pub-${crypto.randomUUID()}`, entityId, entityType: entity.type, connectionId, operation: effective, patch: { ...patchFor(entity, effective) }, targetType: linkedType ?? targetType, state: 'draft', createdAt: now }
   return { ...campaign, publications: [...campaign.publications, item] }
+}
+
+/** Right before sending: the current record id and the time we last saw it, so the other side can refuse a stale write (409). */
+function withTargets(campaign: LocalCampaignRecord, items: PublicationQueueItem[]): PublicationQueueItem[] {
+  return items.map((item) => {
+    const entity = campaign.entities.find((candidate) => candidate.id === item.entityId)
+    if (!entity) return item
+    const { system, externalId } = parseConnectionKey(item.connectionId)
+    const source = sourceFor(entity, system, externalId)
+    const operation = effectiveOperation(entity, system, externalId, item.operation)
+    return { ...item, operation, targetType: source?.type ?? item.targetType, target: source ? { entityId: source.id, expectedUpdatedAt: source.updatedAt } : undefined }
+  })
 }
 
 const merge = (campaign: LocalCampaignRecord, changed: PublicationQueueItem[]): LocalCampaignRecord => {
@@ -63,15 +37,17 @@ const merge = (campaign: LocalCampaignRecord, changed: PublicationQueueItem[]): 
   return { ...campaign, publications: campaign.publications.map((item) => byId.get(item.id) ?? item) }
 }
 
-/** Checks every draft against its destination's capability passport. */
+/** Checks every draft against its destination's capability passport (by the type on the other side). */
 export async function previewDrafts(campaign: LocalCampaignRecord, gateway: ExternalGateway): Promise<LocalCampaignRecord> {
   const drafts = campaign.publications.filter((item) => item.state === 'draft' || item.state === 'blocked').map((item) => ({ ...item, state: 'draft' as const, error: undefined }))
   const passports: CapabilityPassport[] = []
   for (const connectionId of new Set(drafts.map((item) => item.connectionId))) {
     try { passports.push(await gateway.getPassport(connectionId)) } catch { /* marked unavailable by previewBatch */ }
   }
-  const result = previewBatch(drafts, passports)
-  return merge(campaign, [...result.ready, ...result.blocked])
+  // The passport speaks in the destination's types; check each draft by its target type.
+  const result = previewBatch(drafts.map((item) => ({ ...item, entityType: item.targetType ?? item.entityType })), passports)
+  const back = (item: PublicationQueueItem) => ({ ...item, entityType: campaign.publications.find((original) => original.id === item.id)?.entityType ?? item.entityType })
+  return merge(campaign, [...result.ready, ...result.blocked].map(back))
 }
 
 export function confirmSelected(campaign: LocalCampaignRecord, ids: string[], now: string): LocalCampaignRecord {
@@ -82,8 +58,8 @@ export function confirmSelected(campaign: LocalCampaignRecord, ids: string[], no
 export async function sendConfirmed(campaign: LocalCampaignRecord, gateway: ExternalGateway, now: string): Promise<{ campaign: LocalCampaignRecord; succeeded: number; failed: number }> {
   const confirmed = campaign.publications.filter((item) => item.state === 'ready' && item.confirmedAt)
   if (!confirmed.length) throw new Error('Нет подтверждённых операций')
-  const result = await executeBatch(confirmed, gateway, now)
-  return { campaign: merge(campaign, result.items), succeeded: result.succeeded, failed: result.failed }
+  const result = await executeBatch(withTargets(campaign, confirmed), gateway, now)
+  return { campaign: recordPublished(merge(campaign, result.items), result.items, now), succeeded: result.succeeded, failed: result.failed }
 }
 
 export function retrySelected(campaign: LocalCampaignRecord, ids: string[], now: string): LocalCampaignRecord {
@@ -97,7 +73,6 @@ export function reasonLabel(error?: string): string {
   if (error === 'Entity type is not exposed by this connection') return 'Это назначение не принимает такой тип сущности'
   if (error === 'Capability passport is unavailable') return 'Не удалось узнать возможности назначения'
   if (error.startsWith('Operation ')) return 'Назначение не поддерживает эту операцию'
-  if (error.startsWith('Configured fake failure')) return 'Назначение не ответило (имитация сбоя)'
   if (error.includes('changed field')) return 'Нечего отправлять: нет изменённых полей'
   return error
 }

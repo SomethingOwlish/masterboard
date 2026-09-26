@@ -1,0 +1,105 @@
+import { useEffect, useState } from 'react'
+import { Badge, Button, Icon, Select } from '../../ds'
+import { SYSTEM_LABEL, connectionKey, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
+import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord } from '../../local/types'
+import { useConnections, useExternal } from '../../local/useExternal'
+import { ENTITY_LABEL, Editor, type Persist } from './shared'
+
+const date = (value: string) => value ? new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
+const show = (value: unknown) => Array.isArray(value) ? value.map((tag) => `#${tag}`).join(' ') || '—' : value === 'public' ? 'Для игроков' : value === 'master' ? 'Только ведущим' : String(value ?? '') || '—'
+
+/** Sources a campaign can read from: its linked world / campaign and systemsetup (decision F2). */
+function useSources(campaign: LocalCampaignRecord) {
+  const state = useConnections()
+  const linked = (['lorebook', 'lovegame'] as const).flatMap((system) => { const link = campaign.integrations[system]; return link ? [{ id: connectionKey(system, link.externalId), system, containerId: link.externalId, label: `${SYSTEM_LABEL[system]} · ${link.label}` }] : [] })
+  const systems = state.status === 'ready' ? state.connections.filter((item) => item.system === 'systemsetup').map((item) => ({ id: item.id, system: item.system, containerId: item.externalId, label: `${SYSTEM_LABEL.systemsetup} · ${item.label}` })) : []
+  return { state, sources: [...linked, ...systems] }
+}
+
+/** «Из источника»: pick records in lorebook / lovegame / systemsetup and copy them into the library. */
+export function ImportDialog({ campaign, persist, close }: { campaign: LocalCampaignRecord; persist: Persist; close: () => void }) {
+  const port = useExternal()
+  const { state, sources } = useSources(campaign)
+  const [sourceId, setSourceId] = useState('')
+  const [items, setItems] = useState<ExternalItem[] | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  const [chosen, setChosen] = useState<string[]>([])
+  const [query, setQuery] = useState('')
+  const source = sources.find((item) => item.id === sourceId) ?? sources[0]
+  useEffect(() => {
+    if (!source) return
+    let alive = true
+    setItems(null); setError(null); setChosen([])
+    port.entities(source.id).then((found) => { if (alive) setItems(found) }, (failure: unknown) => { if (alive) { setItems([]); setError(failure instanceof Error ? failure.message : 'Не удалось прочитать записи') } })
+    return () => { alive = false }
+  }, [port, source?.id]) // eslint-disable-line react-hooks/exhaustive-deps
+  const linked = new Set(source ? campaign.entities.flatMap((entity) => entity.sources.filter((item) => item.system === source.system && item.containerId === source.containerId).map((item) => item.id)) : [])
+  const visible = (items ?? []).filter((item) => !query.trim() || item.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
+  const add = () => {
+    if (!source || !items) return
+    persist(importItems(campaign, source.system, source.containerId, items.filter((item) => chosen.includes(item.id)), new Date().toISOString()).campaign)
+    close()
+  }
+  return <Editor kicker="Лорбук · ЛавГеймс · SystemSetup" title="Из источника" close={close}>
+    {state.status === 'loading' && <p className="muted" role="status">Узнаём, какие источники вам доступны…</p>}
+    {(state.status === 'unconfigured' || state.status === 'error') && <p className="local-session-error" role="alert">{state.status === 'unconfigured' ? 'Связь с Лорбуком и ЛавГеймс ещё не настроена на сервере Мастерборда.' : state.message}</p>}
+    {state.status === 'ready' && !sources.length && <p className="muted">Кампания пока ни с чем не связана. Владелец связывает её с миром Лорбука и кампанией ЛавГеймс в разделе «Публикация».</p>}
+    {source && <>
+      <div className="control-form__row"><label htmlFor="import-source">Откуда<Select id="import-source" value={source.id} onChange={(e) => setSourceId(e.target.value)}>{sources.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</Select></label><label htmlFor="import-query">Поиск<input id="import-query" value={query} placeholder="Название" onChange={(e) => setQuery(e.target.value)} /></label></div>
+      {error && <p className="local-session-error" role="alert">{error}</p>}
+      {items === null ? <p className="muted" role="status">Читаем записи…</p> : visible.length ? <ul className="source-import__list" aria-label="Записи источника">{visible.map((item) => {
+        const already = linked.has(item.id)
+        return <li key={item.id}><label><input type="checkbox" disabled={already} checked={already || chosen.includes(item.id)} onChange={() => setChosen(chosen.includes(item.id) ? chosen.filter((id) => id !== item.id) : [...chosen, item.id])} /><span className="source-import__text"><strong>{item.name}</strong><small>{item.type} → {ENTITY_LABEL[importType(source.system, item.type)]}{item.visibility === 'master' ? ' · только ведущим' : ''}{item.archived ? ' · в архиве' : ''}</small></span>{already && <Badge size="sm" tone="neutral">уже в библиотеке</Badge>}</label></li>
+      })}</ul> : !error && <p className="muted">{items.length ? 'Ничего не найдено.' : 'В источнике пока нет записей.'}</p>}
+    </>}
+    <footer><Button onClick={close}>Отмена</Button><Button variant="primary" icon="download" disabled={!chosen.length} onClick={add}>{chosen.length ? `Добавить ${chosen.length} в библиотеку` : 'Добавить в библиотеку'}</Button></footer>
+  </Editor>
+}
+
+/** Where a clash is: the master picks Masterboard's or the source's value for each field. */
+function ClashDialog({ plan, source, apply, close }: { plan: RefreshPlan; source: EntitySource; apply: (next: LocalCampaignEntity) => void; close: () => void }) {
+  const [choices, setChoices] = useState<Record<string, 'mine' | 'theirs'>>({})
+  const there = SYSTEM_LABEL[source.system]
+  return <Editor kicker="Обновление из источника" title="Изменено с обеих сторон" close={close}>
+    <p className="muted">Эти поля поменяли и здесь, и в {there === 'Лорбук' ? 'Лорбуке' : there}. Выберите, что оставить. {plan.changed.length ? `Остальное (${plan.changed.join(', ').toLocaleLowerCase()}) обновится из источника.` : ''}</p>
+    {plan.clashes.map((clash) => <fieldset key={clash.key} className="source-clash"><legend>{clash.label}</legend>
+      <label><input type="radio" name={clash.key} checked={choices[clash.key] === 'mine'} onChange={() => setChoices({ ...choices, [clash.key]: 'mine' })} /><span><small>Мастерборд</small>{show(clash.mine)}</span></label>
+      <label><input type="radio" name={clash.key} checked={(choices[clash.key] ?? 'theirs') === 'theirs'} onChange={() => setChoices({ ...choices, [clash.key]: 'theirs' })} /><span><small>{there}</small>{show(clash.theirs)}</span></label>
+    </fieldset>)}
+    <p className="muted source-clash__note">Выбранное «Мастерборд» уйдёт в {there === 'Лорбук' ? 'Лорбук' : there} со следующей публикацией.</p>
+    <footer><Button onClick={close}>Отмена</Button><Button variant="primary" icon="check" onClick={() => { apply(resolveRefresh(plan, choices)); close() }}>Применить</Button></footer>
+  </Editor>
+}
+
+/** Source links on a library card, with «Обновить из источника». */
+export function SourceLinks({ campaign, entity, persist }: { campaign: LocalCampaignRecord; entity: LocalCampaignEntity; persist: Persist }) {
+  const port = useExternal()
+  const [busy, setBusy] = useState<string | null>(null)
+  const [note, setNote] = useState<string | null>(null)
+  const [clash, setClash] = useState<{ plan: RefreshPlan; source: EntitySource } | null>(null)
+  if (!entity.sources.length) return null
+  const apply = (next: LocalCampaignEntity) => persist({ ...campaign, entities: campaign.entities.map((item) => item.id === entity.id ? next : item) })
+  const refresh = async (source: EntitySource) => {
+    setBusy(source.id); setNote(null)
+    try {
+      const item = (await port.entities(connectionKey(source.system, source.containerId), source.type)).find((candidate) => candidate.id === source.id)
+      if (!item) { setNote(`В ${SYSTEM_LABEL[source.system]} этой записи больше нет.`); return }
+      const plan = planRefresh(entity, source, item, new Date().toISOString())
+      if (plan.clashes.length) { setClash({ plan, source }); return }
+      apply(plan.next)
+      setNote(plan.changed.length ? `Обновлено: ${plan.changed.join(', ').toLocaleLowerCase()}.` : 'Изменений в источнике нет.')
+    } catch (error) {
+      setNote(error instanceof Error ? error.message : 'Не удалось прочитать источник')
+    } finally {
+      setBusy(null)
+    }
+  }
+  return <div className="source-links">
+    {entity.sources.map((source) => <div key={`${source.system}:${source.containerId}:${source.id}`} className="row">
+      <Icon name="link" size={14} />{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{SYSTEM_LABEL[source.system]}</a> : <span>{SYSTEM_LABEL[source.system]}</span>}<small>сверено {date(source.syncedAt)}</small>
+      <Button size="sm" icon="refresh-cw" disabled={busy !== null} aria-label={`Обновить из источника: ${entity.name} (${SYSTEM_LABEL[source.system]})`} onClick={() => void refresh(source)}>{busy === source.id ? 'Читаем…' : 'Обновить'}</Button>
+    </div>)}
+    {note && <small role="status">{note}</small>}
+    {clash && <ClashDialog plan={clash.plan} source={clash.source} apply={(next) => { apply(next); setNote('Обновлено с вашим выбором.') }} close={() => setClash(null)} />}
+  </div>
+}
