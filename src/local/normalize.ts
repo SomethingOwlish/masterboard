@@ -1,5 +1,5 @@
 import { newArc, newClock, newEntity, newSecret } from './domain'
-import type { LocalCampaignEntity, LocalCampaignRecord, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
+import type { LocalCampaignEntity, LocalCampaignRecord, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 type Raw = Record<string, unknown>
 
@@ -14,8 +14,10 @@ const USE_STATUSES = ['prepared', 'current', 'used', 'skipped', 'moved', 'cancel
 const SESSION_STATUSES = ['draft', 'ready', 'active', 'completed'] as const
 const PLAN_KINDS = ['scene', 'idea', 'goal', 'event', 'question', 'secret', 'npc', 'material', 'note', 'consequence'] as const
 
+export const defaultPrintConfig = (): LocalPrintConfig => ({ priorities: ['required', 'desired', 'useful', 'backup'], passport: true, entities: true, secrets: true, clocks: true, flows: true, notes: true })
+
 export function blankSession(number: number, master: string, now: string, id = `session-${crypto.randomUUID()}`): LocalSessionRecord {
-  return { id, number, title: '', status: 'draft', master, arcId: '', backgroundArcIds: [], group: '', participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, appliedDecisions: {}, createdAt: now }
+  return { id, number, title: '', status: 'draft', master, arcId: '', backgroundArcIds: [], group: '', participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, appliedDecisions: {}, planLayout: {}, printConfig: defaultPrintConfig(), createdAt: now }
 }
 
 function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
@@ -34,6 +36,7 @@ function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
     note: text(raw.note),
     origin: oneOf(raw.origin, ['prepared', 'live', 'review'] as const, 'prepared'),
     carriedFromSessionId: typeof raw.carriedFromSessionId === 'string' ? raw.carriedFromSessionId : undefined,
+    sceneId: typeof raw.sceneId === 'string' ? raw.sceneId : undefined,
   }
 }
 
@@ -56,6 +59,8 @@ function normalizeSession(raw: unknown, index: number, fallbackDate: string): Lo
     reviewDecisions: isObject(raw.reviewDecisions) ? (raw.reviewDecisions as Record<string, LocalReviewDecision>) : {},
     appliedDecisions: isObject(raw.appliedDecisions) ? (raw.appliedDecisions as Record<string, LocalReviewDecision>) : {},
     nextSessionId: typeof raw.nextSessionId === 'string' ? raw.nextSessionId : undefined,
+    planLayout: isObject(raw.planLayout) ? (raw.planLayout as LocalSessionRecord['planLayout']) : {},
+    printConfig: isObject(raw.printConfig) ? { ...defaultPrintConfig(), ...(raw.printConfig as Partial<LocalPrintConfig>) } : defaultPrintConfig(),
   }
 }
 
