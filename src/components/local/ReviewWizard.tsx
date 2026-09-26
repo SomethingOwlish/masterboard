@@ -15,10 +15,12 @@ interface Props {
   persist: Persist
   itemTitle: (item: LocalSessionPlanItem) => string
   openSession: (id: string) => void
+  canComplete?: boolean
+  completeHint?: string
 }
 
 /** Step-by-step close of a played session: summary, decisions, consequences, world time, next session. */
-export function ReviewWizard({ campaign, session, persist, itemTitle, openSession }: Props) {
+export function ReviewWizard({ campaign, session, persist, itemTitle, openSession, canComplete = true, completeHint }: Props) {
   const [step, setStep] = useState(0)
   const [reasons, setReasons] = useState<Record<string, string>>({})
   const [target, setTarget] = useState<string>('new')
@@ -32,7 +34,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
   const defaultReason = `Итоги сессии №${session.number}`
 
   if (session.reviewStatus === 'completed') {
-    return <section className="session-review-panel" aria-label="Разбор сессии"><header><div><span className="panel-kicker">Разбор завершён</span><h2>Итоги сессии №{session.number}</h2></div><Button onClick={() => { update({ ...session, reviewStatus: 'draft' }); setStep(0) }}>Открыть разбор заново</Button></header>
+    return <section className="session-review-panel" aria-label="Разбор сессии"><header><div><span className="panel-kicker">Разбор завершён</span><h2>Итоги сессии №{session.number}</h2></div><Button disabled={!canComplete} title={canComplete ? undefined : completeHint} onClick={() => { update({ ...session, reviewStatus: 'draft' }); setStep(0) }}>Открыть разбор заново</Button></header>
       {session.reviewNotes && <p>{session.reviewNotes}</p>}
       <ul className="session-review-panel__summary">{items.map((item) => <li key={item.id}><strong>{itemTitle(item)}</strong> — {DECISION[session.reviewDecisions[item.id]]}</li>)}</ul>
       {nextSession && <Button variant="primary" onClick={() => openSession(nextSession.id)}>Открыть сессию №{nextSession.number}: {nextSession.title}</Button>}
@@ -87,7 +89,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
         <label htmlFor="review-target">Куда перенести<select id="review-target" value={target} onChange={(e) => setTarget(e.target.value)}><option value="new">Новая сессия №{Math.max(0, ...campaign.sessionRecords.map((item) => item.number)) + 1}</option>{drafts.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}</select></label>
       </> : <p className="muted">Переносить нечего.</p>}
       {error && <p className="local-session-error">{error}</p>}
-      <Button variant="primary" icon="check" disabled={missing.length > 0} onClick={finish}>Завершить разбор</Button>
+      <Button variant="primary" icon="check" disabled={missing.length > 0 || !canComplete} onClick={finish}>Завершить разбор</Button>{!canComplete && <p className="muted" role="note">{completeHint}</p>}
     </div>}
 
     <footer className="session-review-wizard__nav"><Button disabled={step === 0} onClick={() => setStep(step - 1)}>Назад</Button>{step < STEPS.length - 1 && <Button variant="primary" disabled={!canNext} onClick={() => setStep(step + 1)}>Далее</Button>}</footer>

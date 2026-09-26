@@ -2,6 +2,7 @@ import type { ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Icon } from '../../ds'
 import { LocalThemeControl } from '../LocalThemeControl'
+import { ActingMasterSelect } from './ActingMasterSelect'
 import type { LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
 
 export type Persist = (next: LocalCampaignRecord) => void
@@ -15,6 +16,7 @@ export const CAMPAIGN_SECTIONS = [
   { id: 'library', label: 'Библиотека', icon: 'library' },
   { id: 'map', label: 'Связи', icon: 'share-2' },
   { id: 'world', label: 'Заметки', icon: 'book-open' },
+  { id: 'team', label: 'Команда', icon: 'users' },
   { id: 'print', label: 'Печать', icon: 'printer' },
 ] as const
 
@@ -31,7 +33,7 @@ export function CampaignNav({ campaignId, section, className }: { campaignId: st
 }
 
 export function CampaignHeader({ campaign, section }: { campaign: LocalCampaignRecord; section: string }) {
-  return <header className="local-dashboard-header"><div className="local-dashboard-header__utility"><Link to="/"><Icon name="arrow-left" size={16} /> Кампании</Link><strong>{campaign.name}</strong><div className="row"><Badge tone="neutral" dot>Локальные данные</Badge><LocalThemeControl /></div></div><CampaignNav className="local-dashboard-nav" campaignId={campaign.id} section={section} /></header>
+  return <header className="local-dashboard-header"><div className="local-dashboard-header__utility"><Link to="/"><Icon name="arrow-left" size={16} /> Кампании</Link><strong>{campaign.name}</strong><div className="row"><ActingMasterSelect campaign={campaign} /><Badge tone="neutral" dot>Локальные данные</Badge><LocalThemeControl /></div></div><CampaignNav className="local-dashboard-nav" campaignId={campaign.id} section={section} /></header>
 }
 
 export function SaveErrorBanner({ message, retry }: { message: string | null; retry: () => void }) {

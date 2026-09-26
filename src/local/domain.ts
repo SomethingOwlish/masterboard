@@ -101,17 +101,18 @@ export function resolveClockTrigger(clock: LocalCampaignClock, decision: 'fired'
 // ─── Secrets ────────────────────────────────────────────────────────────────
 
 export function newSecret(input: Partial<LocalCampaignSecret> = {}): LocalCampaignSecret {
-  return { id: `secret-${crypto.randomUUID()}`, title: '', truth: '', publicVersion: '', recipients: '', status: 'hidden', revealCondition: '', entityIds: [], clockIds: [], sessionIds: [], reveals: [], ...input }
+  return { id: `secret-${crypto.randomUUID()}`, title: '', truth: '', publicVersion: '', recipients: '', recipientIds: [], status: 'hidden', revealCondition: '', entityIds: [], clockIds: [], sessionIds: [], reveals: [], ...input }
 }
 
-export interface RevealInput { status: LocalSecretStatus; recipients: string; sessionId?: string; note: string }
+export interface RevealInput { status: LocalSecretStatus; recipients: string; recipientIds?: string[]; sessionId?: string; note: string }
 
 /** Applies a new status; a real change is appended to the reveal history. */
 export function changeSecretStatus(secret: LocalCampaignSecret, input: RevealInput, now: string): LocalCampaignSecret {
-  if (input.status === secret.status && input.recipients === secret.recipients) return secret
-  const reveal = { id: `reveal-${crypto.randomUUID()}`, status: input.status, recipients: input.recipients, sessionId: input.sessionId || undefined, note: input.note.trim(), createdAt: now }
+  const recipientIds = input.recipientIds ?? secret.recipientIds
+  if (input.status === secret.status && input.recipients === secret.recipients && recipientIds.join() === secret.recipientIds.join()) return secret
+  const reveal = { id: `reveal-${crypto.randomUUID()}`, status: input.status, recipients: input.recipients, recipientIds, sessionId: input.sessionId || undefined, note: input.note.trim(), createdAt: now }
   const sessionIds = input.sessionId && !secret.sessionIds.includes(input.sessionId) ? [...secret.sessionIds, input.sessionId] : secret.sessionIds
-  return { ...secret, status: input.status, recipients: input.recipients, sessionIds, reveals: [...secret.reveals, reveal] }
+  return { ...secret, status: input.status, recipients: input.recipients, recipientIds, sessionIds, reveals: [...secret.reveals, reveal] }
 }
 
 /** Sessions whose plan mentions the secret, plus sessions it was revealed in. */

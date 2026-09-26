@@ -1,5 +1,6 @@
 import { newArc, newClock, newEntity, newSecret } from './domain'
-import type { LocalCampaignEntity, LocalCampaignRecord, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
+import { newGroup, parseMasters } from './team'
+import type { LocalCampaignEntity, LocalCampaignRecord, LocalGroup, LocalMaster, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 type Raw = Record<string, unknown>
 
@@ -16,8 +17,8 @@ const PLAN_KINDS = ['scene', 'idea', 'goal', 'event', 'question', 'secret', 'npc
 
 export const defaultPrintConfig = (): LocalPrintConfig => ({ priorities: ['required', 'desired', 'useful', 'backup'], passport: true, entities: true, secrets: true, clocks: true, flows: true, notes: true })
 
-export function blankSession(number: number, master: string, now: string, id = `session-${crypto.randomUUID()}`): LocalSessionRecord {
-  return { id, number, title: '', status: 'draft', master, arcId: '', backgroundArcIds: [], group: '', participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, appliedDecisions: {}, planLayout: {}, printConfig: defaultPrintConfig(), createdAt: now }
+export function blankSession(number: number, masterId: string, now: string, id = `session-${crypto.randomUUID()}`): LocalSessionRecord {
+  return { id, number, title: '', status: 'draft', masterId, handovers: [], arcId: '', backgroundArcIds: [], groupId: '', guestPlayerIds: [], participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, appliedDecisions: {}, planLayout: {}, printConfig: defaultPrintConfig(), createdAt: now }
 }
 
 function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
@@ -40,14 +41,32 @@ function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
   }
 }
 
-function normalizeSession(raw: unknown, index: number, fallbackDate: string): LocalSessionRecord | null {
+/** Resolves pre-team fields (master and group stored as names) against the campaign team. */
+interface TeamContext { masters: LocalMaster[]; groups: LocalGroup[] }
+function masterIdFor(team: TeamContext, id: unknown, name: unknown): string {
+  if (typeof id === 'string' && team.masters.some((master) => master.id === id)) return id
+  const byName = typeof name === 'string' && team.masters.find((master) => master.name.toLocaleLowerCase() === name.trim().toLocaleLowerCase())
+  return (byName || team.masters.find((master) => master.role === 'owner') || team.masters[0]).id
+}
+function groupIdFor(team: TeamContext, id: unknown, name: unknown): string {
+  if (typeof id === 'string') return id
+  const title = text(name).trim()
+  if (!title) return ''
+  let group = team.groups.find((item) => item.name.toLocaleLowerCase() === title.toLocaleLowerCase())
+  if (!group) { group = newGroup(title); team.groups.push(group) }
+  return group.id
+}
+const ids = (value: unknown): string[] => list<unknown>(value).filter((id): id is string => typeof id === 'string')
+
+function normalizeSession(raw: unknown, index: number, fallbackDate: string, team: TeamContext): LocalSessionRecord | null {
   if (!isObject(raw) || typeof raw.id !== 'string') return null
-  const base = blankSession(typeof raw.number === 'number' ? raw.number : index + 1, text(raw.master), text(raw.createdAt, fallbackDate), raw.id)
+  const base = blankSession(typeof raw.number === 'number' ? raw.number : index + 1, masterIdFor(team, raw.masterId, raw.master), text(raw.createdAt, fallbackDate), raw.id)
   return {
     ...base,
     title: text(raw.title),
     status: oneOf(raw.status, SESSION_STATUSES, 'draft'),
-    arcId: text(raw.arcId), backgroundArcIds: list<unknown>(raw.backgroundArcIds).filter((id): id is string => typeof id === 'string'), group: text(raw.group), participants: text(raw.participants),
+    arcId: text(raw.arcId), backgroundArcIds: list<unknown>(raw.backgroundArcIds).filter((id): id is string => typeof id === 'string'), groupId: groupIdFor(team, raw.groupId, raw.group), guestPlayerIds: ids(raw.guestPlayerIds), participants: text(raw.participants),
+    handovers: list(raw.handovers),
     inGameTime: text(raw.inGameTime), timelinePosition: text(raw.timelinePosition),
     idea: text(raw.idea), focus: text(raw.focus), opening: text(raw.opening),
     lines: text(raw.lines), layers: text(raw.layers), systems: text(raw.systems),
@@ -65,7 +84,7 @@ function normalizeSession(raw: unknown, index: number, fallbackDate: string): Lo
 }
 
 /** Builds the session list for records saved before multi-session support (`firstSession*` fields). */
-function legacySessions(raw: Raw, fallbackDate: string): LocalSessionRecord[] {
+function legacySessions(raw: Raw, fallbackDate: string, team: TeamContext): LocalSessionRecord[] {
   const title = text(raw.firstSessionTitle)
   if (!title) return []
   const scenes = list<Raw>(raw.firstSessionScenes).filter(isObject).map((scene): LocalSessionPlanItem => ({
@@ -79,7 +98,7 @@ function legacySessions(raw: Raw, fallbackDate: string): LocalSessionRecord[] {
     role: text(item.role), alternative: text(item.alternative), note: text(item.note), origin: 'prepared',
   }))
   return [{
-    ...blankSession(1, text(raw.firstSessionMaster, text(raw.masters)), text(raw.updatedAt, fallbackDate), 'session-1'),
+    ...blankSession(1, masterIdFor(team, undefined, raw.firstSessionMaster), text(raw.updatedAt, fallbackDate), 'session-1'),
     title,
     status: oneOf(raw.firstSessionStatus, SESSION_STATUSES, 'draft'),
     arcId: text(raw.firstSessionArcId), inGameTime: text(raw.firstSessionInGameTime), idea: text(raw.firstSessionIdea),
@@ -118,15 +137,26 @@ function normalizeEntity(raw: Raw): LocalCampaignEntity {
 export function normalizeCampaign(value: unknown, now: string): LocalCampaignRecord | null {
   if (!isObject(value) || typeof value.id !== 'string' || !value.id || typeof value.name !== 'string') return null
   const updatedAt = text(value.updatedAt, now)
-  const stored = list(value.sessionRecords).map((session, index) => normalizeSession(session, index, updatedAt)).filter((session): session is LocalSessionRecord => session !== null)
-  const sessionRecords = stored.length ? stored : legacySessions(value, updatedAt)
+  const storedMasters = list<Raw>(value.masters).filter((master) => isObject(master) && typeof master.id === 'string' && typeof master.name === 'string')
+    .map((master): LocalMaster => ({ id: master.id as string, name: master.name as string, role: master.role === 'owner' ? 'owner' : 'co-master' }))
+  const masters = storedMasters.length ? storedMasters : parseMasters(text(value.masters))
+  if (!masters.some((master) => master.role === 'owner')) masters[0] = { ...masters[0], role: 'owner' }
+  const team: TeamContext = {
+    masters,
+    groups: list<Raw>(value.groups).filter((group) => isObject(group) && typeof group.id === 'string').map((group) => ({ id: group.id as string, name: text(group.name), playerIds: ids(group.playerIds) })),
+  }
+  const stored = list(value.sessionRecords).map((session, index) => normalizeSession(session, index, updatedAt, team)).filter((session): session is LocalSessionRecord => session !== null)
+  const sessionRecords = stored.length ? stored : legacySessions(value, updatedAt, team)
   const activeSessionId = typeof value.activeSessionId === 'string' && sessionRecords.some((session) => session.id === value.activeSessionId) ? value.activeSessionId : sessionRecords[0]?.id
   return {
     id: value.id,
     name: value.name,
     idea: text(value.idea),
     activeTime: text(value.activeTime, 'Время ещё не задано'),
-    masters: text(value.masters),
+    masters,
+    players: list<Raw>(value.players).filter((player) => isObject(player) && typeof player.id === 'string').map((player) => ({ id: player.id as string, name: text(player.name), characterIds: ids(player.characterIds), note: text(player.note) })),
+    groups: team.groups,
+    archived: value.archived === true,
     notes: list<unknown>(value.notes).filter((note): note is string => typeof note === 'string'),
     sessionRecords,
     activeSessionId,
@@ -152,7 +182,8 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     secrets: list<Raw>(value.secrets).filter((secret) => isObject(secret) && typeof secret.id === 'string').map((secret) => newSecret({
       ...(secret as Partial<LocalCampaignRecord['secrets'][number]>),
       revealCondition: text(secret.revealCondition), entityIds: list(secret.entityIds), clockIds: list(secret.clockIds),
-      sessionIds: list(secret.sessionIds), reveals: list(secret.reveals),
+      recipientIds: ids(secret.recipientIds), sessionIds: list(secret.sessionIds),
+      reveals: list<Raw>(secret.reveals).filter(isObject).map((reveal) => ({ ...(reveal as unknown as LocalCampaignRecord['secrets'][number]['reveals'][number]), recipientIds: ids(reveal.recipientIds) })),
     })),
     tasks: list(value.tasks),
     inbox: list(value.inbox),

@@ -9,11 +9,18 @@ export const MOON_PORT: LocalCampaignRecord = {
   name: 'Лунный порт',
   idea: 'Город в гавани заключает сделки с красной луной.',
   activeTime: 'Третья ночь Фестиваля фонарей',
-  masters: 'Сова + Лис',
+  masters: [{ id: 'master-owl', name: 'Сова', role: 'owner' }, { id: 'master-fox', name: 'Лис', role: 'co-master' }],
+  players: [
+    { id: 'player-ira', name: 'Ира', characterIds: [], note: '' },
+    { id: 'player-tim', name: 'Тим', characterIds: [], note: '' },
+    { id: 'player-lena', name: 'Лена', characterIds: [], note: 'Играет в другой группе, иногда заходит в гости' },
+  ],
+  groups: [{ id: 'group-main', name: 'Основная партия', playerIds: ['player-ira', 'player-tim'] }],
+  archived: false,
   notes: ['Красный прилив поднимается каждую ночь фестиваля.', 'Гильдия фонарщиков хранит старый договор с луной.'],
   sessionRecords: [{
-    id: 'session-moon-1', number: 1, title: 'Первая ночь в Лунном порту', status: 'draft', master: 'Сова', arcId: 'arc-moon-pact', backgroundArcIds: [],
-    group: 'Основная партия', participants: '', inGameTime: 'Третья ночь фестиваля', timelinePosition: '',
+    id: 'session-moon-1', number: 1, title: 'Первая ночь в Лунном порту', status: 'draft', masterId: 'master-owl', handovers: [], arcId: 'arc-moon-pact', backgroundArcIds: [],
+    groupId: 'group-main', guestPlayerIds: [], participants: '', inGameTime: 'Третья ночь фестиваля', timelinePosition: '',
     idea: 'Герои впервые сталкиваются с ценой договора порта.', focus: 'Провести героев через первую ночь фестиваля.',
     opening: 'Красный прилив доходит до лестниц с фонарями.', lines: '', layers: '', systems: '',
     planItems: [

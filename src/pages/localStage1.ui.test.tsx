@@ -92,7 +92,7 @@ describe('stage 1: secrets', () => {
     await user.click(await screen.findByRole('button', { name: /Секреты/ }))
     await user.click(screen.getByRole('button', { name: 'Раскрыть…' }))
     await user.selectOptions(screen.getByLabelText('Новое состояние'), 'selected')
-    await user.type(screen.getByLabelText('Кому известно'), 'Ира')
+    await user.type(screen.getByLabelText('Кому ещё известно'), 'Ира')
     await user.selectOptions(screen.getByLabelText('В какой сессии'), screen.getByRole('option', { name: /№1 Первая ночь/ }))
     await user.click(screen.getByRole('button', { name: 'Записать' }))
     expect(await screen.findByText('История раскрытий · 1')).toBeInTheDocument()

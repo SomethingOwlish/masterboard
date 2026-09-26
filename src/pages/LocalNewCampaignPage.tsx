@@ -6,6 +6,8 @@ import { LibrarySection } from '../components/local/LibrarySection'
 import { OnboardingRoom } from '../components/local/OnboardingRoom'
 import { OverviewSection } from '../components/local/OverviewSection'
 import { PrintSection } from '../components/local/PrintSection'
+import { TeamSection } from '../components/local/TeamSection'
+import { ActingProvider } from '../local/ActingProvider'
 import { RelationsSection } from '../components/local/RelationsSection'
 import { WorldSection } from '../components/local/WorldSection'
 import { CampaignHeader, KNOWN_SECTIONS, SaveErrorBanner, type SectionProps } from '../components/local/shared'
@@ -20,6 +22,7 @@ const SECTIONS: Record<string, (props: SectionProps) => JSX.Element> = {
   map: RelationsSection,
   world: WorldSection,
   print: PrintSection,
+  team: TeamSection,
 }
 
 export function LocalNewCampaignPage() {
@@ -31,11 +34,14 @@ export function LocalNewCampaignPage() {
   const { campaign, persist, saveError, retry } = state
   const banner = <SaveErrorBanner message={saveError} retry={retry} />
   if (!isCampaignReady(campaign)) return <>{banner}<OnboardingRoom campaign={campaign} persist={persist} /></>
-  if (section === 'session' || section === 'play' || section === 'review') return <>{banner}<LocalSessionsWorkspace campaign={campaign} persist={persist} mode={section === 'play' ? 'play' : section === 'review' ? 'review' : 'plan'} /></>
   const Section = SECTIONS[section]
-  return <main className="target-dashboard created-dashboard">
-    <CampaignHeader campaign={campaign} section={section} />
-    {banner}
-    <Section campaign={campaign} persist={persist} />
-  </main>
+  return <ActingProvider key={campaign.id} campaign={campaign}>
+    {section === 'session' || section === 'play' || section === 'review'
+      ? <>{banner}<LocalSessionsWorkspace campaign={campaign} persist={persist} mode={section === 'play' ? 'play' : section === 'review' ? 'review' : 'plan'} /></>
+      : <main className="target-dashboard created-dashboard">
+        <CampaignHeader campaign={campaign} section={section} />
+        {banner}
+        <Section campaign={campaign} persist={persist} />
+      </main>}
+  </ActingProvider>
 }

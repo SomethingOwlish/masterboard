@@ -79,7 +79,7 @@ export function completeReview(campaign: LocalCampaignRecord, sessionId: string,
     let target = options.target === 'new' ? undefined : sessions.find((item) => item.id === options.target)
     if (!target) {
       const number = Math.max(0, ...sessions.map((item) => item.number)) + 1
-      target = { ...blankSession(number, session.master, options.now), title: `Сессия ${number}`, arcId: session.arcId, backgroundArcIds: session.backgroundArcIds, group: session.group, participants: session.participants }
+      target = { ...blankSession(number, session.masterId, options.now), title: `Сессия ${number}`, arcId: session.arcId, backgroundArcIds: session.backgroundArcIds, groupId: session.groupId, guestPlayerIds: session.guestPlayerIds, participants: session.participants }
       sessions = [...sessions, target]
     }
     const copies: LocalSessionPlanItem[] = carried.map((item) => ({ ...item, id: `plan-${crypto.randomUUID()}`, status: 'prepared', origin: 'review', carriedFromSessionId: session.id }))
