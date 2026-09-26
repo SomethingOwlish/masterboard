@@ -21,7 +21,24 @@ npm run worker:migrate      # = wrangler d1 migrations apply masterboard --remot
 
 Wrangler покажет миграцию `0001_documents.sql` и спросит подтверждение — ответьте `y`.
 
-**Или панель:** Storage & Databases → D1 → `masterboard` → вкладка **Console** → вставьте содержимое файла `worker/migrations/0001_documents.sql` → **Execute**. (При этом способе Wrangler не узнает, что миграция применена; если позже будете запускать `worker:migrate`, он попробует применить её ещё раз — это безопасно, там `IF NOT EXISTS`.)
+**Или панель:** Storage & Databases → D1 → `masterboard` → вкладка **Console**. Консоль не принимает комментарии и пустые запросы («Requests without any query are not supported»), поэтому вставляйте команды **по одной**, без строк `--` и без `;` в конце:
+
+```sql
+CREATE TABLE IF NOT EXISTS documents (path TEXT PRIMARY KEY, collection TEXT NOT NULL, data TEXT NOT NULL, revision INTEGER NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT NOT NULL)
+```
+```sql
+CREATE INDEX IF NOT EXISTS documents_collection ON documents (collection)
+```
+```sql
+CREATE TABLE IF NOT EXISTS campaign_members (campaign_path TEXT NOT NULL, email TEXT NOT NULL, role TEXT NOT NULL, PRIMARY KEY (campaign_path, email))
+```
+```sql
+CREATE INDEX IF NOT EXISTS campaign_members_email ON campaign_members (email)
+```
+
+(Wrangler при этом не узнает, что миграция применена; если позже запустить `worker:migrate`, он применит её ещё раз — это безопасно, там `IF NOT EXISTS`.)
+
+> **26.09.2026:** для базы `masterboard` шаг 1 уже выполнен — таблицы созданы, миграция `0001_documents.sql` отмечена в `d1_migrations`.
 
 **Проверка:** в D1 → `masterboard` → **Tables** видны `documents` и `campaign_members`.
 
