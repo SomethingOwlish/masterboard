@@ -12,8 +12,7 @@ import { LocalNewCampaignPage } from './pages/LocalNewCampaignPage'
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 
-// Legacy pages stay in the repository for possible reuse, but are deliberately
-// absent from the product router. Every visible route uses the target UI.
+// `/local/*` is the product; `/demo/*` pages are static showcases of later stages.
 export const routes: RouteObject[] = [
   { path: '/', element: <LocalCampaignsPage /> },
   { path: '/demo/session', element: <LocalSessionDemoPage /> },

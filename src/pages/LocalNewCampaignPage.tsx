@@ -5,6 +5,7 @@ import { ArcsSection } from '../components/local/ArcsSection'
 import { LibrarySection } from '../components/local/LibrarySection'
 import { OnboardingRoom } from '../components/local/OnboardingRoom'
 import { OverviewSection } from '../components/local/OverviewSection'
+import { PrintSection } from '../components/local/PrintSection'
 import { RelationsSection } from '../components/local/RelationsSection'
 import { WorldSection } from '../components/local/WorldSection'
 import { CampaignHeader, KNOWN_SECTIONS, SaveErrorBanner, type SectionProps } from '../components/local/shared'
@@ -18,6 +19,7 @@ const SECTIONS: Record<string, (props: SectionProps) => JSX.Element> = {
   library: LibrarySection,
   map: RelationsSection,
   world: WorldSection,
+  print: PrintSection,
 }
 
 export function LocalNewCampaignPage() {

@@ -1,10 +1,12 @@
 # 🎲 Masterboard
 
-A planning instrument for tabletop RPG game masters — campaigns, characters, NPCs,
-relationship webs, in-world chronology, session planner boards, locations, notes,
-rules, tasks, and a one-click printable session sheet. All in one place.
+A planning instrument for tabletop RPG game masters: campaigns, story arcs, clocks,
+secrets, a typed library, world relations, multi-session planning with scene boards,
+a live session desk, a guided review, and printable director sheets.
 
-> See **[DESIGN.md](./DESIGN.md)** for the full architecture and module-by-module spec.
+> The current spec is **[docs/spec.md](./docs/spec.md)**, the plan is
+> **[docs/roadmap.md](./docs/roadmap.md)**. `DESIGN.md` describes the earlier
+> GitHub-synced architecture and is kept for history.
 
 ## Status
 
@@ -13,9 +15,9 @@ to Cloudflare; deployment credentials and project binding are configured separat
 
 ## Stack
 
-React + TypeScript + Vite · React Router · Zustand · (coming) tldraw, React Flow,
-Recharts, TipTap. Storage = a private GitHub repo (folders per GM, split files per
-module) with IndexedDB offline cache; images via Imgur.
+React + TypeScript + Vite · React Router · React Flow. Campaign data lives in the
+browser's IndexedDB behind the `StorageGateway` contract (`src/adapters/idbStorageGateway.ts`);
+campaigns move between browsers through JSON export/import. Integrations come last.
 
 ## Develop
 
@@ -25,6 +27,7 @@ npm run dev        # http://localhost:5173
 npm run build      # production build into dist/
 npm run typecheck
 npm run lint
+npm test           # unit + Testing Library UI scenarios
 ```
 
 ## Deploy
