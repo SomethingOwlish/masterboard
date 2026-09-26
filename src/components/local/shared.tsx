@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Badge, Button, Icon } from '../../ds'
 import { LocalThemeControl } from '../LocalThemeControl'
 import { ActingMasterSelect } from './ActingMasterSelect'
+import { useLocalCatalog } from '../../local/useLocalCampaign'
 import type { LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
 
 export type Persist = (next: LocalCampaignRecord) => void
@@ -35,12 +36,24 @@ export function CampaignNav({ campaignId, section, className }: { campaignId: st
 }
 
 export function CampaignHeader({ campaign, section }: { campaign: LocalCampaignRecord; section: string }) {
-  return <header className="local-dashboard-header"><div className="local-dashboard-header__utility"><Link to="/"><Icon name="arrow-left" size={16} /> Кампании</Link><strong>{campaign.name}</strong><div className="row"><ActingMasterSelect campaign={campaign} /><Badge tone="neutral" dot>Локальные данные</Badge><LocalThemeControl /></div></div><CampaignNav className="local-dashboard-nav" campaignId={campaign.id} section={section} /></header>
+  return <header className="local-dashboard-header"><div className="local-dashboard-header__utility"><Link to="/"><Icon name="arrow-left" size={16} /> Кампании</Link><strong>{campaign.name}</strong><div className="row"><ActingMasterSelect campaign={campaign} /><StorageBadge campaignId={campaign.id} /><LocalThemeControl /></div></div><CampaignNav className="local-dashboard-nav" campaignId={campaign.id} section={section} /></header>
+}
+
+/** Where this campaign lives: on the shared server or only in this browser. */
+export function StorageBadge({ campaignId }: { campaignId: string }) {
+  const { shared } = useLocalCatalog()
+  return shared?.isShared(campaignId) ? <Badge tone="accent" dot>Общая кампания</Badge> : <Badge tone="neutral" dot>Локальные данные</Badge>
 }
 
 export function SaveErrorBanner({ message, retry }: { message: string | null; retry: () => void }) {
   if (!message) return null
   return <div className="campaign-workspace__recovery local-save-error" role="alert"><Icon name="triangle-alert" size={18} /><span><strong>Изменения не сохранены.</strong> {message}. Они остаются на экране — попробуйте ещё раз.</span><Button size="sm" onClick={retry}>Повторить</Button></div>
+}
+
+/** Another master changed the same thing in a shared campaign; their version was kept (decision I4). */
+export function MergeNotice({ message, dismiss }: { message: string | null; dismiss: () => void }) {
+  if (!message) return null
+  return <div className="campaign-workspace__recovery" role="status"><Icon name="git-merge" size={18} /><span><strong>Правки объединены.</strong> {message}</span><Button size="sm" onClick={dismiss}>Понятно</Button></div>
 }
 
 export function Editor({ title, close, children }: { title: string; close: () => void; children: ReactNode }) {

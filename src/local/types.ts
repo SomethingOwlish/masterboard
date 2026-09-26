@@ -179,7 +179,8 @@ export interface LocalSessionRecord {
   createdAt: string
 }
 
-export interface LocalMaster { id: string; name: string; role: 'owner' | 'co-master' }
+/** `email` is the Cloudflare Access login; it links a master to a signed-in person in shared campaigns. */
+export interface LocalMaster { id: string; name: string; role: 'owner' | 'co-master'; email?: string }
 export interface LocalPlayer { id: string; name: string; characterIds: string[]; note: string }
 export interface LocalGroup { id: string; name: string; playerIds: string[] }
 export interface LocalHandover { id: string; fromId: string; toId: string; byId: string; createdAt: string }

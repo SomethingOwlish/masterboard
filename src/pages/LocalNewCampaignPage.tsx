@@ -12,7 +12,7 @@ import { PublishSection } from '../components/local/PublishSection'
 import { ActingProvider } from '../local/ActingProvider'
 import { RelationsSection } from '../components/local/RelationsSection'
 import { WorldSection } from '../components/local/WorldSection'
-import { CampaignHeader, KNOWN_SECTIONS, SaveErrorBanner, type SectionProps } from '../components/local/shared'
+import { CampaignHeader, KNOWN_SECTIONS, SaveErrorBanner, MergeNotice, type SectionProps } from '../components/local/shared'
 import { isCampaignReady } from '../local/normalize'
 import { useLocalCampaign } from '../local/useLocalCampaign'
 
@@ -35,8 +35,8 @@ export function LocalNewCampaignPage() {
   if (state.status === 'loading') return <main className="target-dashboard created-dashboard" aria-busy="true"><p className="local-session-footnote">Загружаем кампанию…</p></main>
   if (state.status === 'missing') return <Navigate to="/" replace />
   if (!KNOWN_SECTIONS.has(section)) return <Navigate to={`/local/campaign/${campaignId}/overview`} replace />
-  const { campaign, persist, saveError, retry } = state
-  const banner = <SaveErrorBanner message={saveError} retry={retry} />
+  const { campaign, persist, saveError, retry, notice, dismissNotice } = state
+  const banner = <><SaveErrorBanner message={saveError} retry={retry} /><MergeNotice message={notice} dismiss={dismissNotice} /></>
   if (!isCampaignReady(campaign)) return <>{banner}<OnboardingRoom campaign={campaign} persist={persist} /></>
   const Section = SECTIONS[section]
   return <ActingProvider key={campaign.id} campaign={campaign}>
