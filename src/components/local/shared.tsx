@@ -50,3 +50,8 @@ export const ENTITY_TYPES: Array<{ value: LocalCampaignEntityType; label: string
   ['character', 'Персонаж'], ['npc', 'Персонаж ведущего'], ['creature', 'Существо'], ['location', 'Локация'], ['faction', 'Фракция'], ['rumor', 'Слух'], ['item', 'Предмет'], ['audience', 'Аудитория'], ['note', 'Заметка'], ['letter', 'Письмо'], ['handout', 'Раздаточный материал'], ['map', 'Карта'], ['home-rule', 'Домашнее правило'],
 ].map(([value, label]) => ({ value: value as LocalCampaignEntityType, label }))
 export const ENTITY_LABEL = Object.fromEntries(ENTITY_TYPES.map((item) => [item.value, item.label])) as Record<LocalCampaignEntityType, string>
+
+/** Compact multi-select made of checkboxes, for linking records to each other. */
+export function Checklist({ legend, options, value, onChange, empty }: { legend: string; options: Array<{ id: string; label: string }>; value: string[]; onChange: (next: string[]) => void; empty?: string }) {
+  return <fieldset className="local-checklist"><legend>{legend}</legend>{options.length ? options.map((option) => <label key={option.id}><input type="checkbox" checked={value.includes(option.id)} onChange={() => onChange(value.includes(option.id) ? value.filter((id) => id !== option.id) : [...value, option.id])} /> {option.label}</label>) : <small>{empty ?? 'Пока нечего выбрать.'}</small>}</fieldset>
+}

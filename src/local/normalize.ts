@@ -1,4 +1,5 @@
-import type { LocalCampaignRecord, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
+import { newArc, newClock, newEntity, newSecret } from './domain'
+import type { LocalCampaignEntity, LocalCampaignRecord, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 type Raw = Record<string, unknown>
 
@@ -14,7 +15,7 @@ const SESSION_STATUSES = ['draft', 'ready', 'active', 'completed'] as const
 const PLAN_KINDS = ['scene', 'idea', 'goal', 'event', 'question', 'secret', 'npc', 'material', 'note', 'consequence'] as const
 
 export function blankSession(number: number, master: string, now: string, id = `session-${crypto.randomUUID()}`): LocalSessionRecord {
-  return { id, number, title: '', status: 'draft', master, arcId: '', group: '', participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, createdAt: now }
+  return { id, number, title: '', status: 'draft', master, arcId: '', backgroundArcIds: [], group: '', participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, createdAt: now }
 }
 
 function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
@@ -23,6 +24,7 @@ function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
     id: raw.id,
     source: raw.source === 'library' ? 'library' : 'text',
     entityId: typeof raw.entityId === 'string' ? raw.entityId : undefined,
+    secretId: typeof raw.secretId === 'string' ? raw.secretId : undefined,
     text: text(raw.text),
     kind: oneOf(raw.kind, PLAN_KINDS, 'note'),
     priority: oneOf(raw.priority, PRIORITIES, 'desired'),
@@ -41,7 +43,7 @@ function normalizeSession(raw: unknown, index: number, fallbackDate: string): Lo
     ...base,
     title: text(raw.title),
     status: oneOf(raw.status, SESSION_STATUSES, 'draft'),
-    arcId: text(raw.arcId), group: text(raw.group), participants: text(raw.participants),
+    arcId: text(raw.arcId), backgroundArcIds: list<unknown>(raw.backgroundArcIds).filter((id): id is string => typeof id === 'string'), group: text(raw.group), participants: text(raw.participants),
     inGameTime: text(raw.inGameTime), timelinePosition: text(raw.timelinePosition),
     idea: text(raw.idea), focus: text(raw.focus), opening: text(raw.opening),
     lines: text(raw.lines), layers: text(raw.layers), systems: text(raw.systems),
@@ -83,6 +85,20 @@ function legacySessions(raw: Raw, fallbackDate: string): LocalSessionRecord[] {
   }]
 }
 
+function normalizeEntity(raw: Raw): LocalCampaignEntity {
+  const tags = list<unknown>(raw.tags).filter((tag): tag is string => typeof tag === 'string')
+  const origin = isObject(raw.origin) ? { kind: oneOf(raw.origin.kind, ['manual', 'plan', 'live', 'inbox', 'import'] as const, 'manual'), sessionId: typeof raw.origin.sessionId === 'string' ? raw.origin.sessionId : undefined } : { kind: tags.includes('из сессии') ? 'plan' as const : 'manual' as const }
+  return newEntity({
+    id: raw.id as string,
+    type: oneOf(raw.type, ['character', 'npc', 'creature', 'location', 'faction', 'rumor', 'item', 'audience', 'note', 'letter', 'handout', 'map', 'home-rule'] as const, 'note'),
+    name: text(raw.name), description: text(raw.description), tags,
+    visibility: raw.visibility === 'public' ? 'public' : 'master',
+    status: oneOf(raw.status, ['active', 'inactive', 'archived'] as const, 'active'),
+    fields: isObject(raw.fields) ? Object.fromEntries(Object.entries(raw.fields).filter(([, value]) => typeof value === 'string')) as Record<string, string> : {},
+    origin,
+  })
+}
+
 /**
  * Validates a stored campaign and upgrades it to the current model. Returns
  * `null` when the value cannot be a campaign; the caller quarantines it.
@@ -102,11 +118,25 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     notes: list<unknown>(value.notes).filter((note): note is string => typeof note === 'string'),
     sessionRecords,
     activeSessionId,
-    entities: list<Raw>(value.entities).filter(isObject).map((entity) => ({ ...entity, tags: list<string>(entity.tags), visibility: entity.visibility ?? 'master', status: entity.status ?? 'active' })) as unknown as LocalCampaignRecord['entities'],
+    entities: list<Raw>(value.entities).filter((entity) => isObject(entity) && typeof entity.id === 'string').map(normalizeEntity),
     relations: list(value.relations),
-    storyArcs: list<Raw>(value.storyArcs).filter(isObject).map((arc) => ({ ...arc, owner: text(arc.owner), mode: arc.mode === 'background' ? 'background' : 'foreground' })) as unknown as LocalCampaignRecord['storyArcs'],
-    clocks: list<Raw>(value.clocks).filter(isObject).map((clock) => ({ ...clock, history: list(clock.history), advanceCondition: text(clock.advanceCondition), rollbackCondition: text(clock.rollbackCondition) })) as unknown as LocalCampaignRecord['clocks'],
-    secrets: list<Raw>(value.secrets).filter(isObject).map((secret) => ({ ...secret, revealCondition: text(secret.revealCondition) })) as unknown as LocalCampaignRecord['secrets'],
+    storyArcs: list<Raw>(value.storyArcs).filter((arc) => isObject(arc) && typeof arc.id === 'string').map((arc) => newArc({
+      id: arc.id as string, title: text(arc.title), direction: text(arc.direction), stakes: text(arc.stakes),
+      status: oneOf(arc.status, ['planned', 'active', 'paused', 'resolved', 'cancelled'] as const, 'planned'), statusReason: text(arc.statusReason),
+      progress: typeof arc.progress === 'number' ? arc.progress : 0, owner: text(arc.owner), mode: arc.mode === 'background' ? 'background' : 'foreground',
+    })),
+    clocks: list<Raw>(value.clocks).filter((clock) => isObject(clock) && typeof clock.id === 'string').map((clock) => newClock({
+      ...(clock as Partial<LocalCampaignRecord['clocks'][number]>),
+      advanceCondition: text(clock.advanceCondition), rollbackCondition: text(clock.rollbackCondition),
+      thresholds: list(clock.thresholds), history: list(clock.history),
+      triggerStatus: oneOf(clock.triggerStatus, ['idle', 'deferred', 'fired'] as const, 'idle'), arcId: text(clock.arcId),
+      entityIds: list(clock.entityIds), secretIds: list(clock.secretIds),
+    })),
+    secrets: list<Raw>(value.secrets).filter((secret) => isObject(secret) && typeof secret.id === 'string').map((secret) => newSecret({
+      ...(secret as Partial<LocalCampaignRecord['secrets'][number]>),
+      revealCondition: text(secret.revealCondition), entityIds: list(secret.entityIds), clockIds: list(secret.clockIds),
+      sessionIds: list(secret.sessionIds), reveals: list(secret.reveals),
+    })),
     tasks: list(value.tasks),
     inbox: list(value.inbox),
     createdAt: text(value.createdAt, updatedAt),
