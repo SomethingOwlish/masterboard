@@ -6,6 +6,7 @@ import type { LocalCampaignSecret, LocalSecretStatus } from '../../local/types'
 import { useConfirm } from '../useConfirm'
 import { Checklist, Editor, type SectionProps } from './shared'
 import { recipientsLabel } from '../../local/team'
+import { liveSessions } from '../../local/sessions'
 
 type Draft = Omit<LocalCampaignSecret, 'id' | 'reveals' | 'sessionIds'>
 
@@ -50,7 +51,7 @@ export function SecretsPanel({ campaign, persist }: SectionProps) {
     {revealing && <Editor title={`Раскрытие: ${revealing.title}`} close={() => setRevealing(null)}>
       <div className="control-form__row"><label htmlFor="reveal-status">Новое состояние<select id="reveal-status" value={reveal.status} onChange={(e) => setReveal({ ...reveal, status: e.target.value as LocalSecretStatus })}>{Object.entries(SECRET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label htmlFor="reveal-recipients">Кому ещё известно<input id="reveal-recipients" value={reveal.recipients} placeholder="Все, группа, имена героев" onChange={(e) => setReveal({ ...reveal, recipients: e.target.value })} /></label></div>
       <Checklist legend="Кому известно: группы и игроки" options={[...campaign.groups.map((group) => ({ id: group.id, label: `Группа «${group.name}»` })), ...campaign.players.map((player) => ({ id: player.id, label: player.name }))]} value={reveal.recipientIds} onChange={(recipientIds) => setReveal({ ...reveal, recipientIds })} empty="Игроков и групп пока нет — их можно завести в разделе «Команда»." />
-      <label htmlFor="reveal-session">В какой сессии<select id="reveal-session" value={reveal.sessionId} onChange={(e) => setReveal({ ...reveal, sessionId: e.target.value })}><option value="">Вне сессии</option>{campaign.sessionRecords.map((session) => <option key={session.id} value={session.id}>№{session.number} {session.title}</option>)}</select></label>
+      <label htmlFor="reveal-session">В какой сессии<select id="reveal-session" value={reveal.sessionId} onChange={(e) => setReveal({ ...reveal, sessionId: e.target.value })}><option value="">Вне сессии</option>{liveSessions(campaign).map((session) => <option key={session.id} value={session.id}>№{session.number} {session.title}</option>)}</select></label>
       <label htmlFor="reveal-note">Как это произошло<textarea id="reveal-note" rows={2} value={reveal.note} onChange={(e) => setReveal({ ...reveal, note: e.target.value })} /></label>
       <footer><Button onClick={() => setRevealing(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={reveal.status === revealing.status && reveal.recipients.trim() === revealing.recipients && reveal.recipientIds.join() === revealing.recipientIds.join()} onClick={saveReveal}>Записать</Button></footer>
     </Editor>}
