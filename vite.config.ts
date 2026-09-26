@@ -7,6 +7,8 @@ import { fileURLToPath } from 'node:url'
 export default defineConfig({
   base: '/',
   plugins: [react()],
+  // Local development: `npm run worker:dev` serves /api (and signs you in as DEV_USER_EMAIL).
+  server: { proxy: { '/api': 'http://localhost:8787' } },
   test: {
     setupFiles: ['./src/test/setup.ts'],
   },

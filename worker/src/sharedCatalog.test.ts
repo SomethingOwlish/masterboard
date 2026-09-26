@@ -14,23 +14,40 @@ beforeEach(() => { env = { DB: testDb() } })
 
 /** The browser client talking to the real Worker handler, signed in as `email`. */
 const apiFor = (email: string) => new MasterboardApi((async (input: RequestInfo | URL, init?: RequestInit) => handleApi(new Request(`https://mb.test${String(input)}`, init), { ...env, DEV_USER_EMAIL: email })) as typeof fetch)
-const catalogFor = (email: string) => createSharedCatalog(createLocalCampaignCatalog(new MemoryStorageGateway()), apiFor(email), email)
+const catalogFor = (email: string, browser = createLocalCampaignCatalog(new MemoryStorageGateway(), { seed: false })) => createSharedCatalog(browser, apiFor(email), email)
 
 async function sharedCampaign() {
   const owner = catalogFor(OWNER)
-  const draft = await owner.create('Лунный порт', 'Туман и контрабанда')
-  const campaign = await owner.shared.share(draft.id)
+  const campaign = await owner.create('Лунный порт', 'Туман и контрабанда')
   const withCo = await owner.update({ ...campaign, masters: [...campaign.masters, { ...newMaster('Лис'), email: CO }] })
   return { owner, campaign: withCo }
 }
 
 describe('shared catalog on the Worker', () => {
-  it('moves a browser campaign to the server with the signed-in master as owner', async () => {
+  it('creates campaigns on the server with the signed-in master as owner', async () => {
     const { owner, campaign } = await sharedCampaign()
     expect(campaign.masters[0]).toMatchObject({ role: 'owner', email: OWNER })
     expect(owner.shared.isShared(campaign.id)).toBe(true)
-    const { campaigns } = await owner.load()
-    expect(campaigns.filter((item) => item.id === campaign.id)).toHaveLength(1)
+    expect((await owner.load()).campaigns.map((item) => item.id)).toEqual([campaign.id])
+  })
+
+  it('moves campaigns kept in the browser to the server', async () => {
+    const browser = createLocalCampaignCatalog(new MemoryStorageGateway(), { seed: false })
+    const old = await browser.create('Старая кампания', 'До входа')
+    const owner = catalogFor(OWNER, browser)
+    expect((await owner.shared.browserCampaigns()).map((item) => item.id)).toEqual([old.id])
+    const moved = await owner.shared.share(old.id)
+    expect(moved.masters[0].email).toBe(OWNER)
+    expect(await owner.shared.browserCampaigns()).toEqual([])
+    expect((await owner.load()).campaigns.map((item) => item.name)).toEqual(['Старая кампания'])
+  })
+
+  it('imports an exported file onto the server', async () => {
+    const owner = catalogFor(OWNER)
+    const created = await owner.create('Лунный порт', '')
+    const copy = await owner.importCampaign(await owner.exportCampaign(created.id))
+    expect(copy.id).not.toBe(created.id)
+    expect((await owner.load()).campaigns.map((item) => item.name).sort()).toEqual(['Лунный порт', 'Лунный порт (копия)'])
   })
 
   it('shows the campaign to a co-master named by email and hides it from others', async () => {
@@ -70,10 +87,10 @@ describe('shared catalog on the Worker', () => {
     await expect(co.update({ ...seen, archived: true })).rejects.toThrow()
   })
 
-  it('stays browser-only when there is no Worker behind /api', async () => {
+  it('asks to sign in when there is no signed-in master', async () => {
     const local = createLocalCampaignCatalog(new MemoryStorageGateway())
     const staticHost = new MasterboardApi((async () => new Response('<!doctype html>', { headers: { 'content-type': 'text/html' } })) as typeof fetch)
-    expect(await resolveCatalog(local, staticHost)).toBe(local)
-    expect((await resolveCatalog(local, apiFor(OWNER))).shared?.email).toBe(OWNER)
+    expect(await resolveCatalog(local, staticHost)).toBeNull()
+    expect((await resolveCatalog(local, apiFor(OWNER)))?.shared?.email).toBe(OWNER)
   })
 })
