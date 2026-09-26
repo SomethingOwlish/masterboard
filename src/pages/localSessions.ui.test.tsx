@@ -2,6 +2,7 @@
 import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
+import { newEntity } from '../local/domain'
 import { blankSession } from '../local/normalize'
 import type { LocalSessionPlanItem } from '../local/types'
 import { readyCampaign, renderApp } from '../test/renderApp'
@@ -49,5 +50,19 @@ describe('session lifecycle', () => {
     await user.click(screen.getByRole('button', { name: 'Сохранить' }))
     await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[0].date).toBe('2026-10-03'))
     expect(await screen.findByText('3 октября 2026 г.')).toBeInTheDocument()
+  })
+})
+
+describe('live table cards', () => {
+  it('shows the card fields of entities planned for the running session', async () => {
+    const user = userEvent.setup()
+    const running = session('s1', 1, 'Идёт', { status: 'active', planItems: [{ ...planItem('p', 'Олан'), source: 'library', entityId: 'olan', kind: 'npc' }] })
+    const { catalog, id } = await readyCampaign({ sessionRecords: [running], activeSessionId: 's1', entities: [newEntity({ id: 'olan', type: 'npc', name: 'Олан', dead: true, fields: { motive: 'Искупление' } }), newEntity({ id: 'other', type: 'npc', name: 'Чужой' })] })
+    renderApp(`/local/campaign/${id}/play`, catalog)
+    await user.click(await screen.findByRole('button', { name: /Карточки/ }))
+    const card = screen.getByRole('article', { name: 'Карточка: Олан' })
+    expect(within(card).getByText('Искупление')).toBeInTheDocument()
+    expect(within(card).getByText('Погиб')).toBeInTheDocument()
+    expect(screen.queryByRole('article', { name: 'Карточка: Чужой' })).not.toBeInTheDocument()
   })
 })
