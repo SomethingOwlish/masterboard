@@ -1,5 +1,5 @@
 import type {
-  LocalCampaignClock, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignSecret,
+  LocalCampaignClock, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignRelation, LocalCampaignSecret,
   LocalClockThreshold, LocalSecretStatus, LocalStoryArc,
 } from './types'
 
@@ -34,6 +34,30 @@ export function originLabel(entity: LocalCampaignEntity, campaign: LocalCampaign
   const session = entity.origin.sessionId ? campaign.sessionRecords.find((item) => item.id === entity.origin.sessionId) : undefined
   return session ? `${ORIGIN_LABEL[entity.origin.kind]} №${session.number}` : ORIGIN_LABEL[entity.origin.kind]
 }
+
+export interface EntityPlanUsage { sessionId: string; sessionNumber: number; sessionTitle: string; itemId: string; sceneTitle?: string; trashed: boolean }
+export interface EntityUsages {
+  plans: EntityPlanUsage[]
+  relations: LocalCampaignRelation[]
+  clocks: LocalCampaignClock[]
+  secrets: LocalCampaignSecret[]
+}
+
+/** Everything in the campaign that points at an entity, including plans of trashed sessions. */
+export function entityUsages(campaign: LocalCampaignRecord, entityId: string): EntityUsages {
+  const plans = campaign.sessionRecords.flatMap((session) => session.planItems.filter((item) => item.entityId === entityId).map((item): EntityPlanUsage => {
+    const scene = item.sceneId ? session.planItems.find((candidate) => candidate.id === item.sceneId) : undefined
+    return { sessionId: session.id, sessionNumber: session.number, sessionTitle: session.title, itemId: item.id, sceneTitle: scene?.text || undefined, trashed: Boolean(session.deletedAt) }
+  }))
+  return {
+    plans,
+    relations: campaign.relations.filter((relation) => relation.fromId === entityId || relation.toId === entityId),
+    clocks: campaign.clocks.filter((clock) => clock.entityIds.includes(entityId)),
+    secrets: campaign.secrets.filter((secret) => secret.entityIds.includes(entityId)),
+  }
+}
+
+export const usageCount = (usages: EntityUsages): number => usages.plans.length + usages.relations.length + usages.clocks.length + usages.secrets.length
 
 export interface EntityFilter { query: string; type: LocalCampaignEntityType | 'all'; showArchived: boolean }
 

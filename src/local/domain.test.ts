@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
-import { changeSecretStatus, filterEntities, moveClock, newClock, newEntity, newSecret, resolveClockTrigger } from './domain'
-import { normalizeCampaign } from './normalize'
+import { changeSecretStatus, entityUsages, filterEntities, moveClock, newClock, newEntity, newSecret, resolveClockTrigger, usageCount } from './domain'
+import { blankSession, normalizeCampaign, withLocalSessions } from './normalize'
 
 const NOW = '2026-09-26T10:00:00.000Z'
 
@@ -75,5 +75,31 @@ describe('stage 1 migration', () => {
     expect(campaign.clocks[0]).toMatchObject({ thresholds: [], triggerStatus: 'idle', arcId: '', entityIds: [], secretIds: [] })
     expect(campaign.secrets[0]).toMatchObject({ revealCondition: '', entityIds: [], clockIds: [], sessionIds: [], reveals: [] })
     expect(campaign.sessionRecords[0].backgroundArcIds).toEqual([])
+  })
+})
+
+describe('entity usages', () => {
+  it('finds plan references in future and trashed sessions, with their scene, plus relations, clocks and secrets', () => {
+    const base = normalizeCampaign({ id: 'c', name: 'Кампания' }, NOW)!
+    const item = (id: string, patch = {}) => ({ id, source: 'text' as const, text: id, kind: 'scene' as const, priority: 'required' as const, status: 'prepared' as const, role: '', alternative: '', note: '', origin: 'prepared' as const, ...patch })
+    const first = { ...blankSession(1, 'm', NOW, 's1'), title: 'Первая', deletedAt: NOW, planItems: [item('gate', { text: 'Ворота' }), item('cap-1', { source: 'library', entityId: 'captain', sceneId: 'gate' })] }
+    const future = { ...blankSession(2, 'm', NOW, 's2'), title: 'Будущая', planItems: [item('cap-2', { source: 'library', entityId: 'captain' })] }
+    const campaign = {
+      ...withLocalSessions(base, [first, future]),
+      entities: [newEntity({ id: 'captain', type: 'npc', name: 'Капитан' }), newEntity({ id: 'guild', type: 'faction', name: 'Гильдия' })],
+      relations: [{ id: 'r', fromId: 'guild', toId: 'captain', label: 'платит', type: 'debt' as const, direction: 'directed' as const, visibility: 'master' as const }],
+      clocks: [newClock({ id: 'k', title: 'Бунт', entityIds: ['captain'] })],
+      secrets: [newSecret({ id: 'x', title: 'Долг', entityIds: ['guild'] })],
+    }
+    const usages = entityUsages(campaign, 'captain')
+    expect(usages.plans).toEqual([
+      { sessionId: 's1', sessionNumber: 1, sessionTitle: 'Первая', itemId: 'cap-1', sceneTitle: 'Ворота', trashed: true },
+      { sessionId: 's2', sessionNumber: 2, sessionTitle: 'Будущая', itemId: 'cap-2', sceneTitle: undefined, trashed: false },
+    ])
+    expect(usages.relations.map((relation) => relation.id)).toEqual(['r'])
+    expect(usages.clocks.map((clock) => clock.id)).toEqual(['k'])
+    expect(usages.secrets).toEqual([])
+    expect(usageCount(usages)).toBe(4)
+    expect(usageCount(entityUsages(campaign, 'nobody'))).toBe(0)
   })
 })
