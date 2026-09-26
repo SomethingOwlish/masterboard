@@ -51,6 +51,8 @@
 
 ### Что нужно сделать на Cloudflare (однократно, не из репозитория)
 
+Подробная пошаговая инструкция — [`docs/deploy-cloudflare.md`](deploy-cloudflare.md).
+
 1. Оба Worker (`masterboard`, `lorebridge`) — в одном аккаунте; в `wrangler.jsonc` Мастерборда уже есть `services: LOREBRIDGE → lorebridge`.
 2. Один и тот же секрет в обоих: `wrangler secret put MASTERBOARD_BRIDGE_SECRET` (в каталоге Мастерборда и в каталоге lorebridge).
 3. Задеплоить lorebridge (с маршрутами `/mb/*`), затем Мастерборд.

@@ -16,7 +16,7 @@
       "binding": "DB",
       "database_name": "masterboard",
       // Replace with the id from `wrangler d1 create masterboard`.
-      "database_id": "00000000-0000-0000-0000-000000000000",
+      "database_id": "1510a7e6-b2f9-4eeb-b2ef-5ad23b6f67c9",
       "migrations_dir": "worker/migrations"
     }
   ],
