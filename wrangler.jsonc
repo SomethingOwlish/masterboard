@@ -26,8 +26,8 @@
   "services": [{ "binding": "LOREBRIDGE", "service": "lorebridge" }],
   "vars": {
     // Cloudflare Access (decision I2): team domain and the application's AUD tag.
-    "ACCESS_TEAM_DOMAIN": "",
-    "ACCESS_AUD": ""
+    "ACCESS_TEAM_DOMAIN": "ru-ser-pl-com.cloudflareaccess.com",
+    "ACCESS_AUD": "40b9453d71bcaf7d87cd6f7be8fb2f4aecdc65110d7bce7c1d4b2e8415123451"
   },
   // Preview URLs bypass Access, so they stay off (same as lovegame).
   "preview_urls": false
