@@ -8,8 +8,16 @@ export interface LocalCampaignEntity {
   name: string
   description: string
   tags: string[]
-  visibility?: 'master' | 'public'
-  status?: 'active' | 'inactive' | 'archived'
+  visibility: 'master' | 'public'
+  status: 'active' | 'inactive' | 'archived'
+  /** Type-specific card fields, keyed by the field id from `ENTITY_FIELDS`. */
+  fields: Record<string, string>
+  origin: LocalEntityOrigin
+}
+
+export interface LocalEntityOrigin {
+  kind: 'manual' | 'plan' | 'live' | 'inbox' | 'import'
+  sessionId?: string
 }
 
 export interface LocalCampaignRelation {
@@ -25,13 +33,16 @@ export interface LocalStoryArc {
   title: string
   direction: string
   stakes: string
-  status: 'planned' | 'active' | 'resolved'
+  status: 'planned' | 'active' | 'paused' | 'resolved' | 'cancelled'
+  /** Why the arc was paused or cancelled. */
+  statusReason: string
   progress: number
-  owner?: string
-  mode?: 'background' | 'foreground'
+  owner: string
+  mode: 'background' | 'foreground'
 }
 
-export interface LocalClockChange { id: string; delta: number; reason: string; createdAt: string }
+export interface LocalClockChange { id: string; delta: number; reason: string; createdAt: string; note?: string }
+export interface LocalClockThreshold { id: string; at: number; consequence: string; reachedAt?: string }
 export interface LocalCampaignClock {
   id: string
   title: string
@@ -40,8 +51,15 @@ export interface LocalCampaignClock {
   segments: number
   visibility: 'master' | 'public'
   trigger: string
-  advanceCondition?: string
-  rollbackCondition?: string
+  advanceCondition: string
+  rollbackCondition: string
+  thresholds: LocalClockThreshold[]
+  /** `fired` — the GM confirmed the trigger; `deferred` — full, confirmation postponed. */
+  triggerStatus: 'idle' | 'deferred' | 'fired'
+  firedAt?: string
+  arcId: string
+  entityIds: string[]
+  secretIds: string[]
   history: LocalClockChange[]
 }
 
@@ -51,9 +69,16 @@ export interface LocalCampaignSecret {
   truth: string
   publicVersion: string
   recipients: string
-  status: 'hidden' | 'partial' | 'selected' | 'everyone' | 'disproved' | 'obsolete'
-  revealCondition?: string
+  status: LocalSecretStatus
+  revealCondition: string
+  entityIds: string[]
+  clockIds: string[]
+  sessionIds: string[]
+  reveals: LocalSecretReveal[]
 }
+
+export type LocalSecretStatus = 'hidden' | 'partial' | 'selected' | 'everyone' | 'disproved' | 'obsolete'
+export interface LocalSecretReveal { id: string; status: LocalSecretStatus; recipients: string; sessionId?: string; note: string; createdAt: string }
 
 export interface LocalCampaignTask {
   id: string
@@ -82,6 +107,8 @@ export interface LocalSessionPlanItem {
   id: string
   source: 'library' | 'text'
   entityId?: string
+  /** Set when the item stands for a campaign secret. */
+  secretId?: string
   text: string
   kind: LocalSessionPlanKind
   priority: 'required' | 'desired' | 'useful' | 'backup'
@@ -99,6 +126,7 @@ export interface LocalSessionRecord {
   status: 'draft' | 'ready' | 'active' | 'completed'
   master: string
   arcId: string
+  backgroundArcIds: string[]
   group: string
   participants: string
   inGameTime: string

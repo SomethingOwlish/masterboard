@@ -1,26 +1,11 @@
 // @vitest-environment jsdom
-import { render, screen, waitFor, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
-import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { describe, expect, it } from 'vitest'
-import { routes } from '../App'
-import { MemoryStorageGateway } from '../adapters/memoryStorageGateway'
-import { createLocalCampaignCatalog, type LocalCampaignCatalog } from '../local/catalog'
-import { blankSession, withLocalSessions } from '../local/normalize'
-import { LocalCatalogProvider } from '../local/useLocalCampaign'
+import type { LocalCampaignCatalog } from '../local/catalog'
+import { readyCampaign as ready, renderApp } from '../test/renderApp'
 
-function renderApp(path: string, catalog: LocalCampaignCatalog = createLocalCampaignCatalog(new MemoryStorageGateway())) {
-  const router = createMemoryRouter(routes, { initialEntries: [path] })
-  render(<LocalCatalogProvider catalog={catalog}><RouterProvider router={router} /></LocalCatalogProvider>)
-  return { router, catalog }
-}
-
-async function readyCampaign(notes: string[] = []) {
-  const catalog = createLocalCampaignCatalog(new MemoryStorageGateway())
-  const campaign = await catalog.create('Город под стеклом', 'Идея')
-  await catalog.update(withLocalSessions({ ...campaign, notes }, [{ ...blankSession(1, 'Сова', campaign.createdAt), title: 'Первая ночь' }]))
-  return { catalog, id: campaign.id }
-}
+const readyCampaign = (notes: string[] = []) => ready({ notes })
 
 describe('local campaign workspace', () => {
   it('creates a campaign and reaches the dashboard after the first session', async () => {

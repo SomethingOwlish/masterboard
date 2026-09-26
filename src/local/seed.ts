@@ -1,3 +1,4 @@
+import { newArc, newClock, newEntity, newSecret } from './domain'
 import type { LocalCampaignRecord } from './types'
 
 const STAMP = '2026-09-01T12:00:00.000Z'
@@ -11,7 +12,7 @@ export const MOON_PORT: LocalCampaignRecord = {
   masters: 'Сова + Лис',
   notes: ['Красный прилив поднимается каждую ночь фестиваля.', 'Гильдия фонарщиков хранит старый договор с луной.'],
   sessionRecords: [{
-    id: 'session-moon-1', number: 1, title: 'Первая ночь в Лунном порту', status: 'draft', master: 'Сова', arcId: 'arc-moon-pact',
+    id: 'session-moon-1', number: 1, title: 'Первая ночь в Лунном порту', status: 'draft', master: 'Сова', arcId: 'arc-moon-pact', backgroundArcIds: [],
     group: 'Основная партия', participants: '', inGameTime: 'Третья ночь фестиваля', timelinePosition: '',
     idea: 'Герои впервые сталкиваются с ценой договора порта.', focus: 'Провести героев через первую ночь фестиваля.',
     opening: 'Красный прилив доходит до лестниц с фонарями.', lines: '', layers: '', systems: '',
@@ -23,13 +24,13 @@ export const MOON_PORT: LocalCampaignRecord = {
   }],
   activeSessionId: 'session-moon-1',
   entities: [
-    { id: 'entity-moon-keeper', type: 'npc', name: 'Смотритель Олан', description: 'Старый фонарщик, помнит прошлую сделку.', tags: ['гильдия'], visibility: 'master', status: 'active' },
-    { id: 'entity-moon-harbor', type: 'location', name: 'Гавань фонарей', description: 'Причалы, где идёт фестиваль.', tags: ['порт'], visibility: 'public', status: 'active' },
+    newEntity({ id: 'entity-moon-keeper', type: 'npc', name: 'Смотритель Олан', description: 'Старый фонарщик, помнит прошлую сделку.', tags: ['гильдия'], fields: { motive: 'Не дать гильдии повторить ошибку' } }),
+    newEntity({ id: 'entity-moon-harbor', type: 'location', name: 'Гавань фонарей', description: 'Причалы, где идёт фестиваль.', tags: ['порт'], visibility: 'public', fields: { mood: 'Шум праздника и запах соли' } }),
   ],
   relations: [{ id: 'relation-moon-keeper', fromId: 'entity-moon-keeper', toId: 'entity-moon-harbor', label: 'охраняет', visibility: 'public' }],
-  storyArcs: [{ id: 'arc-moon-pact', title: 'Договор с красной луной', direction: 'Луна требует новую плату', stakes: 'Порт уйдёт под воду', status: 'active', progress: 20, owner: '', mode: 'foreground' }],
-  clocks: [{ id: 'clock-moon-tide', title: 'Красный прилив', kind: 'threat', value: 1, segments: 6, visibility: 'master', trigger: 'Нижний город затоплен', advanceCondition: '', rollbackCondition: '', history: [] }],
-  secrets: [{ id: 'secret-moon-price', title: 'Цена договора', truth: 'Луна забирает имена горожан.', publicVersion: 'Договор требует жертвы.', recipients: '', status: 'hidden', revealCondition: '' }],
+  storyArcs: [newArc({ id: 'arc-moon-pact', title: 'Договор с красной луной', direction: 'Луна требует новую плату', stakes: 'Порт уйдёт под воду', status: 'active', progress: 20, owner: 'Сова' })],
+  clocks: [newClock({ id: 'clock-moon-tide', title: 'Красный прилив', value: 1, trigger: 'Нижний город затоплен', advanceCondition: 'Каждая ночь без нового договора', arcId: 'arc-moon-pact', thresholds: [{ id: 'threshold-moon-stairs', at: 3, consequence: 'Лестницы фонарей скрываются под водой' }] })],
+  secrets: [newSecret({ id: 'secret-moon-price', title: 'Цена договора', truth: 'Луна забирает имена горожан.', publicVersion: 'Договор требует жертвы.', revealCondition: 'Герои найдут текст договора', entityIds: ['entity-moon-keeper'], clockIds: ['clock-moon-tide'] })],
   tasks: [],
   inbox: [],
   createdAt: STAMP,
