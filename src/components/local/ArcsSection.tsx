@@ -1,10 +1,10 @@
 import { useState } from 'react'
 import { Badge, Button, EmptyState, Icon } from '../../ds'
 import { arcNeedsReason, newArc } from '../../local/domain'
+import { ARC_STATUS } from '../../local/labels'
 import type { LocalStoryArc } from '../../local/types'
 import { Editor, type SectionProps } from './shared'
 
-export const ARC_STATUS: Record<LocalStoryArc['status'], string> = { planned: 'Замысел', active: 'В игре', paused: 'Приостановлена', resolved: 'Завершена', cancelled: 'Отменена' }
 
 const ARC_COLUMNS: Array<{ status: LocalStoryArc['status']; label: string; hint: string }> = [
   { status: 'planned', label: 'Замысел', hint: 'Линии, которые ещё не вышли на сцену' },

@@ -25,8 +25,13 @@ export interface LocalCampaignRelation {
   fromId: string
   toId: string
   label: string
+  type: LocalRelationType
+  /** `directed` reads from → to; `mutual` holds both ways. */
+  direction: 'directed' | 'mutual'
   visibility: 'master' | 'public'
 }
+
+export type LocalRelationType = 'alliance' | 'enmity' | 'debt' | 'kin' | 'belongs' | 'other'
 
 export interface LocalStoryArc {
   id: string
@@ -83,16 +88,24 @@ export interface LocalSecretReveal { id: string; status: LocalSecretStatus; reci
 export interface LocalCampaignTask {
   id: string
   text: string
-  source: 'masterboard' | 'preparation' | 'inbox'
+  source: 'masterboard' | 'preparation' | 'inbox' | 'session' | 'review' | 'clock'
   done: boolean
+  origin?: LocalTaskOrigin
 }
+
+export interface LocalTaskOrigin { sessionId?: string; planItemId?: string; logEntryId?: string; entityId?: string; clockId?: string }
 
 export interface LocalInboxItem { id: string; text: string; tags: string[]; createdAt: string }
 
+export type LocalLogKind = 'moment' | 'decision' | 'reveal' | 'roll' | 'clock' | 'entity'
 export interface LocalSessionLogEntry {
   id: string
   text: string
+  kind: LocalLogKind
   createdAt: string
+  clockId?: string
+  secretId?: string
+  entityId?: string
 }
 
 export interface LocalSessionFlow {
@@ -117,6 +130,8 @@ export interface LocalSessionPlanItem {
   alternative: string
   note: string
   origin: 'prepared' | 'live' | 'review'
+  /** Session the item was carried over from during a review. */
+  carriedFromSessionId?: string
 }
 
 export interface LocalSessionRecord {
@@ -143,6 +158,9 @@ export interface LocalSessionRecord {
   reviewNotes: string
   reviewStatus: 'draft' | 'completed'
   reviewDecisions: Record<string, LocalReviewDecision>
+  /** Decisions already applied, so reopening and re-closing a review is safe. */
+  appliedDecisions: Record<string, LocalReviewDecision>
+  nextSessionId?: string
   createdAt: string
 }
 
@@ -164,6 +182,8 @@ export interface LocalCampaignRecord {
   secrets: LocalCampaignSecret[]
   tasks: LocalCampaignTask[]
   inbox: LocalInboxItem[]
+  /** Saved node positions of the relation graph, by entity id. */
+  relationLayout: Record<string, { x: number; y: number }>
   createdAt: string
   updatedAt: string
 }
