@@ -15,6 +15,7 @@ export const CAMPAIGN_SECTIONS = [
   { id: 'library', label: 'Библиотека', icon: 'library' },
   { id: 'map', label: 'Связи', icon: 'share-2' },
   { id: 'world', label: 'Заметки', icon: 'book-open' },
+  { id: 'print', label: 'Печать', icon: 'printer' },
 ] as const
 
 /** Every `section` route value the campaign page understands. */
