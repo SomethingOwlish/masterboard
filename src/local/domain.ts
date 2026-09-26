@@ -148,3 +148,6 @@ export function secretSessions(secret: LocalCampaignSecret, campaign: LocalCampa
 export function toggleId(list: string[], id: string): string[] {
   return list.includes(id) ? list.filter((item) => item !== id) : [...list, id]
 }
+
+export const ENTITY_STATUS_LABEL: Record<LocalCampaignEntity['status'], string> = { active: 'Активна', inactive: 'Неактивна', archived: 'В архиве' }
+

@@ -1,7 +1,7 @@
 # 🎲 Masterboard
 
 A planning instrument for tabletop RPG game masters: campaigns, story arcs, clocks,
-secrets, a typed library, world relations, multi-session planning with scene boards,
+secrets, a typed library, world relations, multi-session planning with a scene tree,
 a live session desk, a guided review, and printable director sheets.
 
 > The current spec is **[docs/spec.md](./docs/spec.md)**, the plan is

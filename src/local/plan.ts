@@ -28,6 +28,8 @@ export interface MoveTarget {
   priority?: Priority
   /** Attach to a scene, or detach with `null`. */
   sceneId?: string | null
+  /** Reorder only: keep the item's own priority when placed before another item (the scene tree). */
+  keepPriority?: boolean
 }
 
 /** Drag-and-drop move inside the plan: reorder, change priority or scene. */
@@ -38,7 +40,7 @@ export function moveItemTo(session: LocalSessionRecord, itemId: string, target: 
   const before = target.beforeId ? rest.find((entry) => entry.id === target.beforeId) : undefined
   const moved: LocalSessionPlanItem = {
     ...item,
-    priority: before?.priority ?? target.priority ?? item.priority,
+    priority: target.keepPriority ? target.priority ?? item.priority : before?.priority ?? target.priority ?? item.priority,
     sceneId: target.sceneId === null ? undefined : target.sceneId ?? (before ? before.sceneId : item.sceneId),
   }
   if (moved.sceneId === moved.id || (moved.kind === 'scene' && moved.sceneId)) moved.sceneId = undefined
@@ -46,6 +48,23 @@ export function moveItemTo(session: LocalSessionRecord, itemId: string, target: 
   if (!target.beforeId && !target.priority) return { ...session, planItems: session.planItems.map((entry) => entry.id === itemId ? moved : entry) }
   const index = before ? rest.indexOf(before) : rest.length
   return { ...session, planItems: [...rest.slice(0, index), moved, ...rest.slice(index)] }
+}
+
+/**
+ * Moves an item one step up or down among its peers only — scenes among
+ * scenes, items among the items of the same scene — skipping everything else.
+ */
+export function shiftAmongPeers(session: LocalSessionRecord, itemId: string, delta: -1 | 1): LocalSessionRecord {
+  const item = session.planItems.find((entry) => entry.id === itemId)
+  if (!item) return session
+  const ids = new Set(session.planItems.map((entry) => entry.id))
+  const sceneOf = (entry: LocalSessionPlanItem) => entry.kind === 'scene' ? 'scene' : entry.sceneId && ids.has(entry.sceneId) ? entry.sceneId : ''
+  const peers = session.planItems.filter((entry) => sceneOf(entry) === sceneOf(item))
+  const neighbour = peers[peers.indexOf(item) + delta]
+  if (!neighbour) return session
+  const rest = session.planItems.filter((entry) => entry.id !== itemId)
+  const index = rest.indexOf(neighbour) + (delta > 0 ? 1 : 0)
+  return { ...session, planItems: [...rest.slice(0, index), item, ...rest.slice(index)] }
 }
 
 export function alternativeGroups(session: LocalSessionRecord): string[] {

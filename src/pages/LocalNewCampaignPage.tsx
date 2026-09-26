@@ -35,8 +35,8 @@ export function LocalNewCampaignPage() {
   if (state.status === 'loading') return <main className="target-dashboard created-dashboard" aria-busy="true"><p className="local-session-footnote">Загружаем кампанию…</p></main>
   if (state.status === 'missing') return <Navigate to="/" replace />
   if (!KNOWN_SECTIONS.has(section)) return <Navigate to={`/local/campaign/${campaignId}/overview`} replace />
-  const { campaign, persist, saveError, retry, notice, dismissNotice } = state
-  const banner = <><SaveErrorBanner message={saveError} retry={retry} /><MergeNotice message={notice} dismiss={dismissNotice} /></>
+  const { campaign, persist, saveError, retry, savedInBrowser, notice, dismissNotice } = state
+  const banner = <><SaveErrorBanner message={saveError} retry={retry} savedInBrowser={savedInBrowser} /><MergeNotice message={notice} dismiss={dismissNotice} /></>
   if (!isCampaignReady(campaign)) return <>{banner}<OnboardingRoom campaign={campaign} persist={persist} /></>
   const Section = SECTIONS[section]
   return <ActingProvider key={campaign.id} campaign={campaign}>

@@ -1,32 +1,39 @@
-import { lazy, Suspense, useState, type DragEvent } from 'react'
+import { lazy, Suspense, useState, type DragEvent, type ReactNode } from 'react'
 import { Badge, Button, Select } from '../../../ds'
 import { addFlow, alternativeGroups, timeline } from '../../../local/plan'
 import type { LocalSessionPlanItem } from '../../../local/types'
 import { PlanItemCard } from './PlanItemCard'
-import { PRIORITIES, USE_STATUS, type PlanApi } from './planApi'
+import { SceneTree } from './SceneTree'
+import { DRAG_ITEM, PRIORITIES, USE_STATUS, type PlanApi } from './planApi'
 
 const PlanGraph = lazy(() => import('./PlanGraph'))
 
-type View = 'list' | 'board' | 'graph' | 'timeline'
-const VIEWS: Array<[View, string]> = [['list', 'Список'], ['board', 'Доска сцен'], ['graph', 'Граф переходов'], ['timeline', 'Временная линия']]
+type View = 'tree' | 'list' | 'graph' | 'timeline'
+const VIEWS: Array<[View, string]> = [['tree', 'Сцены'], ['list', 'По приоритету'], ['graph', 'Граф переходов'], ['timeline', 'Временная линия']]
 const statusName = Object.fromEntries(USE_STATUS) as Record<LocalSessionPlanItem['status'], string>
 
 const dropZone = (onDropId: (id: string) => void) => ({
   onDragOver: (event: DragEvent) => event.preventDefault(),
-  onDrop: (event: DragEvent) => { const id = event.dataTransfer.getData('text/plan-item'); if (id) { event.preventDefault(); onDropId(id) } },
+  onDrop: (event: DragEvent) => { const id = event.dataTransfer.getData(DRAG_ITEM); if (id) { event.preventDefault(); onDropId(id) } },
 })
 
-export function PlanViews({ api }: { api: PlanApi }) {
-  const [view, setView] = useState<View>('list')
+/** The plan of one session in several views; `actions` sit next to the view switch, `panel` opens beside the plan. */
+export function PlanViews({ api, actions, panel }: { api: PlanApi; actions?: ReactNode; panel?: ReactNode }) {
+  const [view, setView] = useState<View>('tree')
   const groups = alternativeGroups(api.session)
   return <>
     <datalist id={`alt-groups-${api.session.id}`}>{groups.map((group) => <option key={group} value={group} />)}</datalist>
-    <div className="campaign-relation-map__filters session-plan__views" role="group" aria-label="Вид плана">{VIEWS.map(([id, label]) => <button key={id} className={view === id ? 'active' : ''} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}</div>
-    {view === 'list' && <PlanList api={api} />}
-    {view === 'board' && <PlanBoard api={api} />}
-    {view === 'graph' && <Suspense fallback={<p className="muted">Загружаем граф…</p>}><PlanGraph api={api} /></Suspense>}
-    {view === 'timeline' && <PlanTimeline api={api} />}
-    {(view === 'list' || view === 'graph') && <FlowsEditor api={api} />}
+    <div className="session-plan__toolbar"><div className="campaign-relation-map__filters session-plan__views" role="group" aria-label="Вид плана">{VIEWS.map(([id, label]) => <button key={id} className={view === id ? 'active' : ''} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}</div>{actions && <div className="session-plan__toolbar-actions">{actions}</div>}</div>
+    <div className={`session-plan__workspace${panel ? ' session-plan__workspace--with-panel' : ''}`}>
+      <div className="session-plan__canvas">
+        {view === 'tree' && <SceneTree api={api} />}
+        {view === 'list' && <PlanList api={api} />}
+        {view === 'graph' && <Suspense fallback={<p className="muted">Загружаем граф…</p>}><PlanGraph api={api} /></Suspense>}
+        {view === 'timeline' && <PlanTimeline api={api} />}
+        {view !== 'timeline' && <FlowsEditor api={api} />}
+      </div>
+      {panel}
+    </div>
   </>
 }
 
@@ -35,19 +42,6 @@ function PlanList({ api }: { api: PlanApi }) {
     const list = api.session.planItems.filter((item) => item.priority === priority)
     return <section key={priority} data-priority={priority} aria-label={label} {...dropZone((id) => api.move(id, { priority }))}><header><h2>{label}</h2><span>{list.length}</span></header>{list.map((item) => <PlanItemCard key={item.id} api={api} item={item} onDropBefore={(id) => api.move(id, { beforeId: item.id })} />)}{!list.length && <p className="session-plan__empty">Пока пусто — перетащите сюда пункт</p>}</section>
   })}</div>
-}
-
-function PlanBoard({ api }: { api: PlanApi }) {
-  const scenes = api.session.planItems.filter((item) => item.kind === 'scene')
-  const loose = api.session.planItems.filter((item) => item.kind !== 'scene' && (!item.sceneId || !scenes.some((scene) => scene.id === item.sceneId)))
-  if (!scenes.length) return <p className="session-plan__notice">На доске сцен пока нечего показать. Добавьте пункт вида «Сцена», и сюда можно будет перетаскивать NPC, секреты и материалы.</p>
-  return <div className="plan-board">
-    {scenes.map((scene) => { const members = api.session.planItems.filter((item) => item.sceneId === scene.id); return <section key={scene.id} className="plan-board__scene" aria-label={`Сцена: ${api.itemTitle(scene)}`} {...dropZone((id) => api.move(id, { sceneId: scene.id }))}>
-      <header><div className="row">{scene.alternative.trim() && <Badge size="sm" tone="warning">или: {scene.alternative}</Badge>}<Badge size="sm" tone={scene.status === 'used' ? 'success' : 'neutral'}>{statusName[scene.status]}</Badge></div><h3>{api.itemTitle(scene)}</h3>{scene.note && <p>{scene.note}</p>}</header>
-      <ul>{members.map((item) => <li key={item.id} draggable onDragStart={(event) => event.dataTransfer.setData('text/plan-item', item.id)}><span>{api.itemTitle(item)}</span><Button size="sm" aria-label={`Убрать ${api.itemTitle(item)} из сцены`} onClick={() => api.move(item.id, { sceneId: null })}>×</Button></li>)}{!members.length && <li className="muted">Перетащите сюда пункты</li>}</ul>
-    </section> })}
-    <section className="plan-board__scene plan-board__loose" aria-label="Без сцены" {...dropZone((id) => api.move(id, { sceneId: null }))}><header><h3>Без сцены</h3></header><ul>{loose.map((item) => <li key={item.id} draggable onDragStart={(event) => event.dataTransfer.setData('text/plan-item', item.id)}><span>{api.itemTitle(item)}</span><Select aria-label={`Сцена: ${api.itemTitle(item)}`} value="" onChange={(event) => event.target.value && api.move(item.id, { sceneId: event.target.value })}><option value="">В сцену…</option>{scenes.map((scene) => <option key={scene.id} value={scene.id}>{api.itemTitle(scene)}</option>)}</Select></li>)}{!loose.length && <li className="muted">Все пункты разложены по сценам</li>}</ul></section>
-  </div>
 }
 
 function PlanTimeline({ api }: { api: PlanApi }) {

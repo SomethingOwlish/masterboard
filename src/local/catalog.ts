@@ -24,6 +24,18 @@ export interface CatalogLoadResult {
   quarantined: QuarantinedRecord[]
 }
 
+/**
+ * An edit of a server campaign that has not reached the server yet. It is kept
+ * in the browser so a lost connection or a reload does not lose it; `base` is
+ * the server version the edit was made on, so it can be merged later.
+ */
+export interface CampaignDraft {
+  campaign: LocalCampaignRecord
+  baseRevision: number
+  base: LocalCampaignRecord | null
+  savedAt: string
+}
+
 export const EXPORT_FORMAT = 'masterboard-local-campaign/v1'
 /** Key used before campaigns moved to IndexedDB. It is renamed, never deleted. */
 export const LEGACY_KEY = 'masterboard.local-campaigns.v1'
@@ -31,6 +43,7 @@ export const LEGACY_BACKUP_KEY = 'masterboard.local-campaigns.v1.backup'
 
 const CAMPAIGNS = 'localCampaigns'
 const QUARANTINE = 'localQuarantine'
+const DRAFTS = 'localDrafts'
 const META = 'localMeta/catalog'
 
 type Meta = { initialized: boolean; initializedAt: string }
@@ -150,6 +163,24 @@ export function createLocalCampaignCatalog(gateway: StorageGateway, options: Cat
     },
     async clearQuarantine(): Promise<void> {
       for (const item of await gateway.list(QUARANTINE)) await gateway.remove(item.path)
+    },
+    /** Unsynced edits of server campaigns (see `CampaignDraft`). */
+    drafts: {
+      async get(id: string): Promise<CampaignDraft | null> {
+        const snapshot = await gateway.get<CampaignDraft & Record<string, unknown>>(`${DRAFTS}/${id}`)
+        if (!snapshot) return null
+        const campaign = normalizeCampaign(snapshot.data.campaign, now())
+        return campaign ? { ...snapshot.data, campaign } : null
+      },
+      async set(draft: CampaignDraft): Promise<void> {
+        await gateway.set(`${DRAFTS}/${draft.campaign.id}`, { ...draft } as CampaignDraft & Record<string, unknown>)
+      },
+      async remove(id: string): Promise<void> {
+        await gateway.remove(`${DRAFTS}/${id}`)
+      },
+      async ids(): Promise<string[]> {
+        return (await gateway.list(DRAFTS)).map((item) => item.path.slice(DRAFTS.length + 1))
+      },
     },
   }
   return catalog

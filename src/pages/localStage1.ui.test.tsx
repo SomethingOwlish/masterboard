@@ -105,10 +105,10 @@ describe('stage 1: secrets', () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign({ secrets: [newSecret({ id: 's1', title: 'Цена договора', truth: 'Имена', revealCondition: 'Найти договор' })] })
     renderApp(`/local/campaign/${id}/session`, catalog)
-    await user.click(await screen.findByRole('button', { name: 'Из секретов' }))
-    await user.click(screen.getByRole('button', { name: /Цена договора/ }))
-    await user.click(screen.getByRole('button', { name: 'Готово' }))
-    expect(screen.getByRole('heading', { name: 'Цена договора' })).toBeInTheDocument()
+    await user.click(await screen.findByRole('button', { name: 'Из библиотеки' }))
+    await user.click(screen.getByRole('checkbox', { name: /Цена договора/ }))
+    await user.click(screen.getByRole('button', { name: 'Добавить (1)' }))
+    expect(screen.getByRole('article', { name: 'Пункт плана: Цена договора' })).toBeInTheDocument()
     await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[0].planItems[0]).toMatchObject({ kind: 'secret', secretId: 's1' }))
   })
 
@@ -116,8 +116,10 @@ describe('stage 1: secrets', () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign()
     renderApp(`/local/campaign/${id}/session`, catalog)
-    await user.selectOptions(await screen.findByLabelText('Тип пункта плана'), 'secret')
+    await user.click(await screen.findByRole('button', { name: 'Добавить в план' }))
+    await user.selectOptions(screen.getByLabelText('Тип пункта плана'), 'secret')
     await user.type(screen.getByLabelText('Свободный текст пункта плана'), 'Капитан — шпион{Enter}')
+    await user.click(screen.getByRole('button', { name: 'Показать подробности: Капитан — шпион' }))
     await user.click(screen.getByRole('button', { name: 'В секреты' }))
     await waitFor(async () => {
       const saved = (await catalog.find(id))!

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { blankSession } from './normalize'
-import { addFlow, moveItemTo, removeItem, setItemStatus, timeline } from './plan'
+import { addFlow, moveItemTo, removeItem, setItemStatus, shiftAmongPeers, timeline } from './plan'
 import type { LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 const item = (id: string, patch: Partial<LocalSessionPlanItem> = {}): LocalSessionPlanItem => ({ id, source: 'text', text: id, kind: 'note', priority: 'desired', status: 'prepared', role: '', alternative: '', note: '', origin: 'prepared', ...patch })
@@ -19,6 +19,14 @@ describe('plan', () => {
     expect(moveItemTo(base, 'a', { priority: 'backup' }).planItems.at(-1)).toMatchObject({ id: 'a', priority: 'backup' })
     expect(moveItemTo(base, 'a', { sceneId: 'scene' }).planItems.map((entry) => entry.sceneId)).toEqual([undefined, 'scene', undefined])
     expect(moveItemTo(base, 'scene', { sceneId: 'scene' }).planItems[0].sceneId).toBeUndefined()
+  })
+
+  it('reorders in the scene tree without changing priority, and shifts among peers only', () => {
+    const base = session([item('s1', { kind: 'scene' }), item('a', { sceneId: 's1', priority: 'required' }), item('loose'), item('s2', { kind: 'scene' }), item('b', { sceneId: 's1', priority: 'backup' })])
+    expect(moveItemTo(base, 'b', { beforeId: 'a', keepPriority: true }).planItems.map((entry) => `${entry.id}:${entry.priority}`)).toEqual(['s1:desired', 'b:backup', 'a:required', 'loose:desired', 's2:desired'])
+    expect(shiftAmongPeers(base, 's2', -1).planItems.map((entry) => entry.id)).toEqual(['s2', 's1', 'a', 'loose', 'b'])
+    expect(shiftAmongPeers(base, 'a', 1).planItems.map((entry) => entry.id)).toEqual(['s1', 'loose', 's2', 'b', 'a'])
+    expect(shiftAmongPeers(base, 'a', -1)).toBe(base)
   })
 
   it('removes an item with its transitions and scene membership', () => {
