@@ -1,5 +1,6 @@
 import { newId } from '../model/ids'
-import { EXPORT_FORMAT, type LocalCampaignCatalog } from './catalog'
+import { EXPORT_FORMAT, blankCampaign, parseExport, type LocalCampaignCatalog } from './catalog'
+import { newMaster } from './team'
 import { mergeCampaign, type MergeConflict } from './merge'
 import { normalizeCampaign } from './normalize'
 import type { LocalCampaignRecord } from './types'
@@ -52,19 +53,26 @@ export interface SharedAccess {
   /** The signed-in master (Cloudflare Access). */
   email: string
   isShared(id: string): boolean
-  /** Uploads a browser campaign; the signed-in master becomes its owner. */
+  /** Campaigns still kept only in this browser (from before sign-in was required). */
+  browserCampaigns(): Promise<LocalCampaignRecord[]>
+  /** Moves a browser campaign to the server; the signed-in master becomes its owner. */
   share(id: string): Promise<LocalCampaignRecord>
 }
 
 export type CampaignCatalog = LocalCampaignCatalog & { shared?: SharedAccess }
 
-/** Shared catalog when the Worker answers with a signed-in email, otherwise the browser catalog. */
-export async function resolveCatalog(local: LocalCampaignCatalog, api = new MasterboardApi()): Promise<CampaignCatalog> {
+/** The server catalog for the signed-in master, or null when nobody is signed in (decision F1: everything is behind sign-in). */
+export async function resolveCatalog(browser: LocalCampaignCatalog, api = new MasterboardApi()): Promise<CampaignCatalog | null> {
   const email = await api.me()
-  return email ? createSharedCatalog(local, api, email) : local
+  return email ? createSharedCatalog(browser, api, email) : null
 }
 
-export function createSharedCatalog(local: LocalCampaignCatalog, api: MasterboardApi, email: string): LocalCampaignCatalog & { shared: SharedAccess } {
+/**
+ * All campaigns live on the Worker. The browser catalog is only read to move
+ * old browser-only campaigns to the server. Writes are conditional on the last
+ * seen revision; on a clash the edit is merged with the server version (I4).
+ */
+export function createSharedCatalog(browser: LocalCampaignCatalog, api: MasterboardApi, email: string): LocalCampaignCatalog & { shared: SharedAccess } {
   const known = new Map<string, { revision: number; data: LocalCampaignRecord }>()
   const remember = (snapshot: Snapshot) => {
     const campaign = normalizeCampaign(snapshot.data, new Date().toISOString())
@@ -92,19 +100,27 @@ export function createSharedCatalog(local: LocalCampaignCatalog, api: Masterboar
     return saved
   }
 
+  /** Creates a new document on the server, owned by the signed-in master; a taken id gets a fresh one. */
+  const upload = async (campaign: LocalCampaignRecord): Promise<LocalCampaignRecord> => {
+    const owner = campaign.masters.find((master) => master.role === 'owner')
+    const masters = campaign.masters.map((master) => master === owner ? { ...master, email } : master)
+    const target = known.has(campaign.id) || (await api.get(campaign.id)) ? { ...campaign, id: newId('local') } : campaign
+    const result = await api.put(target.id, { ...target, masters, updatedAt: new Date().toISOString() }, 0)
+    if (result.status === 409) throw new RemoteError('Кампания с таким id уже есть на сервере', 409)
+    return remember(result.body) ?? { ...target, masters }
+  }
+
   const shared: SharedAccess = {
     email,
     isShared: (id: string) => known.has(id),
+    async browserCampaigns() {
+      try { return (await browser.load()).campaigns } catch { return [] }
+    },
     async share(id: string) {
-      const campaign = await local.find(id)
+      const campaign = await browser.find(id)
       if (!campaign) throw new Error('Кампания не найдена')
-      const owner = campaign.masters.find((master) => master.role === 'owner')
-      const masters = campaign.masters.map((master) => master === owner ? { ...master, email } : master)
-      const target = known.has(id) || (await api.get(id)) ? { ...campaign, id: newId('local') } : campaign
-      const result = await api.put(target.id, { ...target, masters }, 0)
-      if (result.status === 409) throw new RemoteError('Кампания с таким id уже есть на сервере', 409)
-      const saved = remember(result.body) ?? { ...target, masters }
-      await local.remove(id)
+      const saved = await upload(campaign)
+      await browser.remove(id)
       return saved
     },
   }
@@ -112,31 +128,35 @@ export function createSharedCatalog(local: LocalCampaignCatalog, api: Masterboar
   const catalog = {
     shared,
     async load() {
-      const [remote, browser] = await Promise.all([api.list(), local.load()])
+      const remote = await api.list()
       known.clear()
       const campaigns = remote.map(remember).filter((item): item is LocalCampaignRecord => Boolean(item))
-      return { campaigns: [...campaigns, ...browser.campaigns.filter((item) => !known.has(item.id))], quarantined: browser.quarantined }
+      return { campaigns: campaigns.sort((left, right) => left.createdAt.localeCompare(right.createdAt)), quarantined: [] }
     },
     async find(id: string) {
       const snapshot = await api.get(id)
-      if (snapshot) return remember(snapshot)
-      return local.find(id)
+      return snapshot ? remember(snapshot) : null
     },
-    create: (name: string, idea: string) => local.create(name, idea),
-    async update(campaign: LocalCampaignRecord) {
-      return known.has(campaign.id) ? writeShared(campaign) : local.update(campaign)
+    async create(name: string, idea: string) {
+      const stamp = new Date().toISOString()
+      return upload({ ...blankCampaign(name, idea, stamp), masters: [{ ...newMaster('Ведущий', 'owner'), email }] })
     },
+    update: (campaign: LocalCampaignRecord) => writeShared(campaign),
     async remove(id: string) {
-      if (known.has(id)) { await api.remove(id); known.delete(id); return }
-      await local.remove(id)
+      await api.remove(id)
+      known.delete(id)
     },
     async exportCampaign(id: string) {
       const campaign = await catalog.find(id)
       if (!campaign) throw new Error('Кампания не найдена')
       return JSON.stringify({ format: EXPORT_FORMAT, exportedAt: new Date().toISOString(), campaign }, null, 2)
     },
-    importCampaign: (json: string) => local.importCampaign(json),
-    clearQuarantine: () => local.clearQuarantine(),
+    async importCampaign(json: string) {
+      const campaign = parseExport(json, new Date().toISOString())
+      const copy = known.has(campaign.id) ? { ...campaign, name: `${campaign.name} (копия)` } : campaign
+      return upload(copy)
+    },
+    clearQuarantine: () => browser.clearQuarantine(),
   }
   return catalog
 }

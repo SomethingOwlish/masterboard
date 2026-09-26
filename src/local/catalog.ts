@@ -39,9 +39,26 @@ export interface CatalogOptions {
   /** Pre-IndexedDB storage to migrate from once (normally `window.localStorage`). */
   legacyStorage?: KeyValueStorage
   now?: () => string
+  /** Put the example campaign into an empty browser (default). Off when the browser only holds campaigns waiting to move to the server. */
+  seed?: boolean
 }
 
 export type LocalCampaignCatalog = ReturnType<typeof createLocalCampaignCatalog>
+
+export function blankCampaign(name: string, idea: string, stamp: string): LocalCampaignRecord {
+  return { id: newId('local'), name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: [newMaster('Ведущий', 'owner')], players: [], groups: [], archived: false, improv: [], dashboardLayouts: {}, publications: [], notes: [], sessionRecords: [], entities: [], relations: [], storyArcs: [], clocks: [], secrets: [], tasks: [], inbox: [], relationLayout: {}, createdAt: stamp, updatedAt: stamp }
+}
+
+/** Reads a file made by «Экспорт»; throws a readable error for anything else. */
+export function parseExport(json: string, stamp: string): LocalCampaignRecord {
+  let parsed: unknown
+  try { parsed = JSON.parse(json) } catch { throw new Error('Файл не является JSON') }
+  const payload = parsed as { format?: unknown; campaign?: unknown }
+  if (payload?.format !== EXPORT_FORMAT) throw new Error('Это не файл экспорта кампании Masterboard')
+  const campaign = normalizeCampaign(payload.campaign, stamp)
+  if (!campaign) throw new Error('В файле нет корректной кампании')
+  return campaign
+}
 
 export function createLocalCampaignCatalog(gateway: StorageGateway, options: CatalogOptions = {}) {
   const now = options.now ?? (() => new Date().toISOString())
@@ -75,7 +92,7 @@ export function createLocalCampaignCatalog(gateway: StorageGateway, options: Cat
       }
       options.legacyStorage?.setItem(LEGACY_BACKUP_KEY, legacy)
       options.legacyStorage?.removeItem(LEGACY_KEY)
-    } else {
+    } else if (options.seed !== false) {
       await gateway.set(path(MOON_PORT.id), { ...structuredClone(MOON_PORT) })
     }
     await gateway.set<Meta>(META, { initialized: true, initializedAt: now() })
@@ -106,8 +123,7 @@ export function createLocalCampaignCatalog(gateway: StorageGateway, options: Cat
     },
     async create(name: string, idea: string): Promise<LocalCampaignRecord> {
       await initialize()
-      const stamp = now()
-      const campaign: LocalCampaignRecord = { id: newId('local'), name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: [newMaster('Ведущий', 'owner')], players: [], groups: [], archived: false, improv: [], dashboardLayouts: {}, publications: [], notes: [], sessionRecords: [], entities: [], relations: [], storyArcs: [], clocks: [], secrets: [], tasks: [], inbox: [], relationLayout: {}, createdAt: stamp, updatedAt: stamp }
+      const campaign = blankCampaign(name, idea, now())
       await gateway.set(path(campaign.id), { ...campaign })
       return structuredClone(campaign)
     },
@@ -126,12 +142,7 @@ export function createLocalCampaignCatalog(gateway: StorageGateway, options: Cat
     },
     /** Imports an exported file. A campaign with an existing id is imported as a copy. */
     async importCampaign(json: string): Promise<LocalCampaignRecord> {
-      let parsed: unknown
-      try { parsed = JSON.parse(json) } catch { throw new Error('Файл не является JSON') }
-      const payload = parsed as { format?: unknown; campaign?: unknown }
-      if (payload?.format !== EXPORT_FORMAT) throw new Error('Это не файл экспорта кампании Masterboard')
-      const campaign = normalizeCampaign(payload.campaign, now())
-      if (!campaign) throw new Error('В файле нет корректной кампании')
+      const campaign = parseExport(json, now())
       await initialize()
       const copy = (await gateway.get(path(campaign.id))) ? { ...campaign, id: newId('local'), name: `${campaign.name} (копия)` } : campaign
       await gateway.set(path(copy.id), { ...copy, updatedAt: now() })

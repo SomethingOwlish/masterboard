@@ -15,15 +15,17 @@ to Cloudflare; deployment credentials and project binding are configured separat
 
 ## Stack
 
-React + TypeScript + Vite · React Router · React Flow. Campaign data lives in the
-browser's IndexedDB behind the `StorageGateway` contract (`src/adapters/idbStorageGateway.ts`);
-campaigns move between browsers through JSON export/import. Integrations come last.
+React + TypeScript + Vite · React Router · React Flow, served by a Cloudflare Worker
+(`worker/`) with D1. Everything is behind email sign-in (Cloudflare Access); campaigns live
+on the server and are shared between their masters (`src/local/remote.ts`). Campaigns left
+in a browser's IndexedDB by older versions are offered for transfer after sign-in.
 
 ## Develop
 
 ```bash
 npm install
-npm run dev        # http://localhost:5173
+npm run worker:dev # Worker + local D1 on :8787, signed in as owner@example.com
+npm run dev        # http://localhost:5173, proxies /api to the Worker
 npm run build      # production build into dist/
 npm run typecheck
 npm run lint
