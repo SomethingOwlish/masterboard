@@ -1,0 +1,30 @@
+{
+  // Masterboard on Cloudflare: one Worker serves the SPA and the /api of shared campaigns.
+  // Deploy credentials, the D1 id and the Access settings are configured outside the repository.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "masterboard",
+  "main": "worker/src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "masterboard",
+      // Replace with the id from `wrangler d1 create masterboard`.
+      "database_id": "00000000-0000-0000-0000-000000000000",
+      "migrations_dir": "worker/migrations"
+    }
+  ],
+  "vars": {
+    // Cloudflare Access (decision I2): team domain and the application's AUD tag.
+    "ACCESS_TEAM_DOMAIN": "",
+    "ACCESS_AUD": ""
+  },
+  // Preview URLs bypass Access, so they stay off (same as lovegame).
+  "preview_urls": false
+}
