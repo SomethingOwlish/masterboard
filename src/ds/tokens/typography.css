@@ -46,6 +46,8 @@
   --type-brand: var(--weight-bold) var(--text-lg) / var(--leading-tight) var(--font-display);
   --type-hero: var(--weight-medium) var(--text-3xl) / var(--leading-tight) var(--font-display);
   --type-title: var(--weight-medium) var(--text-2xl) / var(--leading-tight) var(--font-display);
+  /* Section and card headings set in the display serif; referenced across the app stylesheet. */
+  --type-display: var(--weight-medium) var(--text-lg) / var(--leading-snug) var(--font-display);
   --type-heading: var(--weight-semibold) var(--text-xl) / var(--leading-snug) var(--font-display);
   --type-card-title: var(--weight-semibold) var(--text-lg) / var(--leading-snug) var(--font-sans);
   --type-body: var(--weight-regular) var(--text-base) / var(--leading-normal) var(--font-sans);

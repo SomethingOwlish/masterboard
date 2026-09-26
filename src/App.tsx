@@ -1,4 +1,4 @@
-import { createBrowserRouter, Navigate } from 'react-router-dom'
+import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 import { LocalCampaignsPage } from './pages/LocalCampaignsPage'
 import { LocalSessionDemoPage } from './pages/LocalSessionDemoPage'
 import { LocalCampaignDashboardPage } from './pages/LocalCampaignDashboardPage'
@@ -12,9 +12,8 @@ import { LocalNewCampaignPage } from './pages/LocalNewCampaignPage'
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 
-// Legacy pages stay in the repository for possible reuse, but are deliberately
-// absent from the product router. Every visible route uses the target UI.
-export const router = createBrowserRouter([
+// `/local/*` is the product; `/demo/*` pages are static showcases of later stages.
+export const routes: RouteObject[] = [
   { path: '/', element: <LocalCampaignsPage /> },
   { path: '/demo/session', element: <LocalSessionDemoPage /> },
   { path: '/demo/campaign', element: <LocalCampaignDashboardPage /> },
@@ -24,7 +23,8 @@ export const router = createBrowserRouter([
   { path: '/demo/conductor', element: <LocalConductorPage /> },
   { path: '/demo/review', element: <LocalReviewPage /> },
   { path: '/demo/story-map', element: <LocalStoryMapPage /> },
-  { path: '/local/campaign/:campaignId/:section/:sessionId', element: <LocalNewCampaignPage /> },
   { path: '/local/campaign/:campaignId/:section?', element: <LocalNewCampaignPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
-], { basename })
+]
+
+export const router = createBrowserRouter(routes, { basename })

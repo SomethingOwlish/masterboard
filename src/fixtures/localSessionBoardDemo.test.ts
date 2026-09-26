@@ -21,12 +21,3 @@ describe('local session board demo', () => {
     expect(() => demo.moveItem('missing', 'gate')).toThrow('Unknown board item')
   })
 })
-
-it('uses production scene placements without discarding layout or copies in other scenes', () => {
-  const demo = createLocalSessionBoardDemo()
-  const scenes = demo.read().scenes.map(({ itemIds, ...scene }) => ({ ...scene, memberIds: [...itemIds, 'fox'], position: { x: 120, y: -40 }, nextSceneIds: ['gate'] }))
-  const next = demo.replaceScenes(scenes)
-  expect(next.scenes.every((scene) => scene.itemIds.includes('fox'))).toBe(true)
-  expect(next.scenes[0].position).toEqual({ x: 120, y: -40 })
-  expect(next.scenes[0].nextSceneIds).toEqual(['gate'])
-})

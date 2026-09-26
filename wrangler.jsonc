@@ -1,0 +1,34 @@
+{
+  // Masterboard on Cloudflare: one Worker serves the SPA and the /api of shared campaigns.
+  // Deploy credentials, the D1 id and the Access settings are configured outside the repository.
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "masterboard",
+  "main": "worker/src/index.ts",
+  "compatibility_date": "2026-09-01",
+  "assets": {
+    "directory": "./dist",
+    "binding": "ASSETS",
+    "not_found_handling": "single-page-application",
+    "run_worker_first": ["/api/*"]
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "masterboard",
+      // Replace with the id from `wrangler d1 create masterboard`.
+      "database_id": "1510a7e6-b2f9-4eeb-b2ef-5ad23b6f67c9",
+      "migrations_dir": "worker/migrations"
+    }
+  ],
+  // Door to lorebook / lovegame / systemsetup (docs/contracts/lorebridge-masterboard.md).
+  // Both Workers live in one Cloudflare account. The shared secret is set with
+  // `wrangler secret put MASTERBOARD_BRIDGE_SECRET` here and in lorebridge — never in vars.
+  "services": [{ "binding": "LOREBRIDGE", "service": "lorebridge" }],
+  "vars": {
+    // Cloudflare Access (decision I2): team domain and the application's AUD tag.
+    "ACCESS_TEAM_DOMAIN": "ru-ser-pl-com.cloudflareaccess.com",
+    "ACCESS_AUD": "40b9453d71bcaf7d87cd6f7be8fb2f4aecdc65110d7bce7c1d4b2e8415123451"
+  },
+  // Preview URLs bypass Access, so they stay off (same as lovegame).
+  "preview_urls": false
+}

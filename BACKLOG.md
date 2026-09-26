@@ -1,5 +1,8 @@
 # Backlog
 
+> The GitHub sync layer and the site importer referenced below were removed with the
+> legacy pages (decision D7). Current work is tracked in `docs/roadmap.md`.
+
 Deferred work, roughly by priority. Pull an item into a batch when it's ready.
 
 ## High

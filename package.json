@@ -9,9 +9,11 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "tsc --noEmit && tsc --noEmit -p worker",
     "test": "vitest run",
-    "check": "npm run typecheck && npm run lint && npm test && npm run build"
+    "worker:dev": "wrangler dev --var DEV_USER_EMAIL:owner@example.com",
+    "worker:migrate": "wrangler d1 migrations apply masterboard --remote",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.1",
@@ -22,6 +24,10 @@
     "zustand": "^4.5.5"
   },
   "devDependencies": {
+    "@testing-library/dom": "^10.4.2",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
     "@types/node": "^20.16.0",
     "@types/react": "^18.3.11",
     "@types/react-dom": "^18.3.0",
@@ -31,8 +37,11 @@
     "eslint": "^8.57.1",
     "eslint-plugin-react-hooks": "^4.6.2",
     "eslint-plugin-react-refresh": "^0.4.12",
+    "fake-indexeddb": "^6.2.5",
+    "jsdom": "^25.0.1",
     "typescript": "^5.6.2",
     "vite": "^6.4.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.141.0"
   }
 }

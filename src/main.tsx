@@ -3,27 +3,32 @@ import ReactDOM from 'react-dom/client'
 import { RouterProvider } from 'react-router-dom'
 import { router } from './App'
 import { applyStoredTheme } from './theme'
-import { repo } from './storage/repository'
-import { useConfig } from './store/config'
 import { ConfirmHost } from './components/useConfirm'
 import { ToastHost } from './components/useToast'
+import { resolveCatalog } from './local/remote'
+import { LocalCatalogProvider } from './local/useLocalCampaign'
+import { createLocalCampaignCatalog } from './local/catalog'
+import { IdbStorageGateway } from './adapters/idbStorageGateway'
+import { SignInPage } from './pages/SignInPage'
 import './ds/styles.css' // design-system tokens, fonts, themes — must load first
 import './index.css' // app classes (bridged onto the DS tokens above)
 
 applyStoredTheme()
 
-// Load the encrypted PAT (if any) so the first reads can hit GitHub when configured.
-void useConfig.getState().hydrate()
+// Everything is behind sign-in (decision F1). The browser store is only read to
+// move campaigns kept here before that; it no longer seeds an example campaign.
+const browser = createLocalCampaignCatalog(new IdbStorageGateway(), { legacyStorage: window.localStorage, seed: false })
 
-// Flush any debounced GitHub pushes before the tab goes away.
-window.addEventListener('beforeunload', () => {
-  void repo.flush()
+void resolveCatalog(browser).then((catalog) => {
+  ReactDOM.createRoot(document.getElementById('root')!).render(
+    <React.StrictMode>
+      {catalog
+        ? <LocalCatalogProvider catalog={catalog}>
+          <RouterProvider router={router} />
+          <ConfirmHost />
+          <ToastHost />
+        </LocalCatalogProvider>
+        : <SignInPage />}
+    </React.StrictMode>,
+  )
 })
-
-ReactDOM.createRoot(document.getElementById('root')!).render(
-  <React.StrictMode>
-    <RouterProvider router={router} />
-    <ConfirmHost />
-    <ToastHost />
-  </React.StrictMode>,
-)

@@ -4,7 +4,8 @@ A planning instrument for tabletop RPG game masters. One place to plan sessions,
 collect campaign data, draw relationships and chronologies, take notes, pull info
 from your other sites, and push tasks to a third. Deployed as a static SPA on Cloudflare.
 
-> Status: living design doc. Decisions below are settled unless re-opened.
+> Status: historical. This describes the first, GitHub-synced architecture. Its pages
+> and stores were removed in stage 3 of `docs/roadmap.md`; the current spec is `docs/spec.md`.
 
 ---
 
