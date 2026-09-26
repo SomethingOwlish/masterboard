@@ -5,7 +5,7 @@
  */
 
 export interface MasterLike { id: string; name?: string; email?: string; role: 'owner' | 'co-master' }
-interface SessionLike { id: string; masterId: string; status: string; reviewStatus: string }
+interface SessionLike { id: string; masterId: string; status: string; reviewStatus: string; deletedAt?: string }
 export interface CampaignLike { masters?: MasterLike[]; archived?: boolean; sessionRecords?: SessionLike[] }
 
 const norm = (email: string) => email.trim().toLocaleLowerCase()
@@ -36,13 +36,18 @@ export function assertCanWrite(before: CampaignLike | null, after: CampaignLike,
   }
   if (isOwner) return
   const previous = new Map((before.sessionRecords ?? []).map((session) => [session.id, session]))
+  const kept = new Set((after.sessionRecords ?? []).map((session) => session.id))
+  for (const old of before.sessionRecords ?? []) {
+    if (!kept.has(old.id) && old.masterId !== member.id) throw new PermissionError('Удалить сессию может её ответственный мастер или владелец')
+  }
   for (const session of after.sessionRecords ?? []) {
     const old = previous.get(session.id)
     if (!old) continue
     const runChanged = old.status !== session.status || old.reviewStatus !== session.reviewStatus
     const handedOver = old.masterId !== session.masterId
-    if ((runChanged || handedOver) && old.masterId !== member.id) {
-      throw new PermissionError('Запускать, закрывать, разбирать и передавать сессию может её ответственный мастер или владелец')
+    const trashChanged = Boolean(old.deletedAt) !== Boolean(session.deletedAt)
+    if ((runChanged || handedOver || trashChanged) && old.masterId !== member.id) {
+      throw new PermissionError('Запускать, закрывать, разбирать, передавать и убирать в корзину сессию может её ответственный мастер или владелец')
     }
   }
 }

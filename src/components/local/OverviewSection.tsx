@@ -8,6 +8,7 @@ import { layoutFor, moveWidget, toggleHidden, toggleWide, WIDGET_LABEL, withLayo
 import type { LocalDashboardLayout, LocalWidgetId } from '../../local/types'
 import { useLocalCatalog } from '../../local/useLocalCampaign'
 import { Editor, type SectionProps } from './shared'
+import { liveSessions } from '../../local/sessions'
 
 export function OverviewSection({ campaign, persist }: SectionProps) {
   const navigate = useNavigate()
@@ -18,7 +19,7 @@ export function OverviewSection({ campaign, persist }: SectionProps) {
   const acting = useActing(campaign)
   const [details, setDetails] = useState({ name: '', idea: '', activeTime: '' })
   const go = (section: string) => navigate(`/local/campaign/${campaign.id}/${section}`)
-  const sessions = campaign.sessionRecords
+  const sessions = liveSessions(campaign)
   const currentSession = sessions.find((session) => session.id === campaign.activeSessionId) ?? sessions.find((session) => session.status === 'active') ?? sessions.at(-1)
   const currentStatus = currentSession?.status ?? 'draft'
   const sessionStatus = currentStatus === 'completed' ? 'Завершена' : currentStatus === 'active' ? 'Идёт сейчас' : currentStatus === 'ready' ? 'Готова' : 'Подготовка'

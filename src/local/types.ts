@@ -12,6 +12,8 @@ export interface LocalCampaignEntity {
   tags: string[]
   visibility: 'master' | 'public'
   status: 'active' | 'inactive' | 'archived'
+  /** NPC only: the character has died. Kept apart from `status` so a dead NPC can still be active in the story. */
+  dead?: boolean
   /** Type-specific card fields, keyed by the field id from `ENTITY_FIELDS`. */
   fields: Record<string, string>
   origin: LocalEntityOrigin
@@ -193,6 +195,8 @@ export interface LocalSessionRecord {
   guestPlayerIds: string[]
   /** Free-text note about who plays. */
   participants: string
+  /** Real-world play date, `YYYY-MM-DD`, or `''` when not scheduled. */
+  date: string
   inGameTime: string
   timelinePosition: string
   idea: string
@@ -214,6 +218,8 @@ export interface LocalSessionRecord {
   planLayout: Record<string, { x: number; y: number }>
   printConfig: LocalPrintConfig
   createdAt: string
+  /** Set while the session is in the trash; it keeps its number and can be restored. */
+  deletedAt?: string
 }
 
 /** `email` is the Cloudflare Access login; it links a master to a signed-in person in shared campaigns. */

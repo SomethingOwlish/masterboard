@@ -1,5 +1,5 @@
 import type {
-  LocalCampaignClock, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignSecret,
+  LocalCampaignClock, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignRelation, LocalCampaignSecret,
   LocalClockThreshold, LocalSecretStatus, LocalStoryArc,
 } from './types'
 
@@ -35,13 +35,38 @@ export function originLabel(entity: LocalCampaignEntity, campaign: LocalCampaign
   return session ? `${ORIGIN_LABEL[entity.origin.kind]} №${session.number}` : ORIGIN_LABEL[entity.origin.kind]
 }
 
-export interface EntityFilter { query: string; type: LocalCampaignEntityType | 'all'; showArchived: boolean }
+export interface EntityPlanUsage { sessionId: string; sessionNumber: number; sessionTitle: string; itemId: string; sceneTitle?: string; trashed: boolean }
+export interface EntityUsages {
+  plans: EntityPlanUsage[]
+  relations: LocalCampaignRelation[]
+  clocks: LocalCampaignClock[]
+  secrets: LocalCampaignSecret[]
+}
+
+/** Everything in the campaign that points at an entity, including plans of trashed sessions. */
+export function entityUsages(campaign: LocalCampaignRecord, entityId: string): EntityUsages {
+  const plans = campaign.sessionRecords.flatMap((session) => session.planItems.filter((item) => item.entityId === entityId).map((item): EntityPlanUsage => {
+    const scene = item.sceneId ? session.planItems.find((candidate) => candidate.id === item.sceneId) : undefined
+    return { sessionId: session.id, sessionNumber: session.number, sessionTitle: session.title, itemId: item.id, sceneTitle: scene?.text || undefined, trashed: Boolean(session.deletedAt) }
+  }))
+  return {
+    plans,
+    relations: campaign.relations.filter((relation) => relation.fromId === entityId || relation.toId === entityId),
+    clocks: campaign.clocks.filter((clock) => clock.entityIds.includes(entityId)),
+    secrets: campaign.secrets.filter((secret) => secret.entityIds.includes(entityId)),
+  }
+}
+
+export const usageCount = (usages: EntityUsages): number => usages.plans.length + usages.relations.length + usages.clocks.length + usages.secrets.length
+
+export interface EntityFilter { query: string; type: LocalCampaignEntityType | 'all'; showArchived: boolean; /** NPCs only: alive or dead. */ fate?: 'all' | 'alive' | 'dead' }
 
 export function filterEntities(entities: LocalCampaignEntity[], filter: EntityFilter): LocalCampaignEntity[] {
   const query = filter.query.trim().toLocaleLowerCase()
   return entities.filter((entity) =>
     (filter.showArchived || entity.status !== 'archived') &&
     (filter.type === 'all' || entity.type === filter.type) &&
+    (!filter.fate || filter.fate === 'all' || (entity.type === 'npc' && Boolean(entity.dead) === (filter.fate === 'dead'))) &&
     (!query || `${entity.name} ${entity.tags.join(' ')} ${Object.values(entity.fields).join(' ')}`.toLocaleLowerCase().includes(query)))
 }
 
@@ -126,5 +151,3 @@ export function toggleId(list: string[], id: string): string[] {
 
 export const ENTITY_STATUS_LABEL: Record<LocalCampaignEntity['status'], string> = { active: 'Активна', inactive: 'Неактивна', archived: 'В архиве' }
 
-/** Fields from another system that have no slot in this type keep their label as the key; they are shown but not edited here. */
-export const extraFields = (entity: Pick<LocalCampaignEntity, 'type' | 'fields'>) => Object.entries(entity.fields).filter(([key, value]) => value && !ENTITY_FIELDS[entity.type].some((field) => field.id === key))

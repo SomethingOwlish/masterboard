@@ -27,7 +27,7 @@ export const MOON_PORT: LocalCampaignRecord = {
   notes: ['Красный прилив поднимается каждую ночь фестиваля.', 'Гильдия фонарщиков хранит старый договор с луной.'],
   sessionRecords: [{
     id: 'session-moon-1', number: 1, title: 'Первая ночь в Лунном порту', status: 'draft', masterId: 'master-owl', handovers: [], arcId: 'arc-moon-pact', backgroundArcIds: [],
-    groupId: 'group-main', guestPlayerIds: [], participants: '', inGameTime: 'Третья ночь фестиваля', timelinePosition: '',
+    groupId: 'group-main', guestPlayerIds: [], participants: '', date: '', inGameTime: 'Третья ночь фестиваля', timelinePosition: '',
     idea: 'Герои впервые сталкиваются с ценой договора порта.', focus: 'Провести героев через первую ночь фестиваля.',
     opening: 'Красный прилив доходит до лестниц с фонарями.', lines: '', layers: '', systems: '',
     planItems: [

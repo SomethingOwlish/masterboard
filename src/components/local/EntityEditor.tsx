@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Select } from '../../ds'
-import { ENTITY_FIELDS, ENTITY_STATUS_LABEL, extraFields, newEntity } from '../../local/domain'
+import { ENTITY_FIELDS, ENTITY_STATUS_LABEL, entityUsages, newEntity } from '../../local/domain'
+import { extraFields } from './EntityDetails'
 import type { LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
 import { ENTITY_TYPES, Editor } from './shared'
 
@@ -16,7 +17,8 @@ export function EntityEditor({ campaign, persist, entity, defaultType = 'npc', c
   const save = () => {
     if (!draft.name.trim()) return
     const fields = Object.fromEntries([...ENTITY_FIELDS[draft.type].map((field) => [field.id, draft.fields[field.id]?.trim() ?? '']), ...extraFields(draft)].filter(([, value]) => value))
-    const saved: LocalCampaignEntity = { ...draft, name: draft.name.trim(), description: draft.description.trim(), fields, tags: draft.tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean), id: entity === 'new' ? `entity-${crypto.randomUUID()}` : entity.id }
+    const { dead: _dead, ...rest } = draft
+    const saved: LocalCampaignEntity = { ...rest, ...(draft.type === 'npc' && draft.dead ? { dead: true } : {}), name: draft.name.trim(), description: draft.description.trim(), fields, tags: draft.tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean), id: entity === 'new' ? `entity-${crypto.randomUUID()}` : entity.id }
     persist({ ...campaign, entities: entity === 'new' ? [...campaign.entities, saved] : campaign.entities.map((item) => item.id === saved.id ? saved : item) })
     if (entity === 'new') onCreated?.(saved)
     close()
@@ -34,6 +36,7 @@ export function EntityEditor({ campaign, persist, entity, defaultType = 'npc', c
       {ENTITY_FIELDS[draft.type].length > 0 && <div className="control-form__row">{ENTITY_FIELDS[draft.type].map((field) => <label key={field.id} htmlFor={`local-entity-field-${field.id}`}>{field.label}<input id={`local-entity-field-${field.id}`} value={draft.fields[field.id] ?? ''} onChange={(event) => setDraft({ ...draft, fields: { ...draft.fields, [field.id]: event.target.value } })} /></label>)}</div>}
       <label htmlFor="local-entity-tags">Теги<input id="local-entity-tags" value={draft.tags.join(', ')} placeholder="важное, первая сессия" onChange={(event) => setDraft({ ...draft, tags: event.target.value.split(',') })} /></label>
       <div className="control-form__row"><label htmlFor="local-entity-visibility">Видимость<select id="local-entity-visibility" value={draft.visibility} onChange={(event) => setDraft({ ...draft, visibility: event.target.value as LocalCampaignEntity['visibility'] })}><option value="master">Только ведущим</option><option value="public">Для игроков</option></select></label><label htmlFor="local-entity-status">Состояние<select id="local-entity-status" value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as LocalCampaignEntity['status'] })}>{Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
-      <footer>{entity !== 'new' && <Button tone="danger" onClick={() => { remove(entity.id); close() }}>Удалить</Button>}<Button onClick={close}>Отмена</Button><Button variant="primary" icon="check" disabled={!draft.name.trim()} onClick={save}>Сохранить</Button></footer>
+      {draft.type === 'npc' && <label className="campaign-local-library__dead"><input type="checkbox" checked={Boolean(draft.dead)} onChange={(event) => setDraft({ ...draft, dead: event.target.checked })} /> Персонаж погиб</label>}
+      <footer>{entity !== 'new' && (() => { const planned = entityUsages(campaign, entity.id).plans.length; const hint = planned ? `Используется в планах сессий (${planned}) — уберите из планов или отправьте в архив` : undefined; return <Button tone="danger" disabled={planned > 0} title={hint} onClick={() => { remove(entity.id); close() }}>Удалить</Button> })()}<Button onClick={close}>Отмена</Button><Button variant="primary" icon="check" disabled={!draft.name.trim()} onClick={save}>Сохранить</Button></footer>
   </Editor>
 }

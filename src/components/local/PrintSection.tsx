@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Button, EmptyState, Select } from '../../ds'
-import { ENTITY_FIELDS } from '../../local/domain'
 import { ARC_STATUS, SECRET_STATUS, withSession } from '../../local/labels'
 import { directorSheet, playerHandouts } from '../../local/printSheet'
 import { masterName, sessionPlayers } from '../../local/team'
 import type { LocalPrintConfig, LocalSessionPlanItem } from '../../local/types'
 import { PRIORITIES, USE_STATUS } from './plan/planApi'
 import { ENTITY_LABEL, type SectionProps } from './shared'
+import { liveSessions } from '../../local/sessions'
+import { EntityDetails } from './EntityDetails'
 
 type Sheet = 'director' | 'players'
 const PRIORITY = Object.fromEntries(PRIORITIES) as Record<LocalSessionPlanItem['priority'], string>
@@ -14,7 +15,7 @@ const STATUS = Object.fromEntries(USE_STATUS) as Record<LocalSessionPlanItem['st
 const TOGGLES: Array<[Exclude<keyof LocalPrintConfig, 'priorities'>, string]> = [['passport', 'Паспорт сессии'], ['notes', 'Заметки пунктов'], ['flows', 'Переходы'], ['entities', 'Карточки сущностей'], ['secrets', 'Секреты'], ['clocks', 'Часы']]
 
 export function PrintSection({ campaign, persist }: SectionProps) {
-  const sessions = campaign.sessionRecords
+  const sessions = liveSessions(campaign)
   const [sessionId, setSessionId] = useState(campaign.activeSessionId ?? sessions[0]?.id ?? '')
   const [sheet, setSheet] = useState<Sheet>('director')
   const session = sessions.find((item) => item.id === sessionId) ?? sessions[0]
@@ -41,7 +42,7 @@ export function PrintSection({ campaign, persist }: SectionProps) {
       {config.flows && session.flows.length > 0 && <section className="print-sheet__group"><h2>Переходы</h2><ul>{session.flows.map((flow) => { const from = itemById(flow.fromItemId); const to = itemById(flow.toItemId); return from && to ? <li key={flow.id}>{title(from)} → {title(to)}{flow.condition && `, если ${flow.condition}`}</li> : null })}</ul></section>}
       {director.secrets.length > 0 && <section className="print-sheet__group"><h2>Секреты</h2>{director.secrets.map((secret) => <div key={secret.id} className="print-sheet__card"><strong>{secret.title}</strong> <small>{SECRET_STATUS[secret.status]}</small><p>{secret.truth}</p>{secret.revealCondition && <p><em>Раскрыть: {secret.revealCondition}</em></p>}{secret.publicVersion && <p>Игрокам: {secret.publicVersion}</p>}</div>)}</section>}
       {director.clocks.length > 0 && <section className="print-sheet__group"><h2>Часы</h2><ul className="print-sheet__clocks">{director.clocks.map((clock) => <li key={clock.id}><strong>{clock.title}</strong> <span className="print-sheet__track">{'●'.repeat(clock.value)}{'○'.repeat(clock.segments - clock.value)}</span> {clock.trigger && <small>→ {clock.trigger}</small>}</li>)}</ul></section>}
-      {director.entities.length > 0 && <section className="print-sheet__group"><h2>Карточки</h2><div className="print-sheet__cards">{director.entities.map((entity) => <div key={entity.id} className="print-sheet__card"><small>{ENTITY_LABEL[entity.type]}</small><strong>{entity.name}</strong>{entity.description && <p>{entity.description}</p>}{ENTITY_FIELDS[entity.type].filter((field) => entity.fields[field.id]).map((field) => <p key={field.id}><b>{field.label}:</b> {entity.fields[field.id]}</p>)}</div>)}</div></section>}
+      {director.entities.length > 0 && <section className="print-sheet__group"><h2>Карточки</h2><div className="print-sheet__cards">{director.entities.map((entity) => <div key={entity.id} className="print-sheet__card"><small>{ENTITY_LABEL[entity.type]}</small><strong>{entity.name}</strong>{entity.description && <p>{entity.description}</p>}<EntityDetails entity={entity} className="print-sheet__fields" /></div>)}</div></section>}
     </article> : <article className="print-sheet print-sheet--players" aria-label="Материалы игроков">
       <header className="print-sheet__header"><span>{campaign.name}</span><h1>Сессия {session.number}: {session.title}</h1></header>
       {!handouts.entities.length && !handouts.secrets.length && !handouts.clocks.length && <p className="muted print-hide">Для игроков пока ничего нет. В лист попадают сущности из плана с видимостью «Для игроков», раскрытые секреты с публичной формулировкой и открытые часы.</p>}

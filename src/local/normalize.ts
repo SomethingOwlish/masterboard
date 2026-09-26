@@ -1,6 +1,7 @@
 import { newArc, newClock, newEntity, newSecret } from './domain'
 import { newGroup, parseMasters } from './team'
 import { WIDGETS } from './labels'
+import { validSessionDate } from './sessions'
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord, LocalDashboardLayout, LocalGroup, LocalWidgetId, LocalMaster, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 type Raw = Record<string, unknown>
@@ -19,7 +20,7 @@ const PLAN_KINDS = ['scene', 'idea', 'goal', 'event', 'question', 'secret', 'npc
 export const defaultPrintConfig = (): LocalPrintConfig => ({ priorities: ['required', 'desired', 'useful', 'backup'], passport: true, entities: true, secrets: true, clocks: true, flows: true, notes: true })
 
 export function blankSession(number: number, masterId: string, now: string, id = `session-${crypto.randomUUID()}`): LocalSessionRecord {
-  return { id, number, title: '', status: 'draft', masterId, handovers: [], arcId: '', backgroundArcIds: [], groupId: '', guestPlayerIds: [], participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, appliedDecisions: {}, planLayout: {}, printConfig: defaultPrintConfig(), createdAt: now }
+  return { id, number, title: '', status: 'draft', masterId, handovers: [], arcId: '', backgroundArcIds: [], groupId: '', guestPlayerIds: [], participants: '', date: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, appliedDecisions: {}, planLayout: {}, printConfig: defaultPrintConfig(), createdAt: now }
 }
 
 function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
@@ -73,6 +74,7 @@ function normalizeSession(raw: unknown, index: number, fallbackDate: string, tea
     status: oneOf(raw.status, SESSION_STATUSES, 'draft'),
     arcId: text(raw.arcId), backgroundArcIds: list<unknown>(raw.backgroundArcIds).filter((id): id is string => typeof id === 'string'), groupId: groupIdFor(team, raw.groupId, raw.group), guestPlayerIds: ids(raw.guestPlayerIds), participants: text(raw.participants),
     handovers: list(raw.handovers),
+    date: validSessionDate(text(raw.date)) ? text(raw.date) : '',
     inGameTime: text(raw.inGameTime), timelinePosition: text(raw.timelinePosition),
     idea: text(raw.idea), focus: text(raw.focus), opening: text(raw.opening),
     lines: text(raw.lines), layers: text(raw.layers), systems: text(raw.systems),
@@ -86,6 +88,7 @@ function normalizeSession(raw: unknown, index: number, fallbackDate: string, tea
     nextSessionId: typeof raw.nextSessionId === 'string' ? raw.nextSessionId : undefined,
     planLayout: isObject(raw.planLayout) ? (raw.planLayout as LocalSessionRecord['planLayout']) : {},
     printConfig: isObject(raw.printConfig) ? { ...defaultPrintConfig(), ...(raw.printConfig as Partial<LocalPrintConfig>) } : defaultPrintConfig(),
+    ...(typeof raw.deletedAt === 'string' && raw.deletedAt ? { deletedAt: raw.deletedAt } : {}),
   }
 }
 
@@ -131,6 +134,7 @@ function normalizeEntity(raw: Raw): LocalCampaignEntity {
     name: text(raw.name), description: text(raw.description), tags,
     visibility: raw.visibility === 'public' ? 'public' : 'master',
     status: oneOf(raw.status, ['active', 'inactive', 'archived'] as const, 'active'),
+    ...(raw.dead === true && raw.type === 'npc' ? { dead: true } : {}),
     fields: stringMap(raw.fields),
     origin,
     sources: list<Raw>(raw.sources).filter((source) => isObject(source) && typeof source.id === 'string' && typeof source.containerId === 'string').map(normalizeSource),
@@ -182,7 +186,8 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
   }
   const stored = list(value.sessionRecords).map((session, index) => normalizeSession(session, index, updatedAt, team)).filter((session): session is LocalSessionRecord => session !== null)
   const sessionRecords = stored.length ? stored : legacySessions(value, updatedAt, team)
-  const activeSessionId = typeof value.activeSessionId === 'string' && sessionRecords.some((session) => session.id === value.activeSessionId) ? value.activeSessionId : sessionRecords[0]?.id
+  const live = sessionRecords.filter((session) => !session.deletedAt)
+  const activeSessionId = typeof value.activeSessionId === 'string' && live.some((session) => session.id === value.activeSessionId) ? value.activeSessionId : live[0]?.id
   return {
     id: value.id,
     name: value.name,
