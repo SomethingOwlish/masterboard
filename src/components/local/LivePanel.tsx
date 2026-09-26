@@ -12,7 +12,7 @@ const CAPTURE_KINDS: LocalLogKind[] = ['moment', 'decision', 'roll']
 
 
 /** Live desk shown next to the plan while a session is being played. */
-export function LivePanel({ campaign, session, persist, onClose }: { campaign: LocalCampaignRecord; session: LocalSessionRecord; persist: Persist; onClose: () => void }) {
+export function LivePanel({ campaign, session, persist, onClose, canClose = true, closeHint }: { campaign: LocalCampaignRecord; session: LocalSessionRecord; persist: Persist; onClose: () => void; canClose?: boolean; closeHint?: string }) {
   const confirm = useConfirm()
   const [tab, setTab] = useState<Tab>('log')
   const [text, setText] = useState('')
@@ -68,7 +68,7 @@ export function LivePanel({ campaign, session, persist, onClose }: { campaign: L
   const secrets = [...campaign.secrets].sort((a, b) => Number(planSecretIds.has(b.id)) - Number(planSecretIds.has(a.id)))
 
   return <aside className="session-live-panel" aria-label="Живая панель">
-    <header><div><span className="panel-kicker">Сессия идёт</span><h2>Живая панель</h2></div><Button tone="danger" icon="check" onClick={close}>Закрыть сессию</Button></header>
+    <header><div><span className="panel-kicker">Сессия идёт</span><h2>Живая панель</h2></div><Button tone="danger" icon="check" disabled={!canClose} title={canClose ? undefined : closeHint} onClick={close}>Закрыть сессию</Button></header>
     <div className="session-live-panel__capture"><Select aria-label="Вид записи" value={kind} onChange={(e) => setKind(e.target.value as LocalLogKind)}>{CAPTURE_KINDS.map((value) => <option key={value} value={value}>{LOG_KIND[value]}</option>)}</Select><input value={text} placeholder="Что случилось фактически…" aria-label="Запись живого журнала" onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') capture() }} /><Button variant="primary" disabled={!text.trim()} onClick={capture}>Сохранить момент</Button></div>
     <nav className="control-center__tabs" aria-label="Разделы живой панели">{([['log', 'Журнал', session.log.length], ['clocks', 'Часы', campaign.clocks.length], ['secrets', 'Секреты', campaign.secrets.length], ['new', 'Новое', undefined]] as const).map(([id, label, count]) => <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{label}{count !== undefined && <span>{count}</span>}</button>)}</nav>
     {tab === 'log' && <ol className="session-live-panel__log">{[...session.log].reverse().map((entry) => <li key={entry.id}><time>{new Date(entry.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</time><div><Badge size="sm" tone={entry.kind === 'moment' ? 'neutral' : 'accent'}>{LOG_KIND[entry.kind]}</Badge><span>{entry.text}</span>{done[entry.id] ? <small>{done[entry.id]}</small> : <div className="row"><Button size="sm" onClick={() => toTask(entry)}>В задачу</Button><Button size="sm" onClick={() => toInbox(entry)}>Во входящие</Button>{entry.kind !== 'entity' && <Button size="sm" onClick={() => toLibrary(entry)}>В библиотеку</Button>}</div>}</div></li>)}{!session.log.length && <li className="muted">Журнал пуст. Записывайте, что произошло фактически.</li>}</ol>}

@@ -73,7 +73,10 @@ export interface LocalCampaignSecret {
   title: string
   truth: string
   publicVersion: string
+  /** Free-text recipients in addition to `recipientIds`. */
   recipients: string
+  /** Players and groups who know the secret. */
+  recipientIds: string[]
   status: LocalSecretStatus
   revealCondition: string
   entityIds: string[]
@@ -83,7 +86,7 @@ export interface LocalCampaignSecret {
 }
 
 export type LocalSecretStatus = 'hidden' | 'partial' | 'selected' | 'everyone' | 'disproved' | 'obsolete'
-export interface LocalSecretReveal { id: string; status: LocalSecretStatus; recipients: string; sessionId?: string; note: string; createdAt: string }
+export interface LocalSecretReveal { id: string; status: LocalSecretStatus; recipients: string; recipientIds: string[]; sessionId?: string; note: string; createdAt: string }
 
 export interface LocalCampaignTask {
   id: string
@@ -141,10 +144,15 @@ export interface LocalSessionRecord {
   number: number
   title: string
   status: 'draft' | 'ready' | 'active' | 'completed'
-  master: string
+  /** Responsible master (`LocalMaster.id`). */
+  masterId: string
+  handovers: LocalHandover[]
   arcId: string
   backgroundArcIds: string[]
-  group: string
+  groupId: string
+  /** Players invited from outside the main group. */
+  guestPlayerIds: string[]
+  /** Free-text note about who plays. */
   participants: string
   inGameTime: string
   timelinePosition: string
@@ -169,6 +177,11 @@ export interface LocalSessionRecord {
   createdAt: string
 }
 
+export interface LocalMaster { id: string; name: string; role: 'owner' | 'co-master' }
+export interface LocalPlayer { id: string; name: string; characterIds: string[]; note: string }
+export interface LocalGroup { id: string; name: string; playerIds: string[] }
+export interface LocalHandover { id: string; fromId: string; toId: string; byId: string; createdAt: string }
+
 export interface LocalPrintConfig {
   priorities: Array<LocalSessionPlanItem['priority']>
   passport: boolean
@@ -186,7 +199,10 @@ export interface LocalCampaignRecord {
   name: string
   idea: string
   activeTime: string
-  masters: string
+  masters: LocalMaster[]
+  players: LocalPlayer[]
+  groups: LocalGroup[]
+  archived: boolean
   notes: string[]
   sessionRecords: LocalSessionRecord[]
   activeSessionId?: string

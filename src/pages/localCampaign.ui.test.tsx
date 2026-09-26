@@ -20,7 +20,7 @@ describe('local campaign workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Создать сессию и открыть дашборд' }))
 
     const nav = await screen.findByRole('navigation', { name: 'Разделы кампании' })
-    expect(within(nav).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual(['Обзор', 'Сессии', 'Сюжет', 'Пульт', 'Библиотека', 'Связи', 'Заметки', 'Печать'])
+    expect(within(nav).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual(['Обзор', 'Сессии', 'Сюжет', 'Пульт', 'Библиотека', 'Связи', 'Заметки', 'Команда', 'Печать'])
     expect(screen.getByRole('heading', { name: 'Встреча у ворот' })).toBeInTheDocument()
     const id = router.state.location.pathname.split('/')[3]
     await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[0].title).toBe('Встреча у ворот'))

@@ -18,7 +18,7 @@ type Draft = Omit<LocalStoryArc, 'id'>
 
 export function ArcsSection({ campaign, persist }: SectionProps) {
   const arcs = campaign.storyArcs
-  const masters = campaign.masters.split('+').map((name) => name.trim()).filter(Boolean)
+  const masters = [...campaign.masters.map((master) => master.name), ...campaign.players.map((player) => player.name)]
   const [editor, setEditor] = useState<LocalStoryArc | 'new' | null>(null)
   const [draft, setDraft] = useState<Draft>(newArc())
   const openEditor = (arc: LocalStoryArc | 'new') => { setEditor(arc); const { id: _id, ...rest } = arc === 'new' ? newArc({ owner: masters[0] ?? '' }) : arc; setDraft(rest) }
