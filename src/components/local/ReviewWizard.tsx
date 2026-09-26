@@ -5,6 +5,7 @@ import { LOG_KIND, completeReview, missingDecisions, reviewItems } from '../../l
 import type { LocalCampaignRecord, LocalReviewDecision, LocalSessionPlanItem, LocalSessionRecord } from '../../local/types'
 import { withSession } from '../../local/labels'
 import type { Persist } from './shared'
+import { liveSessions, nextSessionNumber } from '../../local/sessions'
 
 const STEPS = ['Итоги', 'Решения по пунктам', 'Последствия', 'Время в мире', 'Следующая сессия'] as const
 const DECISION: Record<LocalReviewDecision, string> = { carry: 'Перенести в следующую', library: 'Вернуть только в библиотеку', cancel: 'Отменить', keep: 'Оставить неиспользованным' }
@@ -29,7 +30,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
   const items = reviewItems(session)
   const missing = missingDecisions(session)
   const carried = items.filter((item) => session.reviewDecisions[item.id] === 'carry' && session.appliedDecisions[item.id] !== 'carry')
-  const drafts = campaign.sessionRecords.filter((item) => item.id !== session.id && (item.status === 'draft' || item.status === 'ready'))
+  const drafts = liveSessions(campaign).filter((item) => item.id !== session.id && (item.status === 'draft' || item.status === 'ready'))
   const nextSession = campaign.sessionRecords.find((item) => item.id === session.nextSessionId)
   const defaultReason = `Итоги сессии №${session.number}`
 
@@ -86,7 +87,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
     {step === 4 && <div className="session-review-wizard__body">
       {carried.length ? <>
         <p>Переносятся пункты: {carried.map(itemTitle).join(', ')}.</p>
-        <label htmlFor="review-target">Куда перенести<select id="review-target" value={target} onChange={(e) => setTarget(e.target.value)}><option value="new">Новая сессия №{Math.max(0, ...campaign.sessionRecords.map((item) => item.number)) + 1}</option>{drafts.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}</select></label>
+        <label htmlFor="review-target">Куда перенести<select id="review-target" value={target} onChange={(e) => setTarget(e.target.value)}><option value="new">Новая сессия №{nextSessionNumber(campaign)}</option>{drafts.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}</select></label>
       </> : <p className="muted">Переносить нечего.</p>}
       {error && <p className="local-session-error">{error}</p>}
       <Button variant="primary" icon="check" disabled={missing.length > 0 || !canComplete} onClick={finish}>Завершить разбор</Button>{!canComplete && <p className="muted" role="note">{completeHint}</p>}

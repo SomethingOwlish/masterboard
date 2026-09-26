@@ -53,6 +53,11 @@ describe('worker API', () => {
     expect((await call(CO, 'PUT', 'docs/localCampaigns/c1', { data: startOwners })).status).toBe(403)
     const startOwn = { ...base, sessionRecords: [base.sessionRecords[0], { ...base.sessionRecords[1], status: 'active' }] }
     expect((await call(CO, 'PUT', 'docs/localCampaigns/c1', { data: startOwn })).status).toBe(200)
+    const trashOwners = { ...startOwn, sessionRecords: [{ ...startOwn.sessionRecords[0], deletedAt: '2026-09-26' }, startOwn.sessionRecords[1]] }
+    expect((await call(CO, 'PUT', 'docs/localCampaigns/c1', { data: trashOwners })).status).toBe(403)
+    expect((await call(CO, 'PUT', 'docs/localCampaigns/c1', { data: { ...startOwn, sessionRecords: [startOwn.sessionRecords[1]] } })).status).toBe(403)
+    const trashOwn = { ...startOwn, sessionRecords: [startOwn.sessionRecords[0], { ...startOwn.sessionRecords[1], status: 'completed', deletedAt: '2026-09-26' }] }
+    expect((await call(CO, 'PUT', 'docs/localCampaigns/c1', { data: trashOwn })).status).toBe(200)
     expect((await call(CO, 'DELETE', 'docs/localCampaigns/c1')).status).toBe(403)
     expect((await call(OWNER, 'DELETE', 'docs/localCampaigns/c1')).status).toBe(204)
     expect((await call(OWNER, 'GET', 'docs/localCampaigns/c1')).status).toBe(404)

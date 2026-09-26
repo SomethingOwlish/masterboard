@@ -7,6 +7,7 @@ import { masterName, sessionPlayers } from '../../local/team'
 import type { LocalPrintConfig, LocalSessionPlanItem } from '../../local/types'
 import { PRIORITIES, USE_STATUS } from './plan/planApi'
 import { ENTITY_LABEL, type SectionProps } from './shared'
+import { liveSessions } from '../../local/sessions'
 
 type Sheet = 'director' | 'players'
 const PRIORITY = Object.fromEntries(PRIORITIES) as Record<LocalSessionPlanItem['priority'], string>
@@ -14,7 +15,7 @@ const STATUS = Object.fromEntries(USE_STATUS) as Record<LocalSessionPlanItem['st
 const TOGGLES: Array<[Exclude<keyof LocalPrintConfig, 'priorities'>, string]> = [['passport', 'Паспорт сессии'], ['notes', 'Заметки пунктов'], ['flows', 'Переходы'], ['entities', 'Карточки сущностей'], ['secrets', 'Секреты'], ['clocks', 'Часы']]
 
 export function PrintSection({ campaign, persist }: SectionProps) {
-  const sessions = campaign.sessionRecords
+  const sessions = liveSessions(campaign)
   const [sessionId, setSessionId] = useState(campaign.activeSessionId ?? sessions[0]?.id ?? '')
   const [sheet, setSheet] = useState<Sheet>('director')
   const session = sessions.find((item) => item.id === sessionId) ?? sessions[0]
