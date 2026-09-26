@@ -53,7 +53,10 @@ export function LivePanel({ campaign, session, persist, onClose, canClose = true
     const secret = campaign.secrets.find((item) => item.id === secretId)
     if (!secret || secret.status === status) return
     const next = changeSecretStatus(secret, { status, recipients: secret.recipients, sessionId: session.id, note: 'Во время сессии' }, now())
-    log(logEntry('reveal', `Секрет «${secret.title}»: ${SECRET_STATUS[status].toLocaleLowerCase()}`, now(), { secretId }), { ...campaign, secrets: campaign.secrets.map((item) => item.id === secretId ? next : item) })
+    // Revealing a planned secret at the table means its plan item was played.
+    const revealed = status === 'partial' || status === 'selected' || status === 'everyone'
+    const played = revealed ? { ...session, planItems: session.planItems.map((item) => item.secretId === secretId && (item.status === 'prepared' || item.status === 'current') ? { ...item, status: 'used' as const } : item) } : session
+    log(logEntry('reveal', `Секрет «${secret.title}»: ${SECRET_STATUS[status].toLocaleLowerCase()}`, now(), { secretId }), withSession({ ...campaign, secrets: campaign.secrets.map((item) => item.id === secretId ? next : item) }, played))
   }
   const createEntity = () => {
     if (!entityName.trim()) return
