@@ -1,6 +1,7 @@
 import { newArc, newClock, newEntity, newSecret } from './domain'
 import { newGroup, parseMasters } from './team'
-import type { LocalCampaignEntity, LocalCampaignRecord, LocalGroup, LocalMaster, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
+import { WIDGETS } from './labels'
+import type { LocalCampaignEntity, LocalCampaignRecord, LocalDashboardLayout, LocalGroup, LocalWidgetId, LocalMaster, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 type Raw = Record<string, unknown>
 
@@ -55,6 +56,11 @@ function groupIdFor(team: TeamContext, id: unknown, name: unknown): string {
   let group = team.groups.find((item) => item.name.toLocaleLowerCase() === title.toLocaleLowerCase())
   if (!group) { group = newGroup(title); team.groups.push(group) }
   return group.id
+}
+function normalizeLayout(raw: Raw): LocalDashboardLayout {
+  const widgets = (value: unknown) => ids(value).filter((id): id is LocalWidgetId => (WIDGETS as readonly string[]).includes(id))
+  const order = widgets(raw.order)
+  return { order: [...order, ...WIDGETS.filter((id) => !order.includes(id))], hidden: widgets(raw.hidden), wide: widgets(raw.wide) }
 }
 const ids = (value: unknown): string[] => list<unknown>(value).filter((id): id is string => typeof id === 'string')
 
@@ -118,7 +124,7 @@ function normalizeLogEntry(entry: LocalSessionLogEntry): LocalSessionLogEntry {
 
 function normalizeEntity(raw: Raw): LocalCampaignEntity {
   const tags = list<unknown>(raw.tags).filter((tag): tag is string => typeof tag === 'string')
-  const origin = isObject(raw.origin) ? { kind: oneOf(raw.origin.kind, ['manual', 'plan', 'live', 'inbox', 'import'] as const, 'manual'), sessionId: typeof raw.origin.sessionId === 'string' ? raw.origin.sessionId : undefined } : { kind: tags.includes('из сессии') ? 'plan' as const : 'manual' as const }
+  const origin = isObject(raw.origin) ? { kind: oneOf(raw.origin.kind, ['manual', 'plan', 'live', 'inbox', 'import', 'improv'] as const, 'manual'), sessionId: typeof raw.origin.sessionId === 'string' ? raw.origin.sessionId : undefined } : { kind: tags.includes('из сессии') ? 'plan' as const : 'manual' as const }
   return newEntity({
     id: raw.id as string,
     type: oneOf(raw.type, ['character', 'npc', 'creature', 'location', 'faction', 'rumor', 'item', 'audience', 'note', 'letter', 'handout', 'map', 'home-rule'] as const, 'note'),
@@ -157,6 +163,13 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     players: list<Raw>(value.players).filter((player) => isObject(player) && typeof player.id === 'string').map((player) => ({ id: player.id as string, name: text(player.name), characterIds: ids(player.characterIds), note: text(player.note) })),
     groups: team.groups,
     archived: value.archived === true,
+    improv: list<Raw>(value.improv).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.text === 'string').map((item) => ({
+      id: item.id as string, masterId: text(item.masterId, masters[0].id), text: item.text as string,
+      kind: oneOf(item.kind, ['name', 'npc', 'location', 'item', 'event', 'complication'] as const, 'name'),
+      usedAt: typeof item.usedAt === 'string' ? item.usedAt : undefined, usedSessionId: typeof item.usedSessionId === 'string' ? item.usedSessionId : undefined,
+      entityId: typeof item.entityId === 'string' ? item.entityId : undefined,
+    })),
+    dashboardLayouts: isObject(value.dashboardLayouts) ? Object.fromEntries(Object.entries(value.dashboardLayouts).filter(([, layout]) => isObject(layout)).map(([id, layout]) => [id, normalizeLayout(layout as Raw)])) : {},
     notes: list<unknown>(value.notes).filter((note): note is string => typeof note === 'string'),
     sessionRecords,
     activeSessionId,
