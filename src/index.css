@@ -1306,3 +1306,9 @@ kbd {
   .print-member { background: none; }
   .print-scene, .print-member, .print-party li { border-color: #bbb; }
 }
+
+/* Stage 0: shared campaign navigation inside the sessions workspace */
+.sessions-workspace__top nav { overflow-x: auto; scrollbar-width: none; }
+.sessions-workspace__top nav a { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; }
+@media (max-width: 700px) { .sessions-workspace__top { grid-template-columns: 1fr; }.sessions-workspace__top nav { display: flex; } }
+.local-save-error { width: auto; margin: 0 0 var(--space-3); }

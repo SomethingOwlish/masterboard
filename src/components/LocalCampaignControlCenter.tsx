@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Badge, Button, EmptyState, Icon } from '../ds'
-import type { LocalCampaignClock, LocalCampaignRecord, LocalCampaignSecret, LocalCampaignTask, LocalInboxItem } from '../fixtures/localCampaignCatalog'
+import type { LocalCampaignClock, LocalCampaignRecord, LocalCampaignSecret, LocalCampaignTask, LocalInboxItem } from '../local/types'
 import { useConfirm } from './useConfirm'
 
 type Props = { campaign: LocalCampaignRecord; persist: (next: LocalCampaignRecord) => void }

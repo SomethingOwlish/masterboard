@@ -1,18 +1,19 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, EmptyState, Icon, Select } from '../ds'
-import { getLocalSessions, withLocalSessions, type LocalCampaignEntityType, type LocalCampaignRecord, type LocalSessionPlanItem, type LocalSessionPlanKind, type LocalSessionRecord } from '../fixtures/localCampaignCatalog'
+import { blankSession, withLocalSessions } from '../local/normalize'
+import type { LocalCampaignEntityType, LocalCampaignRecord, LocalSessionPlanItem, LocalSessionPlanKind, LocalSessionRecord } from '../local/types'
+import { CampaignNav } from './local/shared'
 
 type Props = { campaign: LocalCampaignRecord; persist: (next: LocalCampaignRecord) => void; mode?: 'plan' | 'play' | 'review' }
 const priorities = [['required', 'Обязательно'], ['desired', 'Желательно'], ['useful', 'Полезно'], ['backup', 'Запас']] as const
 const kinds: Array<[LocalSessionPlanKind, string]> = [['scene', 'Сцена'], ['idea', 'Идея'], ['goal', 'Цель'], ['event', 'Событие'], ['question', 'Вопрос'], ['secret', 'Секрет'], ['npc', 'NPC'], ['material', 'Материал'], ['note', 'Заметка'], ['consequence', 'Последствие']]
 const statusLabel = { draft: 'Черновик', ready: 'Готова', active: 'Проводится', completed: 'Закрыта' } as const
 const useStatus = [['prepared', 'Подготовлено'], ['current', 'Актуально'], ['used', 'Использовано'], ['skipped', 'Пропущено'], ['moved', 'Перенесено'], ['cancelled', 'Отменено']] as const
-const blankSession = (number: number, master: string): LocalSessionRecord => ({ id: `session-${crypto.randomUUID()}`, number, title: '', status: 'draft', master, arcId: '', group: '', participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, createdAt: new Date().toISOString() })
 
 export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Props) {
   const navigate = useNavigate()
-  const sessions = getLocalSessions(campaign)
+  const sessions = campaign.sessionRecords
   const initialId = campaign.activeSessionId && sessions.some((item) => item.id === campaign.activeSessionId) ? campaign.activeSessionId : sessions[0]?.id
   const [selectedId, setSelectedId] = useState(initialId ?? '')
   const selected = sessions.find((item) => item.id === selectedId) ?? sessions[0]
@@ -26,7 +27,7 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
   const linkedIds = useMemo(() => new Set(selected?.planItems.flatMap((item) => item.entityId ? [item.entityId] : []) ?? []), [selected])
   const updateSession = (next: LocalSessionRecord) => persist(withLocalSessions(campaign, sessions.map((item) => item.id === next.id ? next : item), next.id))
   const choose = (id: string) => { setSelectedId(id); persist(withLocalSessions(campaign, sessions, id)) }
-  const create = () => setEditor(blankSession(Math.max(0, ...sessions.map((item) => item.number)) + 1, campaign.masters.split('+')[0]?.trim() || 'Сова'))
+  const create = () => setEditor(blankSession(Math.max(0, ...sessions.map((item) => item.number)) + 1, campaign.masters.split('+')[0]?.trim() ?? '', new Date().toISOString()))
   const savePassport = () => { if (!editor?.title.trim()) return; const exists = sessions.some((item) => item.id === editor.id); const next = { ...editor, title: editor.title.trim() }; persist(withLocalSessions(campaign, exists ? sessions.map((item) => item.id === next.id ? next : item) : [...sessions, next], next.id)); setSelectedId(next.id); setEditor(null) }
   const addText = () => { const text = quickText.trim(); if (!text || !selected) return; updateSession({ ...selected, planItems: [...selected.planItems, { id: `plan-${crypto.randomUUID()}`, source: 'text', text, kind: quickKind, priority: quickPriority, status: 'prepared', role: '', alternative: '', note: '', origin: 'prepared' }] }); setQuickText('') }
   const attachEntity = (entityId: string) => { if (!selected) return; const entity = campaign.entities.find((item) => item.id === entityId); if (!entity) return; updateSession({ ...selected, planItems: [...selected.planItems, { id: `plan-${crypto.randomUUID()}`, source: 'library', entityId, text: entity.name, kind: entity.type === 'npc' ? 'npc' : entity.type === 'handout' || entity.type === 'map' ? 'material' : 'note', priority: quickPriority, status: 'prepared', role: '', alternative: '', note: '', origin: 'prepared' }] }) }
@@ -37,7 +38,7 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
   const addLive = () => { const text = liveText.trim(); if (!text || !selected) return; updateSession({ ...selected, log: [...selected.log, { id: `log-${crypto.randomUUID()}`, text, createdAt: new Date().toISOString() }] }); setLiveText('') }
 
   return <main className="sessions-workspace">
-    <header className="sessions-workspace__top"><Link to={`/local/campaign/${campaign.id}/overview`}><Icon name="arrow-left" size={16} /> {campaign.name}</Link><nav><Link to={`/local/campaign/${campaign.id}/overview`}>Обзор</Link><Link className="active" to={`/local/campaign/${campaign.id}/session`}>Сессии</Link><Link to={`/local/campaign/${campaign.id}/library`}>Библиотека</Link></nav><Badge tone="neutral" dot>Локальные данные</Badge></header>
+    <header className="sessions-workspace__top"><Link to={`/local/campaign/${campaign.id}/overview`}><Icon name="arrow-left" size={16} /> {campaign.name}</Link><CampaignNav campaignId={campaign.id} section={mode === 'plan' ? 'session' : mode} /><Badge tone="neutral" dot>Локальные данные</Badge></header>
     <div className="sessions-workspace__body">
       <aside className="sessions-workspace__rail"><div className="panel-heading"><div><span className="panel-kicker">Кампания</span><h2>Сессии</h2></div><Button size="sm" icon="plus" onClick={create}>Новая</Button></div><div className="sessions-workspace__session-list">{sessions.map((session) => <button key={session.id} className={session.id === selected?.id ? 'active' : ''} onClick={() => choose(session.id)}><span>{String(session.number).padStart(2, '0')}</span><div><strong>{session.title}</strong><small>{statusLabel[session.status]} · {session.inGameTime || 'время не задано'}</small></div></button>)}</div>{!sessions.length && <EmptyState icon="clapperboard" title="Сессий пока нет" hint="Создайте первую или планируйте несколько заранее." action={<Button variant="primary" onClick={create}>Создать сессию</Button>} />}</aside>
       {selected && <section className="session-plan"><header className="session-plan__passport"><div><span className="panel-kicker">Сессия {String(selected.number).padStart(2, '0')} · {statusLabel[selected.status]}</span><h1>{selected.title}</h1><p>{selected.focus || selected.idea || 'Фокус пока не задан.'}</p></div><div className="session-plan__actions"><Button icon="pencil" onClick={() => setEditor(structuredClone(selected))}>Паспорт</Button>{selected.status === 'active' ? <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/play`)}>Панель проведения</Button> : selected.status === 'completed' ? <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/review`)}>Разобрать</Button> : <Button variant="primary" icon="play" disabled={!selected.planItems.length} onClick={() => { updateSession({ ...selected, status: 'active' }); navigate(`/local/campaign/${campaign.id}/play`) }}>Начать</Button>}</div></header>
