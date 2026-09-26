@@ -70,7 +70,7 @@ export function LibraryPage() {
             {SECTIONS.map((item) => (
               <button key={item.id} type="button" onClick={() => setSection(item.id)} style={{
                 display: 'flex', alignItems: 'center', gap: 8, width: '100%', padding: '0.65rem 0.75rem',
-                border: 0, borderRadius: 'var(--radius-md)', cursor: 'pointer', textAlign: 'left',
+                border: 0, borderRadius: 'var(--radius)', cursor: 'pointer', textAlign: 'left',
                 color: section === item.id ? 'var(--accent-contrast)' : 'var(--text)',
                 background: section === item.id ? 'var(--accent)' : 'transparent',
               }}>
