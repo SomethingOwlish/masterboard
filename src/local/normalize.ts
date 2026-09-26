@@ -169,6 +169,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
       usedAt: typeof item.usedAt === 'string' ? item.usedAt : undefined, usedSessionId: typeof item.usedSessionId === 'string' ? item.usedSessionId : undefined,
       entityId: typeof item.entityId === 'string' ? item.entityId : undefined,
     })),
+    publications: list<Raw>(value.publications).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.entityId === 'string') as unknown as LocalCampaignRecord['publications'],
     dashboardLayouts: isObject(value.dashboardLayouts) ? Object.fromEntries(Object.entries(value.dashboardLayouts).filter(([, layout]) => isObject(layout)).map(([id, layout]) => [id, normalizeLayout(layout as Raw)])) : {},
     notes: list<unknown>(value.notes).filter((note): note is string => typeof note === 'string'),
     sessionRecords,

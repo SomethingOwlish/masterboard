@@ -22,6 +22,7 @@ export const MOON_PORT: LocalCampaignRecord = {
     { id: 'improv-complication-1', masterId: 'master-owl', kind: 'complication', text: 'Фонари гаснут все разом' },
   ],
   dashboardLayouts: {},
+  publications: [],
   notes: ['Красный прилив поднимается каждую ночь фестиваля.', 'Гильдия фонарщиков хранит старый договор с луной.'],
   sessionRecords: [{
     id: 'session-moon-1', number: 1, title: 'Первая ночь в Лунном порту', status: 'draft', masterId: 'master-owl', handovers: [], arcId: 'arc-moon-pact', backgroundArcIds: [],

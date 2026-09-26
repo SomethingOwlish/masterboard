@@ -1,5 +1,7 @@
 // Data model of the real local campaign workspace (`/local`).
 
+import type { PublicationQueueItem } from '../model/external'
+
 export type LocalCampaignEntityType = 'character' | 'npc' | 'creature' | 'location' | 'faction' | 'rumor' | 'item' | 'audience' | 'note' | 'letter' | 'handout' | 'map' | 'home-rule'
 
 export interface LocalCampaignEntity {
@@ -213,6 +215,8 @@ export interface LocalCampaignRecord {
   improv: LocalImprovItem[]
   /** Personal overview layouts, by master id. */
   dashboardLayouts: Record<string, LocalDashboardLayout>
+  /** Batch publication queue (fake destinations until integrations exist). */
+  publications: PublicationQueueItem[]
   notes: string[]
   sessionRecords: LocalSessionRecord[]
   activeSessionId?: string
