@@ -7,6 +7,7 @@ import type { LocalCampaignRecord } from '../local/types'
 import { downloadText } from '../local/download'
 import { useLocalCatalog } from '../local/useLocalCampaign'
 import { LocalThemeControl } from '../components/LocalThemeControl'
+import { useConfirm } from '../components/useConfirm'
 
 const sessionsLabel = (count: number) => {
   if (!count) return 'Без сессий'
@@ -27,6 +28,7 @@ export function LocalCampaignsPage() {
   const [name, setName] = useState('')
   const [idea, setIdea] = useState('')
   const fileInput = useRef<HTMLInputElement>(null)
+  const confirm = useConfirm()
 
   const reload = async () => {
     try {
@@ -75,13 +77,49 @@ export function LocalCampaignsPage() {
       setMoving(false)
     }
   }
+  const moveOne = async (id: string) => {
+    if (!shared) return
+    setMoving(true)
+    try {
+      await shared.share(id)
+      setError(null)
+      await reload()
+    } catch (moveError) {
+      setError(moveError instanceof Error ? moveError.message : 'Не удалось перенести кампанию')
+    } finally {
+      setWaiting(await shared.browserCampaigns())
+      setMoving(false)
+    }
+  }
+  /** Deletes campaigns kept only in this browser; the server copies, if any, are not touched. */
+  const removeFromBrowser = (targets: LocalCampaignRecord[]) => {
+    if (!shared?.removeFromBrowser || !targets.length) return
+    confirm({
+      title: targets.length === 1 ? `Удалить «${targets[0].name}» из браузера?` : `Удалить из браузера кампаний: ${targets.length}?`,
+      message: 'Кампании, которые есть только в этом браузере, пропадут насовсем. Кампании на сервере не затрагиваются. Если сомневаетесь, сначала откройте кампанию и сделайте экспорт.',
+      confirmLabel: 'Удалить',
+      cancelLabel: 'Отмена',
+      tone: 'danger',
+      onConfirm: () => void (async () => {
+        try {
+          for (const campaign of targets) await shared.removeFromBrowser!(campaign.id)
+          setError(null)
+        } catch (removeError) {
+          setError(removeError instanceof Error ? removeError.message : 'Не удалось удалить из браузера')
+        }
+        setWaiting(await shared.browserCampaigns())
+      })(),
+    })
+  }
   const downloadDamaged = () => downloadText('masterboard-damaged-records.json', JSON.stringify(quarantined, null, 2))
   const dismissDamaged = async () => { await catalog.clearQuarantine(); setQuarantined([]) }
 
   return <main className="campaign-workspace">
     <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div>{shared ? <><Badge tone="accent" dot>{shared.email}</Badge><a className="campaign-workspace__signout" href="/cdn-cgi/access/logout">Выйти</a></> : <Badge tone="neutral" dot>Локальные данные</Badge>}<LocalThemeControl /></div></header>
     <section className="campaign-workspace__hero"><div><span className="panel-kicker">Рабочее пространство ведущего</span><h1>Кампании</h1><p>Истории, подготовка и сессии вашей команды — в одном месте.</p></div><div className="row"><Button icon="upload" onClick={() => fileInput.current?.click()}>Импорт</Button><Button variant="primary" icon="plus" onClick={() => setCreating(true)}>Создать кампанию</Button></div><input ref={fileInput} type="file" accept="application/json,.json" hidden aria-label="Файл кампании для импорта" onChange={(event) => { void importFile(event.target.files?.[0]); event.target.value = '' }} /></section>
-    {waiting.length > 0 && <div className="campaign-workspace__move" role="status"><Icon name="cloud" size={18} /><span><strong>В этом браузере {waiting.length === 1 ? '1 кампания' : `кампаний: ${waiting.length}`}</strong> ({waiting.map((item) => item.name).join(', ')}). Перенесите на сервер — вы станете владельцем, кампании будут доступны с любого устройства.</span><Button variant="primary" icon="cloud" disabled={moving} onClick={() => void moveAll()}>{moving ? 'Переносим…' : waiting.length === 1 ? 'Перенести' : 'Перенести все'}</Button></div>}
+    {waiting.length > 0 && <div className="campaign-workspace__move" role="status"><Icon name="cloud" size={18} /><span><strong>В этом браузере {waiting.length === 1 ? '1 кампания' : `кампаний: ${waiting.length}`}</strong> ({waiting.map((item) => item.name).join(', ')}). Перенесите на сервер — вы станете владельцем, кампании будут доступны с любого устройства. Ненужные можно удалить.</span><div className="row"><Button variant="primary" icon="cloud" disabled={moving} onClick={() => void moveAll()}>{moving ? 'Переносим…' : waiting.length === 1 ? 'Перенести' : 'Перенести все'}</Button>{shared?.removeFromBrowser && <Button tone="danger" icon="trash-2" disabled={moving} onClick={() => removeFromBrowser(waiting)}>{waiting.length === 1 ? 'Удалить' : 'Удалить все'}</Button>}</div>
+      {waiting.length > 1 && <ul className="campaign-workspace__move-list" aria-label="Кампании в этом браузере">{waiting.map((item) => <li key={item.id}><span><strong>{item.name}</strong> <small>{sessionsLabel(item.sessionRecords.length)}</small></span><Button size="sm" icon="cloud" disabled={moving} onClick={() => void moveOne(item.id)} aria-label={`Перенести на сервер: ${item.name}`}>Перенести</Button>{shared?.removeFromBrowser && <Button size="sm" tone="danger" icon="trash-2" disabled={moving} onClick={() => removeFromBrowser([item])} aria-label={`Удалить из браузера: ${item.name}`}>Удалить</Button>}</li>)}</ul>}
+    </div>}
     {quarantined.length > 0 && <div className="campaign-workspace__recovery" role="alert"><Icon name="triangle-alert" size={18} /><span><strong>Найдены повреждённые данные: {quarantined.length}.</strong> Мы отложили их, ничего не удаляя. Скачайте копию, прежде чем убрать сообщение.</span><div className="row"><Button size="sm" icon="download" onClick={downloadDamaged}>Скачать копию</Button><Button size="sm" onClick={() => void dismissDamaged()}>Убрать</Button></div></div>}
     {error && <div className="campaign-workspace__recovery" role="alert"><Icon name="triangle-alert" size={18} /><span><strong>Не получилось.</strong> {error}</span><button onClick={() => setError(null)} aria-label="Закрыть сообщение"><Icon name="x" size={16} /></button></div>}
     <section className="campaign-workspace__grid" aria-label="Список кампаний" aria-busy={campaigns === null}>

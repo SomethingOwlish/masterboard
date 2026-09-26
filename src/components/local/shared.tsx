@@ -45,9 +45,11 @@ export function StorageBadge({ campaignId }: { campaignId: string }) {
   return shared?.isShared(campaignId) ? <Badge tone="accent" dot>Общая кампания</Badge> : <Badge tone="neutral" dot>Локальные данные</Badge>
 }
 
-export function SaveErrorBanner({ message, retry }: { message: string | null; retry: () => void }) {
+export function SaveErrorBanner({ message, retry, savedInBrowser = false }: { message: string | null; retry: () => void; savedInBrowser?: boolean }) {
   if (!message) return null
-  return <div className="campaign-workspace__recovery local-save-error" role="alert"><Icon name="triangle-alert" size={18} /><span><strong>Изменения не сохранены.</strong> {message}. Они остаются на экране — попробуйте ещё раз.</span><Button size="sm" onClick={retry}>Повторить</Button></div>
+  return savedInBrowser
+    ? <div className="campaign-workspace__recovery local-save-error" role="alert"><Icon name="cloud-off" size={18} /><span><strong>Нет связи с сервером.</strong> Правки сохранены в этом браузере и отправятся, когда связь вернётся. ({message})</span><Button size="sm" icon="refresh-cw" onClick={retry}>Синхронизировать</Button></div>
+    : <div className="campaign-workspace__recovery local-save-error" role="alert"><Icon name="triangle-alert" size={18} /><span><strong>Изменения не сохранены.</strong> {message}. Они остаются на экране — попробуйте ещё раз.</span><Button size="sm" onClick={retry}>Повторить</Button></div>
 }
 
 /** Another master changed the same thing in a shared campaign; their version was kept (decision I4). */

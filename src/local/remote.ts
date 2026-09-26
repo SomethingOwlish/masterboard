@@ -1,5 +1,5 @@
 import { newId } from '../model/ids'
-import { EXPORT_FORMAT, blankCampaign, parseExport, type LocalCampaignCatalog } from './catalog'
+import { EXPORT_FORMAT, blankCampaign, parseExport, type CampaignDraft, type LocalCampaignCatalog } from './catalog'
 import { newMaster } from './team'
 import { mergeCampaign, type MergeConflict } from './merge'
 import { normalizeCampaign } from './normalize'
@@ -57,7 +57,27 @@ export interface SharedAccess {
   browserCampaigns(): Promise<LocalCampaignRecord[]>
   /** Moves a browser campaign to the server; the signed-in master becomes its owner. */
   share(id: string): Promise<LocalCampaignRecord>
+  /** Deletes a campaign kept only in this browser, without moving it. */
+  removeFromBrowser?(id: string): Promise<void>
+  /**
+   * Edits are written to the server this long after the last change, so a
+   * burst of typing costs one database write instead of one per keystroke.
+   */
+  saveDelayMs?: number
+  /** Unsynced edits kept in this browser until the server takes them. */
+  drafts?: {
+    get(id: string): Promise<CampaignDraft | null>
+    set(draft: CampaignDraft): Promise<void>
+    remove(id: string): Promise<void>
+  }
+  /** The last server version seen for a campaign: the base an unsynced edit is made on. */
+  baseline?(id: string): { revision: number; data: LocalCampaignRecord } | null
+  /** Restores the base of an edit made before a reload, so a clash with newer server edits is merged, not overwritten. */
+  rebase?(id: string, revision: number, data: LocalCampaignRecord): void
 }
+
+/** Delay between the last edit and the server write (see `SharedAccess.saveDelayMs`). */
+export const SERVER_SAVE_DELAY_MS = 2000
 
 export type CampaignCatalog = LocalCampaignCatalog & { shared?: SharedAccess }
 
@@ -123,6 +143,11 @@ export function createSharedCatalog(browser: LocalCampaignCatalog, api: Masterbo
       await browser.remove(id)
       return saved
     },
+    removeFromBrowser: (id: string) => browser.remove(id),
+    saveDelayMs: SERVER_SAVE_DELAY_MS,
+    drafts: browser.drafts,
+    baseline: (id: string) => known.get(id) ?? null,
+    rebase: (id: string, revision: number, data: LocalCampaignRecord) => { known.set(id, { revision, data }) },
   }
 
   const catalog = {
@@ -157,6 +182,7 @@ export function createSharedCatalog(browser: LocalCampaignCatalog, api: Masterbo
       return upload(copy)
     },
     clearQuarantine: () => browser.clearQuarantine(),
+    drafts: browser.drafts,
   }
   return catalog
 }
