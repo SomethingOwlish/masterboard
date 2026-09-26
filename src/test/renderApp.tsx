@@ -7,11 +7,14 @@ import { blankSession, withLocalSessions } from '../local/normalize'
 import type { LocalCampaignRecord } from '../local/types'
 import { LocalCatalogProvider } from '../local/useLocalCampaign'
 import { ConfirmHost } from '../components/useConfirm'
+import { ExternalProvider, type ExternalPort } from '../local/useExternal'
+import { FakeBridge } from './fakeBridge'
 
-export function renderApp(path: string, catalog: LocalCampaignCatalog = createLocalCampaignCatalog(new MemoryStorageGateway())) {
+/** Renders the app on `path`; lorebook / lovegame are an in-memory bridge unless a test passes its own. */
+export function renderApp(path: string, catalog: LocalCampaignCatalog = createLocalCampaignCatalog(new MemoryStorageGateway()), bridge: ExternalPort = new FakeBridge()) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
-  render(<LocalCatalogProvider catalog={catalog}><RouterProvider router={router} /><ConfirmHost /></LocalCatalogProvider>)
-  return { router, catalog }
+  render(<LocalCatalogProvider catalog={catalog}><ExternalProvider port={bridge}><RouterProvider router={router} /><ConfirmHost /></ExternalProvider></LocalCatalogProvider>)
+  return { router, catalog, bridge }
 }
 
 /** A campaign that already has session 1, so the dashboard opens. */

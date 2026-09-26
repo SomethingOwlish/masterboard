@@ -1,7 +1,7 @@
 import { newArc, newClock, newEntity, newSecret } from './domain'
 import { newGroup, parseMasters } from './team'
 import { WIDGETS } from './labels'
-import type { LocalCampaignEntity, LocalCampaignRecord, LocalDashboardLayout, LocalGroup, LocalWidgetId, LocalMaster, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
+import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord, LocalDashboardLayout, LocalGroup, LocalWidgetId, LocalMaster, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 type Raw = Record<string, unknown>
 
@@ -131,9 +131,38 @@ function normalizeEntity(raw: Raw): LocalCampaignEntity {
     name: text(raw.name), description: text(raw.description), tags,
     visibility: raw.visibility === 'public' ? 'public' : 'master',
     status: oneOf(raw.status, ['active', 'inactive', 'archived'] as const, 'active'),
-    fields: isObject(raw.fields) ? Object.fromEntries(Object.entries(raw.fields).filter(([, value]) => typeof value === 'string')) as Record<string, string> : {},
+    fields: stringMap(raw.fields),
     origin,
+    sources: list<Raw>(raw.sources).filter((source) => isObject(source) && typeof source.id === 'string' && typeof source.containerId === 'string').map(normalizeSource),
   })
+}
+
+const stringMap = (value: unknown): Record<string, string> => isObject(value) ? Object.fromEntries(Object.entries(value).filter(([, item]) => typeof item === 'string')) as Record<string, string> : {}
+
+function normalizeSource(raw: Raw): EntitySource {
+  const snapshot = isObject(raw.snapshot) ? raw.snapshot : {}
+  return {
+    system: oneOf(raw.system, ['lorebook', 'lovegame', 'systemsetup'] as const, 'lorebook'),
+    containerId: raw.containerId as string, id: raw.id as string, type: text(raw.type),
+    url: typeof raw.url === 'string' ? raw.url : undefined,
+    updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : 0,
+    syncedAt: text(raw.syncedAt),
+    snapshot: {
+      name: text(snapshot.name), description: text(snapshot.description),
+      tags: list<unknown>(snapshot.tags).filter((tag): tag is string => typeof tag === 'string'),
+      fields: stringMap(snapshot.fields), visibility: snapshot.visibility === 'public' ? 'public' : 'master',
+    },
+  }
+}
+
+function normalizeLinks(value: unknown): LocalCampaignRecord['integrations'] {
+  if (!isObject(value)) return {}
+  const links: LocalCampaignRecord['integrations'] = {}
+  for (const system of ['lorebook', 'lovegame', 'systemsetup'] as const) {
+    const link = value[system]
+    if (isObject(link) && typeof link.externalId === 'string') links[system] = { externalId: link.externalId, label: text(link.label, link.externalId), url: typeof link.url === 'string' ? link.url : undefined }
+  }
+  return links
 }
 
 /**
@@ -169,6 +198,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
       usedAt: typeof item.usedAt === 'string' ? item.usedAt : undefined, usedSessionId: typeof item.usedSessionId === 'string' ? item.usedSessionId : undefined,
       entityId: typeof item.entityId === 'string' ? item.entityId : undefined,
     })),
+    integrations: normalizeLinks(value.integrations),
     publications: list<Raw>(value.publications).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.entityId === 'string') as unknown as LocalCampaignRecord['publications'],
     dashboardLayouts: isObject(value.dashboardLayouts) ? Object.fromEntries(Object.entries(value.dashboardLayouts).filter(([, layout]) => isObject(layout)).map(([id, layout]) => [id, normalizeLayout(layout as Raw)])) : {},
     notes: list<unknown>(value.notes).filter((note): note is string => typeof note === 'string'),

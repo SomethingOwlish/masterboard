@@ -23,7 +23,7 @@ export const ENTITY_FIELDS: Record<LocalCampaignEntityType, Array<{ id: string; 
 }
 
 export function newEntity(input: Partial<LocalCampaignEntity> & Pick<LocalCampaignEntity, 'type' | 'name'>): LocalCampaignEntity {
-  return { id: `entity-${crypto.randomUUID()}`, description: '', tags: [], visibility: 'master', status: 'active', fields: {}, origin: { kind: 'manual' }, ...input }
+  return { id: `entity-${crypto.randomUUID()}`, description: '', tags: [], visibility: 'master', status: 'active', fields: {}, origin: { kind: 'manual' }, sources: [], ...input }
 }
 
 export const ORIGIN_LABEL: Record<LocalCampaignEntity['origin']['kind'], string> = {

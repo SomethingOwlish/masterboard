@@ -13,6 +13,7 @@ export interface ExternalConnection {
   label: string
   state: 'active' | 'disconnected'
   lastReadAt?: string
+  url?: string
 }
 
 export type CapabilityOperation =
@@ -131,4 +132,10 @@ export interface PublicationQueueItem {
   confirmedAt?: string
   completedAt?: string
   error?: string
+  /** Entity type on the other side (decision F3: default table, changeable in the queue). */
+  targetType?: string
+  /** The record on the other side, filled in right before sending. */
+  target?: { entityId?: string; expectedUpdatedAt?: number }
+  /** What the other side answered: its record id, time of change and link. */
+  result?: { id: string; updatedAt: number; url?: string }
 }

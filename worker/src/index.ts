@@ -1,9 +1,10 @@
 import { AuthError, requestEmail, type AuthEnv } from './auth'
+import { BridgeUnavailableError, forwardToBridge, type BridgeEnv } from './bridge'
 import type { D1Like } from './d1'
 import { PermissionError } from './permissions'
 import { BadRequestError, ConflictError, DocumentStore, NotFoundError } from './store'
 
-export interface Env extends AuthEnv {
+export interface Env extends AuthEnv, BridgeEnv {
   DB: D1Like
   /** Static SPA build (`dist/`), served for every non-API path. */
   ASSETS?: { fetch(request: Request): Promise<Response> }
@@ -18,6 +19,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
  *   GET    /api/docs/<path>              → Snapshot | 404
  *   PUT    /api/docs/<path>  { data, expectedRevision? } → Snapshot | 409 { current }
  *   DELETE /api/docs/<path>?expectedRevision=n
+ *   GET    /api/ext/connections | passport | entities, POST /api/ext/publish → lorebridge /mb/* (bridge.ts)
  */
 export async function handleApi(request: Request, env: Env, fetcher: typeof fetch = fetch): Promise<Response> {
   const url = new URL(request.url)
@@ -26,6 +28,10 @@ export async function handleApi(request: Request, env: Env, fetcher: typeof fetc
     const store = new DocumentStore(env.DB, email)
     const route = url.pathname.replace(/^\/api\/?/, '')
     if (route === 'me' && request.method === 'GET') return json({ email })
+    if (route.startsWith('ext/')) {
+      const forwarded = await forwardToBridge(request, route.slice('ext/'.length), email, env)
+      if (forwarded) return forwarded
+    }
     if (route.startsWith('collections/') && request.method === 'GET') return json(await store.list(decodeURIComponent(route.slice('collections/'.length))))
     if (route.startsWith('docs/')) {
       const path = decodeURIComponent(route.slice('docs/'.length))
@@ -47,6 +53,7 @@ export async function handleApi(request: Request, env: Env, fetcher: typeof fetc
     return json({ error: 'Неизвестный запрос' }, 404)
   } catch (error) {
     if (error instanceof AuthError) return json({ error: error.message }, 401)
+    if (error instanceof BridgeUnavailableError) return json({ error: error.message, kind: 'unconfigured' }, 501)
     if (error instanceof PermissionError) return json({ error: error.message }, 403)
     if (error instanceof NotFoundError) return json({ error: error.message }, 404)
     if (error instanceof ConflictError) return json({ error: error.message, expected: error.expected, actual: error.actual, current: error.current }, 409)

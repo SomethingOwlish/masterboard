@@ -56,8 +56,8 @@ export function MergeNotice({ message, dismiss }: { message: string | null; dism
   return <div className="campaign-workspace__recovery" role="status"><Icon name="git-merge" size={18} /><span><strong>Правки объединены.</strong> {message}</span><Button size="sm" onClick={dismiss}>Понятно</Button></div>
 }
 
-export function Editor({ title, close, children }: { title: string; close: () => void; children: ReactNode }) {
-  return <div className="campaign-workspace__scrim" onMouseDown={(e) => { if (e.currentTarget === e.target) close() }} onKeyDown={(e) => { if (e.key === 'Escape') close() }}><section className="campaign-workspace__modal" role="dialog" aria-modal="true" aria-label={title}><span className="panel-kicker">Локальные параметры</span><h2>{title}</h2>{children}</section></div>
+export function Editor({ title, close, children, kicker = 'Локальные параметры' }: { title: string; close: () => void; children: ReactNode; kicker?: string }) {
+  return <div className="campaign-workspace__scrim" onMouseDown={(e) => { if (e.currentTarget === e.target) close() }} onKeyDown={(e) => { if (e.key === 'Escape') close() }}><section className="campaign-workspace__modal" role="dialog" aria-modal="true" aria-label={title}><span className="panel-kicker">{kicker}</span><h2>{title}</h2>{children}</section></div>
 }
 
 export function Capture({ value, setValue, add, label = 'Добавить' }: { value: string; setValue: (value: string) => void; add: () => void; label?: string }) {
