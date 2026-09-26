@@ -9,8 +9,11 @@
     "build": "tsc -b && vite build",
     "preview": "vite preview",
     "lint": "eslint . --ext ts,tsx",
-    "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "typecheck": "tsc --noEmit && tsc --noEmit -p worker",
+    "test": "vitest run",
+    "worker:dev": "wrangler dev --var DEV_USER_EMAIL:owner@example.com",
+    "worker:migrate": "wrangler d1 migrations apply masterboard --remote",
+    "deploy": "npm run build && wrangler deploy"
   },
   "dependencies": {
     "@xyflow/react": "^12.11.1",
@@ -38,6 +41,7 @@
     "jsdom": "^25.0.1",
     "typescript": "^5.6.2",
     "vite": "^6.4.3",
-    "vitest": "^4.1.11"
+    "vitest": "^4.1.11",
+    "wrangler": "^4.141.0"
   }
 }
