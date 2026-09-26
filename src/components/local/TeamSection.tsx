@@ -14,25 +14,38 @@ export function TeamSection({ campaign, persist }: SectionProps) {
   const catalog = useLocalCatalog()
   const navigate = useNavigate()
   const [masterName, setMasterName] = useState('')
+  const [masterEmail, setMasterEmail] = useState('')
+  const shared = catalog.shared?.isShared(campaign.id) ?? false
   const [playerEditor, setPlayerEditor] = useState<LocalPlayer | null>(null)
   const [groupEditor, setGroupEditor] = useState<LocalGroup | null>(null)
   const owner = ownerOf(campaign)
   const characters = campaign.entities.filter((entity) => entity.type === 'character' && entity.status !== 'archived')
   const lockedHint = `Только владелец кампании (${owner.name}) может это менять.`
 
-  const addMaster = () => { if (!masterName.trim() || !acting.canManage) return; persist({ ...campaign, masters: [...campaign.masters, newMaster(masterName)] }); setMasterName('') }
+  const emailOk = (value: string) => !value.trim() || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())
+  const addMaster = () => {
+    if (!masterName.trim() || !acting.canManage || !emailOk(masterEmail)) return
+    const email = masterEmail.trim().toLowerCase()
+    persist({ ...campaign, masters: [...campaign.masters, { ...newMaster(masterName), ...(email ? { email } : {}) }] })
+    setMasterName(''); setMasterEmail('')
+  }
+  const setEmail = (id: string, value: string) => {
+    if (!emailOk(value)) return
+    const email = value.trim().toLowerCase()
+    persist({ ...campaign, masters: campaign.masters.map((master) => master.id === id ? { ...master, email: email || undefined } : master) })
+  }
   const savePlayer = () => { if (!playerEditor?.name.trim()) return; const player = { ...playerEditor, name: playerEditor.name.trim(), note: playerEditor.note.trim() }; persist({ ...campaign, players: campaign.players.some((item) => item.id === player.id) ? campaign.players.map((item) => item.id === player.id ? player : item) : [...campaign.players, player] }); setPlayerEditor(null) }
   const saveGroup = () => { if (!groupEditor?.name.trim()) return; const group = { ...groupEditor, name: groupEditor.name.trim() }; persist({ ...campaign, groups: campaign.groups.some((item) => item.id === group.id) ? campaign.groups.map((item) => item.id === group.id ? group : item) : [...campaign.groups, group] }); setGroupEditor(null) }
   const archive = () => confirm({ title: campaign.archived ? 'Вернуть кампанию из архива?' : 'Отправить кампанию в архив?', message: campaign.archived ? 'Кампания снова появится в общем списке.' : 'Кампания уйдёт в раздел «Архив» на главной. Данные сохранятся.', confirmLabel: campaign.archived ? 'Вернуть' : 'В архив', cancelLabel: 'Отмена', tone: 'accent', onConfirm: () => persist({ ...campaign, archived: !campaign.archived }) })
-  const remove = () => confirm({ title: `Удалить «${campaign.name}»?`, message: 'Кампания и все её сессии будут удалены из этого браузера. Если нужна копия, сначала сделайте экспорт на Обзоре.', confirmLabel: 'Удалить навсегда', cancelLabel: 'Отмена', onConfirm: () => { void catalog.remove(campaign.id).then(() => navigate('/')) } })
+  const remove = () => confirm({ title: `Удалить «${campaign.name}»?`, message: shared ? 'Кампания и все её сессии будут удалены с сервера у всех мастеров. Если нужна копия, сначала сделайте экспорт на Обзоре.' : 'Кампания и все её сессии будут удалены из этого браузера. Если нужна копия, сначала сделайте экспорт на Обзоре.', confirmLabel: 'Удалить навсегда', cancelLabel: 'Отмена', onConfirm: () => { void catalog.remove(campaign.id).then(() => navigate('/')) } })
 
   return <section className="campaign-section team-section">
     <div className="panel-heading"><div><span className="panel-kicker">Кто играет и кто ведёт</span><h2>Команда кампании</h2><p>Мастера с ролями, общий пул игроков и группы, для которых проводятся сессии.</p></div></div>
 
     <section className="team-section__block" aria-label="Мастера">
-      <header><h3>Мастера</h3><p className="muted">Владелец управляет составом мастеров, архивом и удалением. Запускать, закрывать и разбирать сессию может её ответственный мастер или владелец.</p></header>
-      <ul className="team-section__list">{campaign.masters.map((master) => <li key={master.id}><div className="row team-section__master"><strong>{master.name}</strong><Badge size="sm" tone={master.role === 'owner' ? 'accent' : 'neutral'}>{master.role === 'owner' ? 'Владелец' : 'Со-мастер'}</Badge>{master.id === acting.master.id && <Badge size="sm" tone="success">это вы</Badge>}</div>{acting.canManage && master.role !== 'owner' && <div className="row"><Button size="sm" onClick={() => confirm({ title: `Передать владение ${master.name}?`, message: 'Вы останетесь со-мастером и потеряете права владельца.', confirmLabel: 'Передать', cancelLabel: 'Отмена', tone: 'accent', onConfirm: () => persist(transferOwnership(campaign, master.id)) })}>Сделать владельцем</Button><Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать мастера ${master.name}`} onClick={() => confirm({ title: `Убрать ${master.name} из мастеров?`, message: 'Сессии, за которые он отвечал, перейдут владельцу.', confirmLabel: 'Убрать', cancelLabel: 'Отмена', onConfirm: () => persist(removeMaster(campaign, master.id)) })} /></div>}</li>)}</ul>
-      {acting.canManage ? <div className="control-capture"><input aria-label="Имя нового мастера" value={masterName} placeholder="Имя со-мастера" onChange={(e) => setMasterName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addMaster() }} /><Button icon="plus" disabled={!masterName.trim()} onClick={addMaster}>Добавить мастера</Button></div> : <p className="muted" role="note">{lockedHint}</p>}
+      <header><h3>Мастера</h3><p className="muted">Владелец управляет составом мастеров, архивом и удалением. Запускать, закрывать и разбирать сессию может её ответственный мастер или владелец.{shared && ' Кампания общая: мастер входит по своей почте и видит её у себя.'}</p></header>
+      <ul className="team-section__list">{campaign.masters.map((master) => <li key={master.id}><div className="row team-section__master"><strong>{master.name}</strong><Badge size="sm" tone={master.role === 'owner' ? 'accent' : 'neutral'}>{master.role === 'owner' ? 'Владелец' : 'Со-мастер'}</Badge>{master.id === acting.master.id && <Badge size="sm" tone="success">это вы</Badge>}{!shared && master.email && <small>{master.email}</small>}</div>{shared && (acting.canManage && master.role !== 'owner' ? <input className="team-section__email" type="email" aria-label={`Почта мастера ${master.name}`} placeholder="почта для входа" defaultValue={master.email ?? ''} onBlur={(e) => { if (e.target.value.trim().toLowerCase() !== (master.email ?? '')) setEmail(master.id, e.target.value) }} /> : <small>{master.email ?? 'почта не указана'}</small>)}{acting.canManage && master.role !== 'owner' && <div className="row"><Button size="sm" onClick={() => confirm({ title: `Передать владение ${master.name}?`, message: 'Вы останетесь со-мастером и потеряете права владельца.', confirmLabel: 'Передать', cancelLabel: 'Отмена', tone: 'accent', onConfirm: () => persist(transferOwnership(campaign, master.id)) })}>Сделать владельцем</Button><Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать мастера ${master.name}`} onClick={() => confirm({ title: `Убрать ${master.name} из мастеров?`, message: 'Сессии, за которые он отвечал, перейдут владельцу.', confirmLabel: 'Убрать', cancelLabel: 'Отмена', onConfirm: () => persist(removeMaster(campaign, master.id)) })} /></div>}</li>)}</ul>
+      {acting.canManage ? <div className="control-capture"><input aria-label="Имя нового мастера" value={masterName} placeholder="Имя со-мастера" onChange={(e) => setMasterName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addMaster() }} />{shared && <input type="email" aria-label="Почта нового мастера" value={masterEmail} placeholder="Почта для входа" onChange={(e) => setMasterEmail(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addMaster() }} />}<Button icon="plus" disabled={!masterName.trim() || !emailOk(masterEmail) || (shared && !masterEmail.trim())} onClick={addMaster}>Добавить мастера</Button></div> : <p className="muted" role="note">{lockedHint}</p>}
     </section>
 
     <section className="team-section__block" aria-label="Игроки">

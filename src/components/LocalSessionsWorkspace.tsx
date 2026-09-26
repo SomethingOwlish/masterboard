@@ -1,12 +1,12 @@
 import { useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Badge, Button, EmptyState, Icon, Select } from '../ds'
+import { Button, EmptyState, Icon, Select } from '../ds'
 import { newEntity, newSecret, toggleId } from '../local/domain'
 import { blankSession, withLocalSessions } from '../local/normalize'
 import type { LocalCampaignEntityType, LocalCampaignRecord, LocalSessionPlanItem, LocalSessionPlanKind, LocalSessionRecord } from '../local/types'
 import { LivePanel } from './local/LivePanel'
 import { ReviewWizard } from './local/ReviewWizard'
-import { CampaignNav, Checklist } from './local/shared'
+import { CampaignNav, Checklist, StorageBadge } from './local/shared'
 import { ActingMasterSelect } from './local/ActingMasterSelect'
 import { useActing } from '../local/actingContext'
 import { handOver, masterName, runSessionHint, sessionPlayers } from '../local/team'
@@ -80,7 +80,7 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
   } : null
 
   return <main className="sessions-workspace">
-    <header className="sessions-workspace__top"><Link to={`/local/campaign/${campaign.id}/overview`}><Icon name="arrow-left" size={16} /> {campaign.name}</Link><CampaignNav campaignId={campaign.id} section={mode === 'plan' ? 'session' : mode} /><div className="row"><ActingMasterSelect campaign={campaign} /><Badge tone="neutral" dot>Локальные данные</Badge></div></header>
+    <header className="sessions-workspace__top"><Link to={`/local/campaign/${campaign.id}/overview`}><Icon name="arrow-left" size={16} /> {campaign.name}</Link><CampaignNav campaignId={campaign.id} section={mode === 'plan' ? 'session' : mode} /><div className="row"><ActingMasterSelect campaign={campaign} /><StorageBadge campaignId={campaign.id} /></div></header>
     <div className="sessions-workspace__body">
       <aside className="sessions-workspace__rail"><div className="panel-heading"><div><span className="panel-kicker">Кампания</span><h2>Сессии</h2></div><Button size="sm" icon="plus" onClick={create}>Новая</Button></div><div className="sessions-workspace__session-list">{sessions.map((session) => <button key={session.id} className={session.id === selected?.id ? 'active' : ''} onClick={() => choose(session.id)}><span>{String(session.number).padStart(2, '0')}</span><div><strong>{session.title}</strong><small>{statusLabel[session.status]} · {session.inGameTime || 'время не задано'}</small></div></button>)}</div>{!sessions.length && <EmptyState icon="clapperboard" title="Сессий пока нет" hint="Создайте первую или планируйте несколько заранее." action={<Button variant="primary" onClick={create}>Создать сессию</Button>} />}</aside>
       {selected && <section className="session-plan"><header className="session-plan__passport"><div><span className="panel-kicker">Сессия {String(selected.number).padStart(2, '0')} · {statusLabel[selected.status]}</span><h1>{selected.title}</h1><p>{selected.focus || selected.idea || 'Фокус пока не задан.'}</p></div><div className="session-plan__actions"><Button icon="pencil" onClick={() => setEditor(structuredClone(selected))}>Паспорт</Button>{selected.status === 'active' ? <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/play`)}>Панель проведения</Button> : selected.status === 'completed' ? <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/review`)}>Разобрать</Button> : <Button variant="primary" icon="play" title={acting.canRun(selected) ? undefined : runSessionHint(campaign, selected)} disabled={!selected.planItems.length || !acting.canRun(selected)} onClick={() => { updateSession({ ...selected, status: 'active' }); navigate(`/local/campaign/${campaign.id}/play`) }}>Начать</Button>}</div></header>

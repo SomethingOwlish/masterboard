@@ -144,7 +144,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
   if (!isObject(value) || typeof value.id !== 'string' || !value.id || typeof value.name !== 'string') return null
   const updatedAt = text(value.updatedAt, now)
   const storedMasters = list<Raw>(value.masters).filter((master) => isObject(master) && typeof master.id === 'string' && typeof master.name === 'string')
-    .map((master): LocalMaster => ({ id: master.id as string, name: master.name as string, role: master.role === 'owner' ? 'owner' : 'co-master' }))
+    .map((master): LocalMaster => ({ id: master.id as string, name: master.name as string, role: master.role === 'owner' ? 'owner' : 'co-master', ...(typeof master.email === 'string' && master.email.trim() ? { email: master.email.trim().toLocaleLowerCase() } : {}) }))
   const masters = storedMasters.length ? storedMasters : parseMasters(text(value.masters))
   if (!masters.some((master) => master.role === 'owner')) masters[0] = { ...masters[0], role: 'owner' }
   const team: TeamContext = {

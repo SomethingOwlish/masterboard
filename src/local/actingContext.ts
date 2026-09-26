@@ -2,7 +2,7 @@ import { createContext, useContext } from 'react'
 import { canManageCampaign, canRunSession, ownerOf } from './team'
 import type { LocalCampaignRecord, LocalMaster, LocalSessionRecord } from './types'
 
-export interface ActingState { masterId: string; setMasterId: (id: string) => void }
+export interface ActingState { masterId: string; setMasterId: (id: string) => void; locked?: boolean }
 export const ActingContext = createContext<ActingState | null>(null)
 
 const storageKey = (campaignId: string) => `masterboard.acting-master.${campaignId}`
@@ -24,6 +24,8 @@ export interface Acting {
   /** Owner-only: masters, ownership, archive, deletion. */
   canManage: boolean
   canRun: (session: LocalSessionRecord) => boolean
+  /** Shared campaign: the master comes from the sign-in and cannot be switched. */
+  locked: boolean
 }
 
 export function useActing(campaign: LocalCampaignRecord): Acting {
@@ -35,5 +37,6 @@ export function useActing(campaign: LocalCampaignRecord): Acting {
     setMasterId: state?.setMasterId ?? (() => undefined),
     canManage: canManageCampaign(campaign, master.id),
     canRun: (session) => canRunSession(campaign, session, master.id),
+    locked: Boolean(state?.locked),
   }
 }
