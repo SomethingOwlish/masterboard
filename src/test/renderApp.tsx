@@ -6,10 +6,11 @@ import { createLocalCampaignCatalog, type LocalCampaignCatalog } from '../local/
 import { blankSession, withLocalSessions } from '../local/normalize'
 import type { LocalCampaignRecord } from '../local/types'
 import { LocalCatalogProvider } from '../local/useLocalCampaign'
+import { ConfirmHost } from '../components/useConfirm'
 
 export function renderApp(path: string, catalog: LocalCampaignCatalog = createLocalCampaignCatalog(new MemoryStorageGateway())) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
-  render(<LocalCatalogProvider catalog={catalog}><RouterProvider router={router} /></LocalCatalogProvider>)
+  render(<LocalCatalogProvider catalog={catalog}><RouterProvider router={router} /><ConfirmHost /></LocalCatalogProvider>)
   return { router, catalog }
 }
 

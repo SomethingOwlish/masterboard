@@ -15,7 +15,7 @@ const SESSION_STATUSES = ['draft', 'ready', 'active', 'completed'] as const
 const PLAN_KINDS = ['scene', 'idea', 'goal', 'event', 'question', 'secret', 'npc', 'material', 'note', 'consequence'] as const
 
 export function blankSession(number: number, master: string, now: string, id = `session-${crypto.randomUUID()}`): LocalSessionRecord {
-  return { id, number, title: '', status: 'draft', master, arcId: '', backgroundArcIds: [], group: '', participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, createdAt: now }
+  return { id, number, title: '', status: 'draft', master, arcId: '', backgroundArcIds: [], group: '', participants: '', inGameTime: '', timelinePosition: '', idea: '', focus: '', opening: '', lines: '', layers: '', systems: '', planItems: [], flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, appliedDecisions: {}, createdAt: now }
 }
 
 function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
@@ -33,6 +33,7 @@ function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
     alternative: text(raw.alternative),
     note: text(raw.note),
     origin: oneOf(raw.origin, ['prepared', 'live', 'review'] as const, 'prepared'),
+    carriedFromSessionId: typeof raw.carriedFromSessionId === 'string' ? raw.carriedFromSessionId : undefined,
   }
 }
 
@@ -49,10 +50,12 @@ function normalizeSession(raw: unknown, index: number, fallbackDate: string): Lo
     lines: text(raw.lines), layers: text(raw.layers), systems: text(raw.systems),
     planItems: list(raw.planItems).map(normalizePlanItem).filter((item): item is LocalSessionPlanItem => item !== null),
     flows: list<LocalSessionFlow>(raw.flows),
-    log: list<LocalSessionLogEntry>(raw.log),
+    log: list<LocalSessionLogEntry>(raw.log).map(normalizeLogEntry),
     reviewNotes: text(raw.reviewNotes),
     reviewStatus: raw.reviewStatus === 'completed' ? 'completed' : 'draft',
     reviewDecisions: isObject(raw.reviewDecisions) ? (raw.reviewDecisions as Record<string, LocalReviewDecision>) : {},
+    appliedDecisions: isObject(raw.appliedDecisions) ? (raw.appliedDecisions as Record<string, LocalReviewDecision>) : {},
+    nextSessionId: typeof raw.nextSessionId === 'string' ? raw.nextSessionId : undefined,
   }
 }
 
@@ -78,11 +81,15 @@ function legacySessions(raw: Raw, fallbackDate: string): LocalSessionRecord[] {
     focus: text(raw.firstSessionObjective), opening: text(raw.firstSessionOpening),
     planItems: [...scenes, ...linked],
     flows: list<LocalSessionFlow>(raw.firstSessionFlows),
-    log: list<LocalSessionLogEntry>(raw.firstSessionLog),
+    log: list<LocalSessionLogEntry>(raw.firstSessionLog).map(normalizeLogEntry),
     reviewNotes: text(raw.firstSessionReviewNotes),
     reviewStatus: raw.firstSessionReviewStatus === 'completed' ? 'completed' : 'draft',
     reviewDecisions: isObject(raw.firstSessionReviewDecisions) ? (raw.firstSessionReviewDecisions as Record<string, LocalReviewDecision>) : {},
   }]
+}
+
+function normalizeLogEntry(entry: LocalSessionLogEntry): LocalSessionLogEntry {
+  return { ...entry, kind: oneOf(entry.kind, ['moment', 'decision', 'reveal', 'roll', 'clock', 'entity'] as const, 'moment') }
 }
 
 function normalizeEntity(raw: Raw): LocalCampaignEntity {
@@ -119,7 +126,12 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     sessionRecords,
     activeSessionId,
     entities: list<Raw>(value.entities).filter((entity) => isObject(entity) && typeof entity.id === 'string').map(normalizeEntity),
-    relations: list(value.relations),
+    relations: list<Raw>(value.relations).filter((relation) => isObject(relation) && typeof relation.id === 'string').map((relation) => ({
+      id: relation.id as string, fromId: text(relation.fromId), toId: text(relation.toId), label: text(relation.label),
+      type: oneOf(relation.type, ['alliance', 'enmity', 'debt', 'kin', 'belongs', 'other'] as const, 'other'),
+      direction: relation.direction === 'mutual' ? 'mutual' as const : 'directed' as const,
+      visibility: relation.visibility === 'public' ? 'public' as const : 'master' as const,
+    })),
     storyArcs: list<Raw>(value.storyArcs).filter((arc) => isObject(arc) && typeof arc.id === 'string').map((arc) => newArc({
       id: arc.id as string, title: text(arc.title), direction: text(arc.direction), stakes: text(arc.stakes),
       status: oneOf(arc.status, ['planned', 'active', 'paused', 'resolved', 'cancelled'] as const, 'planned'), statusReason: text(arc.statusReason),
@@ -139,6 +151,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     })),
     tasks: list(value.tasks),
     inbox: list(value.inbox),
+    relationLayout: isObject(value.relationLayout) ? (value.relationLayout as LocalCampaignRecord['relationLayout']) : {},
     createdAt: text(value.createdAt, updatedAt),
     updatedAt,
   }

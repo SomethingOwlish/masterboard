@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Badge, Button, EmptyState } from '../../ds'
 import { moveClock, newClock, resolveClockTrigger } from '../../local/domain'
+import { newTask } from '../../local/sessionFlow'
 import type { LocalCampaignClock, LocalCampaignTask, LocalClockThreshold } from '../../local/types'
 import { useConfirm } from '../useConfirm'
 import { Checklist, Editor, type SectionProps } from './shared'
@@ -9,7 +10,7 @@ const CLOCK_KIND: Record<LocalCampaignClock['kind'], string> = { threat: 'Угр
 type Draft = Omit<LocalCampaignClock, 'id' | 'history' | 'triggerStatus' | 'firedAt'>
 type ClockEvent = { clockId: string; reached: LocalClockThreshold[]; filled: boolean }
 
-const consequenceTask = (clock: LocalCampaignClock, text: string): LocalCampaignTask => ({ id: `task-${crypto.randomUUID()}`, text: `Последствие часов «${clock.title}»: ${text}`, source: 'masterboard', done: false })
+const consequenceTask = (clock: LocalCampaignClock, text: string): LocalCampaignTask => newTask(`Последствие часов «${clock.title}»: ${text}`, 'clock', { clockId: clock.id })
 
 export function ClocksPanel({ campaign, persist }: SectionProps) {
   const confirm = useConfirm()

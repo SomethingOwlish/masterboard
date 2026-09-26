@@ -1,11 +1,11 @@
 import { useState } from 'react'
 import { Badge, Button, EmptyState } from '../../ds'
 import { changeSecretStatus, newSecret, secretSessions, type RevealInput } from '../../local/domain'
+import { SECRET_STATUS } from '../../local/labels'
 import type { LocalCampaignSecret, LocalSecretStatus } from '../../local/types'
 import { useConfirm } from '../useConfirm'
 import { Checklist, Editor, type SectionProps } from './shared'
 
-export const SECRET_STATUS: Record<LocalSecretStatus, string> = { hidden: 'Не раскрыт', partial: 'Частично', selected: 'Выбранным героям', everyone: 'Всем героям', disproved: 'Опровергнут', obsolete: 'Устарел' }
 type Draft = Omit<LocalCampaignSecret, 'id' | 'reveals' | 'sessionIds'>
 
 export function SecretsPanel({ campaign, persist }: SectionProps) {
