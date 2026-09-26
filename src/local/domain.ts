@@ -59,13 +59,14 @@ export function entityUsages(campaign: LocalCampaignRecord, entityId: string): E
 
 export const usageCount = (usages: EntityUsages): number => usages.plans.length + usages.relations.length + usages.clocks.length + usages.secrets.length
 
-export interface EntityFilter { query: string; type: LocalCampaignEntityType | 'all'; showArchived: boolean }
+export interface EntityFilter { query: string; type: LocalCampaignEntityType | 'all'; showArchived: boolean; /** NPCs only: alive or dead. */ fate?: 'all' | 'alive' | 'dead' }
 
 export function filterEntities(entities: LocalCampaignEntity[], filter: EntityFilter): LocalCampaignEntity[] {
   const query = filter.query.trim().toLocaleLowerCase()
   return entities.filter((entity) =>
     (filter.showArchived || entity.status !== 'archived') &&
     (filter.type === 'all' || entity.type === filter.type) &&
+    (!filter.fate || filter.fate === 'all' || (entity.type === 'npc' && Boolean(entity.dead) === (filter.fate === 'dead'))) &&
     (!query || `${entity.name} ${entity.tags.join(' ')} ${Object.values(entity.fields).join(' ')}`.toLocaleLowerCase().includes(query)))
 }
 

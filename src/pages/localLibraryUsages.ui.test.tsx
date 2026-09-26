@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { screen, within } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { newEntity } from '../local/domain'
@@ -22,5 +22,23 @@ describe('library: where used', () => {
     expect(within(free).queryByText(/Где используется/)).not.toBeInTheDocument()
     await user.click(within(free).getByRole('button', { name: 'Редактировать: Бродяга' }))
     expect(screen.getByRole('button', { name: 'Удалить' })).toBeEnabled()
+  })
+})
+
+describe('library: NPC fate', () => {
+  it('marks an NPC as dead and filters the library by fate', async () => {
+    const user = userEvent.setup()
+    const { catalog, id } = await readyCampaign({ entities: [newEntity({ id: 'a', type: 'npc', name: 'Олан' }), newEntity({ id: 'b', type: 'npc', name: 'Капитан' })] })
+    renderApp(`/local/campaign/${id}/library`, catalog)
+    await user.click(await screen.findByRole('button', { name: 'Редактировать: Капитан' }))
+    await user.click(screen.getByLabelText('Персонаж погиб'))
+    await user.click(screen.getByRole('button', { name: 'Сохранить' }))
+    const card = (await screen.findByRole('heading', { name: 'Капитан' })).closest('article')!
+    expect(within(card).getByText('Погиб')).toBeInTheDocument()
+    await user.selectOptions(screen.getByLabelText('Тип сущности'), 'npc')
+    await user.selectOptions(screen.getByLabelText('Судьба NPC'), 'alive')
+    expect(screen.queryByRole('heading', { name: 'Капитан' })).not.toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'Олан' })).toBeInTheDocument()
+    await waitFor(async () => expect((await catalog.find(id))?.entities.find((entity) => entity.id === 'b')?.dead).toBe(true))
   })
 })

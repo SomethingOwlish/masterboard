@@ -103,3 +103,18 @@ describe('entity usages', () => {
     expect(usageCount(entityUsages(campaign, 'nobody'))).toBe(0)
   })
 })
+
+describe('NPC fate', () => {
+  it('filters NPCs by alive or dead and ignores the flag on other types', () => {
+    const entities = [newEntity({ type: 'npc', name: 'Живой' }), newEntity({ type: 'npc', name: 'Мёртвый', dead: true }), newEntity({ type: 'location', name: 'Гавань' })]
+    const names = (fate: 'all' | 'alive' | 'dead') => filterEntities(entities, { query: '', type: 'npc', showArchived: false, fate }).map((item) => item.name)
+    expect(names('all')).toEqual(['Живой', 'Мёртвый'])
+    expect(names('alive')).toEqual(['Живой'])
+    expect(names('dead')).toEqual(['Мёртвый'])
+  })
+
+  it('keeps the flag through a reload only for NPCs', () => {
+    const campaign = normalizeCampaign({ id: 'c', name: 'К', entities: [{ id: 'a', type: 'npc', name: 'A', dead: true }, { id: 'b', type: 'location', name: 'B', dead: true }, { id: 'c', type: 'npc', name: 'C', dead: 'yes' }] }, NOW)!
+    expect(campaign.entities.map((entity) => entity.dead)).toEqual([true, undefined, undefined])
+  })
+})

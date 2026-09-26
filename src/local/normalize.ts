@@ -134,6 +134,7 @@ function normalizeEntity(raw: Raw): LocalCampaignEntity {
     name: text(raw.name), description: text(raw.description), tags,
     visibility: raw.visibility === 'public' ? 'public' : 'master',
     status: oneOf(raw.status, ['active', 'inactive', 'archived'] as const, 'active'),
+    ...(raw.dead === true && raw.type === 'npc' ? { dead: true } : {}),
     fields: stringMap(raw.fields),
     origin,
     sources: list<Raw>(raw.sources).filter((source) => isObject(source) && typeof source.id === 'string' && typeof source.containerId === 'string').map(normalizeSource),

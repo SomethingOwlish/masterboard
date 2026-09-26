@@ -12,6 +12,8 @@ export interface LocalCampaignEntity {
   tags: string[]
   visibility: 'master' | 'public'
   status: 'active' | 'inactive' | 'archived'
+  /** NPC only: the character has died. Kept apart from `status` so a dead NPC can still be active in the story. */
+  dead?: boolean
   /** Type-specific card fields, keyed by the field id from `ENTITY_FIELDS`. */
   fields: Record<string, string>
   origin: LocalEntityOrigin
