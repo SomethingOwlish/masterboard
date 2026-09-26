@@ -7,12 +7,14 @@ import type { LocalCampaignEntityType, LocalCampaignRecord, LocalSessionPlanItem
 import { LivePanel } from './local/LivePanel'
 import { ReviewWizard } from './local/ReviewWizard'
 import { CampaignNav } from './local/shared'
+import { PlanViews } from './local/plan/PlanViews'
+import { PLAN_KINDS, PRIORITIES, type PlanApi } from './local/plan/planApi'
+import { moveItemTo, removeItem, setItemStatus } from '../local/plan'
 
 type Props = { campaign: LocalCampaignRecord; persist: (next: LocalCampaignRecord) => void; mode?: 'plan' | 'play' | 'review' }
-const priorities = [['required', 'Обязательно'], ['desired', 'Желательно'], ['useful', 'Полезно'], ['backup', 'Запас']] as const
-const kinds: Array<[LocalSessionPlanKind, string]> = [['scene', 'Сцена'], ['idea', 'Идея'], ['goal', 'Цель'], ['event', 'Событие'], ['question', 'Вопрос'], ['secret', 'Секрет'], ['npc', 'NPC'], ['material', 'Материал'], ['note', 'Заметка'], ['consequence', 'Последствие']]
+const priorities = PRIORITIES
+const kinds = PLAN_KINDS
 const statusLabel = { draft: 'Черновик', ready: 'Готова', active: 'Проводится', completed: 'Закрыта' } as const
-const useStatus = [['prepared', 'Подготовлено'], ['current', 'Актуально'], ['used', 'Использовано'], ['skipped', 'Пропущено'], ['moved', 'Перенесено'], ['cancelled', 'Отменено']] as const
 
 export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Props) {
   const navigate = useNavigate()
@@ -53,6 +55,18 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
   }
   const attachSecret = (secretId: string) => { if (!selected) return; const secret = campaign.secrets.find((item) => item.id === secretId); if (!secret) return; updateSession({ ...selected, planItems: [...selected.planItems, { id: `plan-${crypto.randomUUID()}`, source: 'text', secretId, text: secret.title, kind: 'secret', priority: quickPriority, status: 'prepared', role: '', alternative: '', note: '', origin: 'prepared' }] }) }
 
+  const planApi: PlanApi | null = selected ? {
+    session: selected,
+    itemTitle,
+    update: updateSession,
+    patchItem: (id, patch) => { patchItem(id, patch) },
+    setStatus: (id, status) => updateSession(setItemStatus(selected, id, status)),
+    move: (id, target) => updateSession(moveItemTo(selected, id, target)),
+    shift: moveItem,
+    remove: (id) => updateSession(removeItem(selected, id)),
+    saveToLibrary,
+  } : null
+
   return <main className="sessions-workspace">
     <header className="sessions-workspace__top"><Link to={`/local/campaign/${campaign.id}/overview`}><Icon name="arrow-left" size={16} /> {campaign.name}</Link><CampaignNav campaignId={campaign.id} section={mode === 'plan' ? 'session' : mode} /><Badge tone="neutral" dot>Локальные данные</Badge></header>
     <div className="sessions-workspace__body">
@@ -60,7 +74,7 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
       {selected && <section className="session-plan"><header className="session-plan__passport"><div><span className="panel-kicker">Сессия {String(selected.number).padStart(2, '0')} · {statusLabel[selected.status]}</span><h1>{selected.title}</h1><p>{selected.focus || selected.idea || 'Фокус пока не задан.'}</p></div><div className="session-plan__actions"><Button icon="pencil" onClick={() => setEditor(structuredClone(selected))}>Паспорт</Button>{selected.status === 'active' ? <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/play`)}>Панель проведения</Button> : selected.status === 'completed' ? <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/review`)}>Разобрать</Button> : <Button variant="primary" icon="play" disabled={!selected.planItems.length} onClick={() => { updateSession({ ...selected, status: 'active' }); navigate(`/local/campaign/${campaign.id}/play`) }}>Начать</Button>}</div></header>
         <dl className="session-plan__meta"><div><dt>Мастер</dt><dd>{selected.master || 'Не назначен'}</dd></div><div><dt>Группа и участники</dt><dd>{[selected.group, selected.participants].filter(Boolean).join(' · ') || 'Не заданы'}</dd></div><div><dt>Время и шкала</dt><dd>{[selected.inGameTime, selected.timelinePosition].filter(Boolean).join(' · ') || 'Не заданы'}</dd></div><div><dt>Стартовая ситуация</dt><dd>{selected.opening || 'Не задана'}</dd></div></dl>
         <section className="session-plan__composer"><div className="row"><Select aria-label="Тип пункта плана" value={quickKind} onChange={(event) => setQuickKind(event.target.value as LocalSessionPlanKind)}>{kinds.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select><Select aria-label="Приоритет пункта" value={quickPriority} onChange={(event) => setQuickPriority(event.target.value as LocalSessionPlanItem['priority'])}>{priorities.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></div><input aria-label="Свободный текст пункта плана" value={quickText} placeholder="Сцена, идея, вопрос или любой свободный текст…" onChange={(event) => setQuickText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addText() }} /><Button variant="primary" disabled={!quickText.trim()} onClick={addText}>Добавить текстом</Button><Button icon="library" onClick={() => setLibraryOpen(true)}>Из библиотеки</Button><Button icon="shield" onClick={() => setSecretsOpen(true)}>Из секретов</Button></section>
-        <div className="session-plan__columns">{priorities.map(([priority, label]) => { const list = selected.planItems.filter((item) => item.priority === priority); return <section key={priority} data-priority={priority}><header><h2>{label}</h2><span>{list.length}</span></header>{list.map((item) => <article key={item.id}><div className="session-plan__item-main"><div className="row"><Badge size="sm" tone={item.secretId ? 'warning' : item.source === 'library' ? 'accent' : 'neutral'}>{item.secretId ? 'Секрет' : item.source === 'library' ? 'Библиотека' : 'Текст'}</Badge><Select aria-label={`Тип ${itemTitle(item)}`} value={item.kind} onChange={(event) => patchItem(item.id, { kind: event.target.value as LocalSessionPlanKind })}>{kinds.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select></div><h3>{itemTitle(item)}</h3><input value={item.note} aria-label={`Заметка ${itemTitle(item)}`} placeholder="Локальная заметка, условие или роль…" onChange={(event) => patchItem(item.id, { note: event.target.value })} /></div><div className="session-plan__item-controls"><Select aria-label={`Статус ${itemTitle(item)}`} value={item.status} onChange={(event) => patchItem(item.id, { status: event.target.value as LocalSessionPlanItem['status'] })}>{useStatus.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select><div className="row"><Button size="sm" aria-label="Выше" onClick={() => moveItem(item.id, -1)}>↑</Button><Button size="sm" aria-label="Ниже" onClick={() => moveItem(item.id, 1)}>↓</Button>{item.source === 'text' && !item.secretId && <Button size="sm" icon={item.kind === 'secret' ? 'shield' : 'library'} onClick={() => saveToLibrary(item)}>{item.kind === 'secret' ? 'В секреты' : 'В библиотеку'}</Button>}<Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать ${itemTitle(item)} из сессии`} onClick={() => updateSession({ ...selected, planItems: selected.planItems.filter((current) => current.id !== item.id) })} /></div></div></article>)}{!list.length && <p className="session-plan__empty">Пока пусто</p>}</section> })}</div>
+        {planApi && <PlanViews api={planApi} />}
         {selected.status === 'active' && <LivePanel campaign={campaign} session={selected} persist={persist} onClose={() => { updateSession({ ...selected, status: 'completed' }); navigate(`/local/campaign/${campaign.id}/review`) }} />}
         {mode === 'play' && selected.status !== 'active' && <p className="session-plan__notice" role="status">Эта сессия сейчас не проводится. {selected.status === 'completed' ? 'Она уже закрыта — откройте разбор.' : 'Нажмите «Начать», чтобы открыть живую панель.'}</p>}
         {mode === 'review' && selected.status !== 'completed' && <p className="session-plan__notice" role="status">Разбор откроется, когда сессия будет закрыта.</p>}

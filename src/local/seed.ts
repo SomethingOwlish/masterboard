@@ -20,7 +20,7 @@ export const MOON_PORT: LocalCampaignRecord = {
       { id: 'plan-moon-stairs', source: 'text', text: 'Лестница фонарей уходит под воду', kind: 'scene', priority: 'required', status: 'prepared', role: '', alternative: '', note: 'Показать, что прилив неестественный.', origin: 'prepared' },
       { id: 'plan-moon-keeper', source: 'library', entityId: 'entity-moon-keeper', text: 'Смотритель Олан', kind: 'npc', priority: 'desired', status: 'prepared', role: '', alternative: '', note: 'Знает, где лежит договор.', origin: 'prepared' },
     ],
-    flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, appliedDecisions: {}, createdAt: STAMP,
+    flows: [], log: [], reviewNotes: '', reviewStatus: 'draft', reviewDecisions: {}, appliedDecisions: {}, planLayout: {}, printConfig: { priorities: ['required', 'desired', 'useful', 'backup'], passport: true, entities: true, secrets: true, clocks: true, flows: true, notes: true }, createdAt: STAMP,
   }],
   activeSessionId: 'session-moon-1',
   entities: [

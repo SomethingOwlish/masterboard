@@ -132,6 +132,8 @@ export interface LocalSessionPlanItem {
   origin: 'prepared' | 'live' | 'review'
   /** Session the item was carried over from during a review. */
   carriedFromSessionId?: string
+  /** Scene (another plan item of kind `scene`) this item belongs to on the scene board. */
+  sceneId?: string
 }
 
 export interface LocalSessionRecord {
@@ -161,7 +163,20 @@ export interface LocalSessionRecord {
   /** Decisions already applied, so reopening and re-closing a review is safe. */
   appliedDecisions: Record<string, LocalReviewDecision>
   nextSessionId?: string
+  /** Node positions of the transitions graph, by plan item id. */
+  planLayout: Record<string, { x: number; y: number }>
+  printConfig: LocalPrintConfig
   createdAt: string
+}
+
+export interface LocalPrintConfig {
+  priorities: Array<LocalSessionPlanItem['priority']>
+  passport: boolean
+  entities: boolean
+  secrets: boolean
+  clocks: boolean
+  flows: boolean
+  notes: boolean
 }
 
 export type LocalReviewDecision = 'carry' | 'library' | 'cancel' | 'keep'
