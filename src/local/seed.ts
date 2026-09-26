@@ -17,6 +17,11 @@ export const MOON_PORT: LocalCampaignRecord = {
   ],
   groups: [{ id: 'group-main', name: 'Основная партия', playerIds: ['player-ira', 'player-tim'] }],
   archived: false,
+  improv: [
+    { id: 'improv-name-1', masterId: 'master-owl', kind: 'name', text: 'Мирта Солеварка' },
+    { id: 'improv-complication-1', masterId: 'master-owl', kind: 'complication', text: 'Фонари гаснут все разом' },
+  ],
+  dashboardLayouts: {},
   notes: ['Красный прилив поднимается каждую ночь фестиваля.', 'Гильдия фонарщиков хранит старый договор с луной.'],
   sessionRecords: [{
     id: 'session-moon-1', number: 1, title: 'Первая ночь в Лунном порту', status: 'draft', masterId: 'master-owl', handovers: [], arcId: 'arc-moon-pact', backgroundArcIds: [],

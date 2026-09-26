@@ -27,7 +27,7 @@ export function newEntity(input: Partial<LocalCampaignEntity> & Pick<LocalCampai
 }
 
 export const ORIGIN_LABEL: Record<LocalCampaignEntity['origin']['kind'], string> = {
-  manual: 'Создано вручную', plan: 'Из плана сессии', live: 'Из живой сессии', inbox: 'Из входящих', import: 'Импорт',
+  manual: 'Создано вручную', plan: 'Из плана сессии', live: 'Из живой сессии', inbox: 'Из входящих', import: 'Импорт', improv: 'Из заготовок',
 }
 
 export function originLabel(entity: LocalCampaignEntity, campaign: LocalCampaignRecord): string {

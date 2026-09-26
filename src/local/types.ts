@@ -16,7 +16,7 @@ export interface LocalCampaignEntity {
 }
 
 export interface LocalEntityOrigin {
-  kind: 'manual' | 'plan' | 'live' | 'inbox' | 'import'
+  kind: 'manual' | 'plan' | 'live' | 'inbox' | 'import' | 'improv'
   sessionId?: string
 }
 
@@ -182,6 +182,12 @@ export interface LocalPlayer { id: string; name: string; characterIds: string[];
 export interface LocalGroup { id: string; name: string; playerIds: string[] }
 export interface LocalHandover { id: string; fromId: string; toId: string; byId: string; createdAt: string }
 
+export type LocalImprovKind = 'name' | 'npc' | 'location' | 'item' | 'event' | 'complication'
+export interface LocalImprovItem { id: string; masterId: string; kind: LocalImprovKind; text: string; usedAt?: string; usedSessionId?: string; entityId?: string }
+
+export type LocalWidgetId = 'session' | 'arcs' | 'clocks' | 'secrets' | 'tasks' | 'inbox'
+export interface LocalDashboardLayout { order: LocalWidgetId[]; hidden: LocalWidgetId[]; wide: LocalWidgetId[] }
+
 export interface LocalPrintConfig {
   priorities: Array<LocalSessionPlanItem['priority']>
   passport: boolean
@@ -203,6 +209,10 @@ export interface LocalCampaignRecord {
   players: LocalPlayer[]
   groups: LocalGroup[]
   archived: boolean
+  /** Personal improv sheets; each item belongs to one master. */
+  improv: LocalImprovItem[]
+  /** Personal overview layouts, by master id. */
+  dashboardLayouts: Record<string, LocalDashboardLayout>
   notes: string[]
   sessionRecords: LocalSessionRecord[]
   activeSessionId?: string

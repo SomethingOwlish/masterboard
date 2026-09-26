@@ -7,6 +7,7 @@ import { OnboardingRoom } from '../components/local/OnboardingRoom'
 import { OverviewSection } from '../components/local/OverviewSection'
 import { PrintSection } from '../components/local/PrintSection'
 import { TeamSection } from '../components/local/TeamSection'
+import { ImprovSection } from '../components/local/ImprovSection'
 import { ActingProvider } from '../local/ActingProvider'
 import { RelationsSection } from '../components/local/RelationsSection'
 import { WorldSection } from '../components/local/WorldSection'
@@ -23,6 +24,7 @@ const SECTIONS: Record<string, (props: SectionProps) => JSX.Element> = {
   world: WorldSection,
   print: PrintSection,
   team: TeamSection,
+  improv: ImprovSection,
 }
 
 export function LocalNewCampaignPage() {

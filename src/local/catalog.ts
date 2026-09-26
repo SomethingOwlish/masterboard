@@ -107,7 +107,7 @@ export function createLocalCampaignCatalog(gateway: StorageGateway, options: Cat
     async create(name: string, idea: string): Promise<LocalCampaignRecord> {
       await initialize()
       const stamp = now()
-      const campaign: LocalCampaignRecord = { id: newId('local'), name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: [newMaster('Ведущий', 'owner')], players: [], groups: [], archived: false, notes: [], sessionRecords: [], entities: [], relations: [], storyArcs: [], clocks: [], secrets: [], tasks: [], inbox: [], relationLayout: {}, createdAt: stamp, updatedAt: stamp }
+      const campaign: LocalCampaignRecord = { id: newId('local'), name: name.trim(), idea: idea.trim() || 'Новая история ждёт первой сессии.', activeTime: 'Время ещё не задано', masters: [newMaster('Ведущий', 'owner')], players: [], groups: [], archived: false, improv: [], dashboardLayouts: {}, notes: [], sessionRecords: [], entities: [], relations: [], storyArcs: [], clocks: [], secrets: [], tasks: [], inbox: [], relationLayout: {}, createdAt: stamp, updatedAt: stamp }
       await gateway.set(path(campaign.id), { ...campaign })
       return structuredClone(campaign)
     },
