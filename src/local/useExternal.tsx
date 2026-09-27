@@ -2,11 +2,12 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { ExternalGateway } from '../adapters/fakeExternal'
 import type { CapabilityPassport, ExternalConnection } from '../model/external'
 import { ExternalError, HttpExternalGateway } from './external'
-import type { ExternalItem } from './integration'
+import type { ExternalItem, ExternalListing } from './integration'
 
 /** What the screens need from lorebook / lovegame / systemsetup. */
 export interface ExternalPort extends ExternalGateway {
   entities(connectionId: string, type?: string): Promise<ExternalItem[]>
+  listing(connectionId: string, type?: string): Promise<ExternalListing>
 }
 
 let defaultPort: ExternalPort | null = null

@@ -1,7 +1,9 @@
 import type { ID } from './types'
 
 /** Systems that can expose read-only projections or accept explicit publications. */
-export type ExternalSystem = 'lovegame' | 'lorebook' | 'systemsetup'
+export const EXTERNAL_SYSTEMS = ['lovegame', 'lorebook', 'systemsetup'] as const
+export type ExternalSystem = typeof EXTERNAL_SYSTEMS[number]
+export const isExternalSystem = (value: unknown): value is ExternalSystem => typeof value === 'string' && (EXTERNAL_SYSTEMS as readonly string[]).includes(value)
 
 export type ConnectionScope = 'campaign' | 'world' | 'system'
 

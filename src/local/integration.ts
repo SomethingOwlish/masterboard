@@ -16,11 +16,15 @@ export interface ExternalItem {
   /** Card fields by their label on the other side. */
   fields: Record<string, string>
   visibility: 'public' | 'master'
-  status: string
+  /** lorebook sends it; lovegame and systemsetup have no statuses. */
+  status?: string
   archived: boolean
   updatedAt: number
   url?: string
 }
+
+/** GET /mb/entities: readable records plus the ids of every live record of the type. */
+export interface ExternalListing { items: ExternalItem[]; ids: string[] }
 
 /** The body of POST /mb/publish, apart from routing. */
 export interface ExternalPatch {
