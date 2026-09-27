@@ -76,13 +76,13 @@ export function TeamSection({ campaign, persist }: SectionProps) {
     </section>
 
     {picking && <DirectoryPicker campaign={campaign} persist={persist} close={() => setPicking(false)} />}
-    {playerEditor && <Editor title={campaign.players.some((item) => item.id === playerEditor.id) ? 'Игрок' : 'Новый игрок'} close={() => setPlayerEditor(null)}>
+    {playerEditor && <Editor title={campaign.players.some((item) => item.id === playerEditor.id) ? 'Игрок' : 'Новый игрок'} close={() => setPlayerEditor(null)} draft={playerEditor}>
       <label htmlFor="player-name">Имя<input id="player-name" autoFocus value={playerEditor.name} onChange={(e) => setPlayerEditor({ ...playerEditor, name: e.target.value })} /></label>
       <Checklist legend="Персонажи игрока" options={characters.map((entity) => ({ id: entity.id, label: entity.name }))} value={playerEditor.characterIds} onChange={(characterIds) => setPlayerEditor({ ...playerEditor, characterIds })} empty="В библиотеке нет сущностей типа «Персонаж»." />
       <label htmlFor="player-note">Заметка<input id="player-note" value={playerEditor.note} onChange={(e) => setPlayerEditor({ ...playerEditor, note: e.target.value })} /></label>
       <footer><Button onClick={() => setPlayerEditor(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={!playerEditor.name.trim()} onClick={savePlayer}>Сохранить</Button></footer>
     </Editor>}
-    {groupEditor && <Editor title={campaign.groups.some((item) => item.id === groupEditor.id) ? 'Группа' : 'Новая группа'} close={() => setGroupEditor(null)}>
+    {groupEditor && <Editor title={campaign.groups.some((item) => item.id === groupEditor.id) ? 'Группа' : 'Новая группа'} close={() => setGroupEditor(null)} draft={groupEditor}>
       <label htmlFor="group-name">Название<input id="group-name" autoFocus value={groupEditor.name} onChange={(e) => setGroupEditor({ ...groupEditor, name: e.target.value })} /></label>
       <Checklist legend="Участники" options={campaign.players.map((player) => ({ id: player.id, label: player.name }))} value={groupEditor.playerIds} onChange={(playerIds) => setGroupEditor({ ...groupEditor, playerIds })} />
       <footer><Button onClick={() => setGroupEditor(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={!groupEditor.name.trim()} onClick={saveGroup}>Сохранить</Button></footer>

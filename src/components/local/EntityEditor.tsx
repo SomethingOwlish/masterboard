@@ -29,7 +29,7 @@ export function EntityEditor({ campaign, persist, entity, defaultType = 'npc', c
     close()
   }
   const planned = entity === 'new' ? 0 : blockingPlans(entityUsages(campaign, entity.id)).length
-  return <Editor title={entity === 'new' ? 'Новая сущность' : 'Редактировать сущность'} close={close}>
+  return <Editor title={entity === 'new' ? 'Новая сущность' : 'Редактировать сущность'} close={close} draft={draft} size="xl">
       <div className="control-form__row"><label htmlFor="local-entity-type">Тип<Select id="local-entity-type" value={draft.type} onChange={(event) => setDraft(retypeEntity(draft, event.target.value as LocalCampaignEntityType))}>{ENTITY_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</Select></label><label htmlFor="local-entity-name">Название<input id="local-entity-name" autoFocus value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label></div>
       <label htmlFor="local-entity-description">Рабочее описание<textarea className="auto-grow" id="local-entity-description" rows={3} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
       {ENTITY_FIELDS[draft.type].length > 0 && <div className="entity-fields">{ENTITY_FIELDS[draft.type].map((field) => <label key={field.id} htmlFor={`local-entity-field-${field.id}`}>{field.label}<textarea className="auto-grow" rows={1} id={`local-entity-field-${field.id}`} value={draft.fields[field.id] ?? ''} onChange={(event) => setDraft({ ...draft, fields: { ...draft.fields, [field.id]: event.target.value } })} /></label>)}</div>}

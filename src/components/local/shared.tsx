@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
-import { Badge, Button, Icon } from '../../ds'
+import { Badge, Button, Icon, Modal } from '../../ds'
 import { LocalThemeControl } from '../LocalThemeControl'
 import { ActingMasterSelect } from './ActingMasterSelect'
 import { useLocalCatalog } from '../../local/useLocalCampaign'
@@ -132,8 +132,26 @@ function ConflictDialog({ campaign, conflicts, them, resolve, close }: { campaig
   </Editor>
 }
 
-export function Editor({ title, close, children, kicker = 'Локальные параметры' }: { title: string; close: () => void; children: ReactNode; kicker?: string }) {
-  return <div className="campaign-workspace__scrim" onMouseDown={(e) => { if (e.currentTarget === e.target) close() }} onKeyDown={(e) => { if (e.key === 'Escape') close() }}><section className="campaign-workspace__modal" role="dialog" aria-modal="true" aria-label={title}><span className="panel-kicker">{kicker}</span><h2>{title}</h2>{children}</section></div>
+/**
+ * The app's form dialog on top of DS `Modal`: focus stays inside, Escape or a
+ * click outside closes it, focus returns to the opener. Pass the form's
+ * `draft`: once it differs from the draft the dialog opened with, closing by
+ * Escape, the backdrop or «×» asks first. The kicker line shows only when given.
+ */
+export function Editor({ title, close, children, kicker, draft, size = 'lg' }: { title: string; close: () => void; children: ReactNode; kicker?: string; draft?: unknown; size?: 'lg' | 'xl' }) {
+  const dirty = useChanged(draft)
+  return (
+    <Modal
+      title={title}
+      kicker={kicker}
+      size={size}
+      dirty={dirty}
+      className="dialog-form"
+      onClose={close}
+    >
+      {children}
+    </Modal>
+  )
 }
 
 /**
@@ -150,9 +168,26 @@ export function SubmitField({ label, value, onSubmit, placeholder, className }: 
   </form>
 }
 
-/** Wide dialog of the sessions workspace (passport, library picker). Escape or a click outside closes it. */
-export function SessionModal({ title, close, children }: { title: string; close: () => void; children: ReactNode }) {
-  return <div className="campaign-workspace__scrim" onMouseDown={(event) => { if (event.currentTarget === event.target) close() }} onKeyDown={(event) => { if (event.key === 'Escape') close() }}><section className="campaign-workspace__modal sessions-modal" role="dialog" aria-modal="true" aria-label={title}><h2>{title}</h2>{children}</section></div>
+/** Whether `value` differs from what it was on the first render (compared as JSON). */
+function useChanged(value: unknown) {
+  const [start] = useState(() => JSON.stringify(value))
+  return value !== undefined && JSON.stringify(value) !== start
+}
+
+/** Wide dialog of the sessions workspace (passport, library picker) — `Editor` at full width. */
+export function SessionModal({ title, close, children, draft }: { title: string; close: () => void; children: ReactNode; draft?: unknown }) {
+  const dirty = useChanged(draft)
+  return (
+    <Modal
+      title={title}
+      size="full"
+      dirty={dirty}
+      className="dialog-form sessions-modal"
+      onClose={close}
+    >
+      {children}
+    </Modal>
+  )
 }
 
 export function Capture({ value, setValue, add, label = 'Добавить' }: { value: string; setValue: (value: string) => void; add: () => void; label?: string }) {

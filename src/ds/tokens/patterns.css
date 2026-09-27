@@ -84,3 +84,78 @@
   pointer-events: none;
   z-index: -1;
 }
+
+/* Modal — scrim, window and its parts (feedback/Modal.jsx). */
+.mb-modal-scrim {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--space-5);
+  background: color-mix(in oklab, var(--bg) 40%, rgba(0, 0, 0, 0.5));
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+  animation: mbFade var(--dur) var(--ease-out);
+}
+.mb-modal {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-height: 90vh;
+  overflow: hidden;
+  border: var(--border-width) solid var(--border);
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-lg);
+  animation: mbPop var(--dur-slow) var(--ease-out);
+}
+.mb-modal:focus { outline: none; }
+.mb-modal__head { display: flex; align-items: flex-start; gap: var(--space-3); padding: var(--space-5) var(--space-5) var(--space-4); }
+.mb-modal__icon {
+  display: inline-flex;
+  flex: 0 0 auto;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  border-radius: var(--radius-sm);
+  background: var(--accent-soft);
+  color: var(--accent);
+}
+.mb-modal__titles { flex: 1; min-width: 0; }
+.mb-modal__kicker {
+  display: block;
+  margin-bottom: 2px;
+  color: var(--muted);
+  font: var(--type-meta);
+  letter-spacing: var(--tracking-wide);
+  text-transform: uppercase;
+}
+.mb-modal__title {
+  margin: 0;
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: var(--weight-medium);
+  line-height: 1.2;
+}
+.mb-modal__subtitle { margin: 4px 0 0; color: var(--muted); font-size: var(--text-sm); }
+.mb-modal__body { padding: 0 var(--space-5) var(--space-5); overflow-y: auto; }
+.mb-modal__body--bare { padding: var(--space-5); }
+.mb-modal__foot {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--space-2);
+  padding: var(--space-4) var(--space-5);
+  border-top: var(--border-width) solid var(--border);
+  background: var(--surface-2);
+}
+.mb-modal__message { margin: 0; color: var(--muted); font-size: var(--text-sm); line-height: 1.55; }
+@media (max-width: 620px) {
+  .mb-modal-scrim { align-items: flex-end; padding: var(--space-3) var(--space-3) 0; }
+  .mb-modal { border-radius: var(--radius-xl) var(--radius-xl) 0 0; }
+}

@@ -35,6 +35,7 @@
   /* Z layers */
   --z-rail: 30;       /* @kind other */
   --z-scrim: 40;      /* @kind other */
+  --z-panel: 45;      /* @kind other */
   --z-modal: 50;      /* @kind other */
   --z-toast: 60;      /* @kind other */
   --z-tooltip: 70;    /* @kind other */
