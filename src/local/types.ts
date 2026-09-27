@@ -52,6 +52,10 @@ export interface EntitySource {
   updatedAt: number
   syncedAt: string
   snapshot: EntitySnapshot
+  /** lorebook only: the record's status when last read (`removed` — «к удалению»). */
+  status?: string
+  /** The world record came from a SystemSetup system (lorebridge `ss.lore`). */
+  from?: 'systemsetup'
 }
 
 /** World / campaign on the other side this campaign is linked to (decision F4: set by the owner). */

@@ -162,6 +162,8 @@ function normalizeSource(raw: Raw): EntitySource {
     url: typeof raw.url === 'string' ? raw.url : undefined,
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : 0,
     syncedAt: text(raw.syncedAt),
+    ...(typeof raw.status === 'string' && raw.status ? { status: raw.status } : {}),
+    ...(raw.from === 'systemsetup' ? { from: 'systemsetup' as const } : {}),
     snapshot: {
       name: text(snapshot.name), description: text(snapshot.description),
       tags: list<unknown>(snapshot.tags).filter((tag): tag is string => typeof tag === 'string'),

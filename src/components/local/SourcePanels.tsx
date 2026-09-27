@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Badge, Button, Icon, Select } from '../../ds'
-import { ROLE_LABEL, SYSTEM_LABEL, connectionKey, linkedRole, parseConnectionKey, roleConnection, type CampaignRole, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
+import { REMOVED_HINT, ROLE_LABEL, SYSTEM_LABEL, connectionKey, linkedRole, parseConnectionKey, roleConnection, statusBadge, type CampaignRole, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord } from '../../local/types'
 import { useConnections, useExternal } from '../../local/useExternal'
 import { logImport } from '../../local/imports'
@@ -9,6 +9,15 @@ import { ENTITY_LABEL, Editor, type Persist } from './shared'
 const ROLES: CampaignRole[] = ['world', 'table', 'system']
 const date = (value: string) => value ? new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
 const show = (value: unknown) => Array.isArray(value) ? value.map((tag) => `#${tag}`).join(' ') || '—' : value === 'public' ? 'Для игроков' : value === 'master' ? 'Только ведущим' : String(value ?? '') || '—'
+
+/** «Из Системсетапа» and a status worth a glance («К удалению» loudest), for a record or a link to it. */
+function SourceMarks({ status, fromSystemsetup }: { status?: string; fromSystemsetup: boolean }) {
+  const badge = statusBadge(status)
+  return <>
+    {fromSystemsetup && <Badge size="sm" tone="neutral" icon="book-open">Из Системсетапа</Badge>}
+    {badge && <Badge size="sm" tone={badge.tone} title={status === 'removed' ? REMOVED_HINT : undefined}>{badge.label}</Badge>}
+  </>
+}
 
 /** Sources a campaign can read from: its linked world / campaign and systemsetup (decision F2). */
 function useSources(campaign: LocalCampaignRecord) {
@@ -58,7 +67,7 @@ export function ImportDialog({ campaign, persist, close, stay = false }: { campa
       {items && items.length > 1 && <label className="source-import__all"><input type="checkbox" checked={visible.every((item) => linked.has(item.id) || chosen.includes(item.id))} onChange={(event) => setChosen(event.target.checked ? [...new Set([...chosen, ...visible.filter((item) => !linked.has(item.id)).map((item) => item.id)])] : chosen.filter((id) => !visible.some((item) => item.id === id)))} /> Выбрать все{query.trim() ? ' найденные' : ''}</label>}
       {items === null ? <p className="muted" role="status">Читаем записи…</p> : visible.length ? <ul className="source-import__list" aria-label="Записи источника">{visible.map((item) => {
         const already = linked.has(item.id)
-        return <li key={item.id}><label><input type="checkbox" disabled={already} checked={already || chosen.includes(item.id)} onChange={() => setChosen(chosen.includes(item.id) ? chosen.filter((id) => id !== item.id) : [...chosen, item.id])} /><span className="source-import__text"><strong>{item.name}</strong><small>{item.type} → {ENTITY_LABEL[importType(source.system, item.type)]}{item.visibility === 'master' ? ' · только ведущим' : ''}{item.archived ? ' · в архиве' : ''}</small></span>{already && <Badge size="sm" tone="neutral">уже в библиотеке</Badge>}</label></li>
+        return <li key={item.id}><label><input type="checkbox" disabled={already} checked={already || chosen.includes(item.id)} onChange={() => setChosen(chosen.includes(item.id) ? chosen.filter((id) => id !== item.id) : [...chosen, item.id])} /><span className="source-import__text"><strong>{item.name}</strong><small>{item.type} → {ENTITY_LABEL[importType(source.system, item.type)]}{item.visibility === 'master' ? ' · только ведущим' : ''}{item.archived ? ' · в архиве' : ''}</small></span><SourceMarks status={item.archived ? undefined : item.status} fromSystemsetup={item.source?.app === 'systemsetup'} />{already && <Badge size="sm" tone="neutral">уже в библиотеке</Badge>}</label></li>
       })}</ul> : !error && <p className="muted">{items.length ? 'Ничего не найдено.' : 'В источнике пока нет записей.'}</p>}
     </>}
     <footer><Button onClick={close}>{stay && added ? 'Готово' : 'Отмена'}</Button><Button variant="primary" icon="download" disabled={!chosen.length} onClick={add}>{chosen.length ? `Добавить ${chosen.length} в библиотеку` : 'Добавить в библиотеку'}</Button></footer>
@@ -111,9 +120,10 @@ export function SourceLinks({ campaign, entity, persist }: { campaign: LocalCamp
   }
   return <div className="source-links">
     {entity.sources.map((source) => <div key={`${source.system}:${source.containerId}:${source.id}`} className="row">
-      <Icon name="link" size={14} />{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{SYSTEM_LABEL[source.system]}</a> : <span>{SYSTEM_LABEL[source.system]}</span>}<small>сверено {date(source.syncedAt)}</small>
+      <Icon name="link" size={14} />{source.url ? <a href={source.url} target="_blank" rel="noreferrer">{SYSTEM_LABEL[source.system]}</a> : <span>{SYSTEM_LABEL[source.system]}</span>}<SourceMarks status={source.status === 'archived' ? undefined : source.status} fromSystemsetup={source.from === 'systemsetup'} /><small>сверено {date(source.syncedAt)}</small>
       <Button size="sm" icon="refresh-cw" disabled={busy !== null} aria-label={`Обновить из источника: ${entity.name} (${SYSTEM_LABEL[source.system]})`} onClick={() => void refresh(source)}>{busy === source.id ? 'Читаем…' : 'Обновить'}</Button>
     </div>)}
+    {entity.sources.some((source) => source.status === 'removed') && <small className="source-links__removed">{REMOVED_HINT}</small>}
     {note && <small role="status">{note}</small>}
     {clash && <ClashDialog plan={clash.plan} source={clash.source} apply={(next) => { apply(next); setNote('Обновлено с вашим выбором.') }} close={() => setClash(null)} />}
   </div>

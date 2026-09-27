@@ -48,6 +48,8 @@ lorebook — миры, где мастер автор; lovegame — кампан
 ], "ids": ["<все живые id — чтобы увидеть жёсткие удаления>"] }
 ```
 - lorebook: `visibility` = `master`, если `access === 'hidden'`; текст (markdown) в список не входит.
+- lorebook: `status` — статус записи мира, в том числе `removed` («к удалению»): его ставит только сверка с SystemSetup, когда запись убрали из системы; запись остаётся в мире и на столах, пока автор мира не решит. Masterboard показывает его и не ставит (в `statuses` паспорта его нет).
+- lorebook: необязательное `source: {app:'systemsetup', system, dataset, entry}` — запись перенесена из системы SystemSetup (умение моста `ss.lore`); Masterboard рисует «Из Системсетапа». У прочих записей поля нет. Добавлено 27 сентября 2026 (lorebridge#85).
 - lovegame: `visibility` из `visibleToPlayer`; `summary` — публичная часть (`publicBody`/`body`/`shortDesc`); мастерские поля (`gmBody`) не отдаются.
 - systemsetup: опубликованные системы `{id: key, type:'system', name, summary, updatedAt}`.
 

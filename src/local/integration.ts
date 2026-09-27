@@ -21,6 +21,8 @@ export interface ExternalItem {
   archived: boolean
   updatedAt: number
   url?: string
+  /** lorebook only: the world record was moved from a SystemSetup system (lorebridge `ss.lore`). */
+  source?: { app: 'systemsetup'; system: string; dataset: string; entry: string }
 }
 
 /** GET /mb/schema (ТЗ-2, R2): card fields of each record type there. */
@@ -38,6 +40,28 @@ export interface ExternalPatch {
   visibility?: 'public' | 'master'
   status?: string
 }
+
+/**
+ * Lorebook record statuses as the world shows them. `removed` («к удалению») is
+ * set only by the SystemSetup check when the record left the system; the record
+ * still reaches tables until the world's author deletes it or keeps it as their own,
+ * so Masterboard shows it loudly and never sets it.
+ */
+export const LOREBOOK_STATUS: Record<string, { label: string; tone: 'neutral' | 'warning' | 'danger' }> = {
+  draft: { label: 'Черновик', tone: 'neutral' },
+  review: { label: 'Дорабатывается', tone: 'neutral' },
+  approved: { label: 'Одобрено', tone: 'neutral' },
+  canon: { label: 'Канон', tone: 'neutral' },
+  nonCanon: { label: 'Не-канон', tone: 'neutral' },
+  archived: { label: 'В архиве', tone: 'neutral' },
+  removed: { label: 'К удалению', tone: 'danger' },
+}
+
+/** Badge for a lorebook status worth a glance: canon (the usual) and unknown statuses show nothing. */
+export const statusBadge = (status: string | undefined) => status && status !== 'canon' ? LOREBOOK_STATUS[status] : undefined
+
+/** Hint under a record marked «к удалению». */
+export const REMOVED_HINT = 'Запись убрали из системы в SystemSetup. В мире она пока есть — удалить её или оставить своей решает автор мира в Лорбуке.'
 
 export const SYSTEM_LABEL: Record<ExternalSystem, string> = { lorebook: 'Лорбук', lovegame: 'ЛавГеймс', systemsetup: 'SystemSetup', kk9: 'КК9' }
 /** Systems a campaign links to (decision F4, R1): a world, a table and a game system. */
@@ -193,8 +217,11 @@ export function effectiveOperation(entity: LocalCampaignEntity, system: External
 
 // ─── Import (decision F2) ───────────────────────────────────────────────────
 
-const newSource = (system: ExternalSystem, containerId: string, item: ExternalItem, snapshot: EntitySnapshot, now: string): EntitySource =>
-  ({ system, containerId, id: item.id, type: item.type, url: item.url, updatedAt: item.updatedAt, syncedAt: now, snapshot })
+const newSource = (system: ExternalSystem, containerId: string, item: ExternalItem, snapshot: EntitySnapshot, now: string): EntitySource => ({
+  system, containerId, id: item.id, type: item.type, url: item.url, updatedAt: item.updatedAt, syncedAt: now, snapshot,
+  ...(item.status ? { status: item.status } : {}),
+  ...(item.source?.app === 'systemsetup' ? { from: 'systemsetup' as const } : {}),
+})
 
 /** Adds the chosen records to the library, each linked to its source. Already linked records are skipped. */
 export function importItems(campaign: LocalCampaignRecord, system: ExternalSystem, containerId: string, items: ExternalItem[], now: string): { campaign: LocalCampaignRecord; added: number } {
@@ -274,7 +301,7 @@ export function recordPublished(campaign: LocalCampaignRecord, items: LocalCampa
     for (const item of mine) {
       const { system, externalId } = parseConnectionKey(item.connectionId)
       const previous = sources.find((source) => source.system === system && source.containerId === externalId)
-      const source: EntitySource = { system, containerId: externalId, id: item.result!.id, type: item.targetType ?? previous?.type ?? '', url: item.result!.url ?? previous?.url, updatedAt: item.result!.updatedAt, syncedAt: now, snapshot: snapshotOf(entity) }
+      const source: EntitySource = { system, containerId: externalId, id: item.result!.id, type: item.targetType ?? previous?.type ?? '', url: item.result!.url ?? previous?.url, updatedAt: item.result!.updatedAt, syncedAt: now, snapshot: snapshotOf(entity), ...(previous?.status ? { status: previous.status } : {}), ...(previous?.from ? { from: previous.from } : {}) }
       sources = previous ? sources.map((item_) => item_ === previous ? source : item_) : [...sources, source]
     }
     return { ...entity, sources }
