@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Button, Icon } from '../../ds'
-import { ENTITY_STATUS_LABEL, entityUsages, originLabel } from '../../local/domain'
+import { ENTITY_STATUS_LABEL, blockingPlans, entityUsages, originLabel } from '../../local/domain'
 import { ARC_STATUS, SECRET_STATUS } from '../../local/labels'
 import { PeekContext, usePeek, type PeekApi } from '../../local/peekContext'
 import { SEARCH_GROUP, searchCampaign, type PeekTarget, type SearchHit } from '../../local/search'
@@ -42,7 +42,8 @@ export function PeekProvider({ campaign, persist, children }: { campaign: LocalC
   const open = useCallback((target: PeekTarget) => { setSearching(false); setStack((current) => [...current.filter((item) => item.kind !== target.kind || item.id !== target.id), target].slice(-8)) }, [])
   const api = useMemo<PeekApi>(() => ({ open, search: () => setSearching(true) }), [open])
   useEffect(() => {
-    const onKey = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.key.toLocaleLowerCase() === 'k') { event.preventDefault(); setSearching(true) } }
+    // `code`, not `key`: on a Russian layout the same key gives «л».
+    const onKey = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') { event.preventDefault(); setSearching(true) } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [])
@@ -71,12 +72,12 @@ function PeekDrawer({ campaign, persist, target, back, close }: { campaign: Loca
         badges: [entity.visibility === 'public' ? 'Для игроков' : 'Только ведущим', ...(entity.status !== 'active' ? [ENTITY_STATUS_LABEL[entity.status]] : []), ...(entity.dead ? ['Погиб'] : [])],
         body: <>
           <p>{entity.description || <span className="muted">Описание пока не добавлено.</span>}</p>
-          <EntityDetails entity={entity} className="peek-fields" />
+          <EntityDetails entity={entity} className="peek-fields" fate={false} />
           {entity.tags.length > 0 && <p className="row">{entity.tags.map((tag) => <Badge size="sm" key={tag}>#{tag}</Badge>)}</p>}
           <SourceLinks campaign={campaign} entity={entity} persist={persist} />
           {usages.relations.length > 0 && <PeekSection title="Связи"><ul>{usages.relations.map((relation) => { const other = relation.fromId === entity.id ? relation.toId : relation.fromId; return <li key={relation.id}>{RELATION_LABEL[relation.type]}{relation.direction === 'directed' ? (relation.fromId === entity.id ? ' → ' : ' ← ') : ' ↔ '}<PeekLink target={{ kind: 'entity', id: other }}>{entityName(other) ?? 'удалена'}</PeekLink>{relation.label && <small> · {relation.label}</small>}</li> })}</ul></PeekSection>}
           {(usages.clocks.length > 0 || usages.secrets.length > 0) && <PeekSection title="Часы и секреты"><PeekList items={[...usages.clocks.map((clock) => ({ target: { kind: 'clock' as const, id: clock.id }, name: `Часы «${clock.title}»` })), ...usages.secrets.map((secret) => ({ target: { kind: 'secret' as const, id: secret.id }, name: `Секрет «${secret.title}»` }))]} /></PeekSection>}
-          {usages.plans.length > 0 && <PeekSection title="В планах сессий"><PeekList items={usages.plans.filter((usage) => !usage.trashed).map((usage) => ({ target: { kind: 'session' as const, id: usage.sessionId }, name: `№${usage.sessionNumber} ${usage.sessionTitle}` }))} /></PeekSection>}
+          {blockingPlans(usages).length > 0 && <PeekSection title="В планах сессий"><PeekList items={blockingPlans(usages).map((usage) => ({ target: { kind: 'session' as const, id: usage.sessionId }, name: `№${usage.sessionNumber} ${usage.sessionTitle}` }))} /></PeekSection>}
           <small className="muted">{originLabel(entity, campaign)}</small>
         </>,
         actions: <><Button size="sm" icon="pencil" onClick={() => setEditing(true)}>Редактировать</Button><Button size="sm" variant="primary" icon="arrow-up-right" onClick={() => go(`entity/${entity.id}`)}>Открыть полностью</Button></>,
@@ -145,7 +146,7 @@ function PeekDrawer({ campaign, persist, target, back, close }: { campaign: Loca
         {scenes.length > 0 && <PeekSection title="Сцены"><ul>{scenes.map((scene) => <li key={scene.id}>{scene.text || entityName(scene.entityId ?? '') || 'Сцена'}</li>)}</ul></PeekSection>}
         <small className="muted">Пунктов плана: {session.planItems.length} · записей журнала: {session.log.length}</small>
       </>,
-      actions: session.deletedAt ? <small className="muted">Сессия в корзине</small> : <Button size="sm" variant="primary" icon="arrow-up-right" onClick={() => { persist({ ...campaign, activeSessionId: session.id }); go('session') }}>Открыть сессию</Button>,
+      actions: session.deletedAt ? <small className="muted">Сессия в корзине</small> : <Button size="sm" variant="primary" icon="arrow-up-right" onClick={() => go(`session?session=${encodeURIComponent(session.id)}`)}>Открыть сессию</Button>,
     }
   })()
   const entity = target.kind === 'entity' ? campaign.entities.find((item) => item.id === target.id) : undefined

@@ -5,7 +5,9 @@ collect campaign data, draw relationships and chronologies, take notes, pull inf
 from your other sites, and push tasks to a third. Deployed as a static SPA on Cloudflare.
 
 > Status: historical. This describes the first, GitHub-synced architecture. Its pages
-> and stores were removed in stage 3 of `docs/roadmap.md`; the current spec is `docs/spec.md`.
+> and stores were removed in stage 3 of `docs/roadmap.md`; the current spec is `docs/spec-v2.md`
+> with `docs/spec-v3.md` (base: `docs/spec.md`). Themes described here are outdated too: the app
+> now has 5 theme families (Parchment, Sage, Sumi, Indigo, Dusk), each in a light and a dark mode.
 
 ---
 

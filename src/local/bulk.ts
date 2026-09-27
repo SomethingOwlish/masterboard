@@ -1,7 +1,7 @@
 // Actions over many library entities at once (ТЗ-2, R7) and fields from the base (R2).
 
 import { EXPORT_FORMAT } from './catalog'
-import { ENTITY_FIELDS } from './domain'
+import { ENTITY_FIELDS, retypeEntity } from './domain'
 import { ROLE_OF, linkedRole, type WritableRole } from './integration'
 import { enqueueByRoles } from './publishing'
 import type { LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalRelationType, LocalSessionPlanItem } from './types'
@@ -15,18 +15,8 @@ export const addTags = (campaign: LocalCampaignRecord, ids: string[], tags: stri
 export const removeTags = (campaign: LocalCampaignRecord, ids: string[], tags: string[]) => { const drop = cleanTags(tags); return each(campaign, ids, (entity) => ({ ...entity, tags: entity.tags.filter((tag) => !drop.includes(tag)) })) }
 export const setVisibility = (campaign: LocalCampaignRecord, ids: string[], visibility: LocalCampaignEntity['visibility']) => each(campaign, ids, (entity) => ({ ...entity, visibility }))
 export const setStatus = (campaign: LocalCampaignRecord, ids: string[], status: LocalCampaignEntity['status']) => each(campaign, ids, (entity) => ({ ...entity, status }))
-/** A new type keeps every field value; fields the new type has no slot for travel on under their label, as imported ones do. */
-export const setType = (campaign: LocalCampaignRecord, ids: string[], type: LocalCampaignEntityType) => each(campaign, ids, (entity) => {
-  if (entity.type === type) return entity
-  const fields: Record<string, string> = {}
-  for (const [key, value] of Object.entries(entity.fields)) {
-    const label = ENTITY_FIELDS[entity.type].find((field) => field.id === key)?.label ?? key
-    const slot = ENTITY_FIELDS[type].find((field) => field.label.toLocaleLowerCase() === label.toLocaleLowerCase())
-    fields[slot?.id ?? label] = value
-  }
-  const { dead: _dead, ...rest } = entity
-  return { ...(type === 'npc' ? entity : rest), type, fields }
-})
+/** A new type keeps every field value (see `retypeEntity`). */
+export const setType = (campaign: LocalCampaignRecord, ids: string[], type: LocalCampaignEntityType) => each(campaign, ids, (entity) => retypeEntity(entity, type))
 /** One field (by id or label) set on every chosen entity; an empty value clears it. */
 export const setField = (campaign: LocalCampaignRecord, ids: string[], key: string, value: string) => each(campaign, ids, (entity) => {
   const fields = { ...entity.fields }

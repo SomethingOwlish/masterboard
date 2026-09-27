@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { Button, EmptyState, Icon, Select } from '../ds'
 import { sessionStatusText } from '../local/labels'
 import { newEntity, newSecret, toggleId } from '../local/domain'
@@ -34,10 +34,14 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
   const running = runningSession(campaign)
   const acting = useActing(campaign)
   const byMode = mode === 'play' ? live.find((item) => item.status === 'active') : mode === 'review' ? [...live].reverse().find((item) => item.status === 'completed' && item.reviewStatus === 'draft') ?? [...live].reverse().find((item) => item.status === 'completed') : undefined
-  const initialId = byMode?.id ?? (campaign.activeSessionId && live.some((item) => item.id === campaign.activeSessionId) ? campaign.activeSessionId : live[0]?.id)
+  // `?session=<id>` opens that session (Peek, library) without touching the shared `activeSessionId`.
+  const requested = useSearchParams()[0].get('session')
+  const requestedId = requested && live.some((item) => item.id === requested) ? requested : undefined
+  const initialId = requestedId ?? byMode?.id ?? (campaign.activeSessionId && live.some((item) => item.id === campaign.activeSessionId) ? campaign.activeSessionId : live[0]?.id)
   const [selectedId, setSelectedId] = useState(initialId ?? '')
   const selected = live.find((item) => item.id === selectedId) ?? live[0]
   const [editor, setEditor] = useState<LocalSessionRecord | null>(null)
+  useEffect(() => { if (requestedId) setSelectedId(requestedId) }, [requestedId])
   // «Панель проведения» и «Разобрать» ведут сюда: показать нужную панель, а не тот же экран плана.
   useEffect(() => {
     if (mode === 'plan') return

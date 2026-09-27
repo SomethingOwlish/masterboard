@@ -27,7 +27,7 @@ export function EntityPage({ campaign, persist, entityId }: { campaign: LocalCam
     <div className="entity-page__layout">
       <div className="entity-page__main">
         <p className="entity-page__description">{entity.description || <span className="muted">Описание пока не добавлено.</span>}</p>
-        <EntityDetails entity={entity} className="peek-fields entity-page__fields" />
+        <EntityDetails entity={entity} className="peek-fields entity-page__fields" fate={false} />
         {entity.tags.length > 0 && <p className="row">{entity.tags.map((tag) => <Badge size="sm" key={tag}>#{tag}</Badge>)}</p>}
         <h3>Связи</h3>
         {usages.relations.length ? <ul className="entity-page__list">{usages.relations.map((relation) => { const other = relation.fromId === entity.id ? relation.toId : relation.fromId; return <li key={relation.id}><span className="muted">{RELATION_LABEL[relation.type]}{relation.direction === 'directed' ? (relation.fromId === entity.id ? ' →' : ' ←') : ' ↔'}</span> <PeekLink target={{ kind: 'entity', id: other }}>{name(other)}</PeekLink>{relation.label && <small> · {relation.label}</small>}</li> })}</ul> : <p className="muted">Связей нет. <Link to={`/local/campaign/${campaign.id}/map`}>Добавить в «Связях»</Link></p>}

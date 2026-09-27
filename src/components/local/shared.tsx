@@ -7,7 +7,7 @@ import { useLocalCatalog } from '../../local/useLocalCampaign'
 import type { CampaignConflicts } from '../../local/useLocalCampaign'
 import { conflictPlace, conflictValue } from '../../local/merge'
 import type { LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
-import { usePeek } from '../../local/peekContext'
+import { searchShortcut, usePeek } from '../../local/peekContext'
 
 export type Persist = (next: LocalCampaignRecord) => void
 export interface SectionProps { campaign: LocalCampaignRecord; persist: Persist }
@@ -69,7 +69,7 @@ export function CampaignNav({ campaignId, section, className }: { campaignId: st
         {expanded && <div className="campaign-nav__menu" role="menu" aria-label={group.label}>{group.sections.map((id) => link(id, () => setOpen(null)))}</div>}
       </div>
     })}
-    {peek && <button type="button" className="campaign-nav__search" onClick={peek.search} aria-label="Поиск по кампании"><Icon name="search" size={15} /> Поиск <kbd>Ctrl K</kbd></button>}
+    {peek && <button type="button" className="campaign-nav__search" onClick={peek.search} aria-label="Поиск по кампании"><Icon name="search" size={15} /> Поиск <kbd>{searchShortcut()}</kbd></button>}
   </nav>
 }
 

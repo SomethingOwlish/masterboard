@@ -1,7 +1,7 @@
 import { lazy, Suspense, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Button, EmptyState, Select } from '../../ds'
-import { filterRelations, RELATION_TYPE, type RelationFilter } from '../../local/sessionFlow'
+import { filterRelations, RELATION_TYPE, relationEntities, type RelationFilter } from '../../local/sessionFlow'
 import type { LocalCampaignRelation, LocalRelationType } from '../../local/types'
 import { Editor, type SectionProps } from './shared'
 import { LazyBoundary } from './LazyBoundary'
@@ -23,6 +23,12 @@ export function RelationsSection({ campaign, persist }: SectionProps) {
   const openEditor = (relation: LocalCampaignRelation | 'new', preset?: Partial<Draft>) => { setEditor(relation); setDraft(relation === 'new' ? { ...blank(activeEntities[0]?.id, activeEntities[1]?.id), ...preset } : { fromId: relation.fromId, toId: relation.toId, label: relation.label, type: relation.type, direction: relation.direction, visibility: relation.visibility }) }
   const save = () => { if (!draft.label.trim() || draft.fromId === draft.toId || !editor) return; const relation: LocalCampaignRelation = { ...draft, label: draft.label.trim(), id: editor === 'new' ? `relation-${crypto.randomUUID()}` : editor.id }; persist({ ...campaign, relations: editor === 'new' ? [...campaign.relations, relation] : campaign.relations.map((item) => item.id === relation.id ? relation : item) }); setEditor(null) }
   const visible = filterRelations(campaign.relations, filter)
+  // The relation's current ends stay choosable even when archived, marked as such.
+  const endOptions = relationEntities(campaign, [draft.fromId, draft.toId]).map((entity) => (
+    <option key={entity.id} value={entity.id}>
+      {entity.status === 'archived' ? `${entity.name} (в архиве)` : entity.name}
+    </option>
+  ))
 
   return <>
     <section className="campaign-section campaign-relation-map"><div className="panel-heading"><div><span className="panel-kicker">Карта ведущего</span><h2>Связи мира</h2><p>Кто с кем связан, как именно и что об этом знают игроки.</p></div><div className="row"><div className="campaign-relation-map__filters" role="group" aria-label="Вид связей"><button className={view === 'list' ? 'active' : ''} aria-pressed={view === 'list'} onClick={() => setView('list')}>Список</button><button className={view === 'graph' ? 'active' : ''} aria-pressed={view === 'graph'} onClick={() => setView('graph')}>Граф</button></div><Button variant="primary" icon="plus" disabled={activeEntities.length < 2} onClick={() => openEditor('new')}>Новая связь</Button></div></div>
@@ -33,7 +39,20 @@ export function RelationsSection({ campaign, persist }: SectionProps) {
           : <EmptyState icon="share-2" title={campaign.relations.length ? 'Под фильтр ничего не попало' : 'Связей пока нет'} hint={campaign.relations.length ? 'Сбросьте фильтры по типу или сущности.' : 'Соедините две сущности и подпишите, что между ними происходит.'} action={<Button variant="primary" icon="plus" onClick={() => openEditor('new')}>Добавить связь</Button>} />}
       </>}</section>
     {editor && <Editor title={editor === 'new' ? 'Новая связь' : 'Редактировать связь'} close={() => setEditor(null)}>
-      <div className="campaign-relation-form"><label htmlFor="relation-from">От<select id="relation-from" value={draft.fromId} onChange={(e) => setDraft({ ...draft, fromId: e.target.value })}>{activeEntities.map((entity) => <option key={entity.id} value={entity.id}>{entity.name}</option>)}</select></label><label htmlFor="relation-to">К кому<select id="relation-to" value={draft.toId} onChange={(e) => setDraft({ ...draft, toId: e.target.value })}>{activeEntities.map((entity) => <option key={entity.id} value={entity.id}>{entity.name}</option>)}</select></label></div>
+      <div className="campaign-relation-form">
+        <label htmlFor="relation-from">
+          От
+          <select id="relation-from" value={draft.fromId} onChange={(e) => setDraft({ ...draft, fromId: e.target.value })}>
+            {endOptions}
+          </select>
+        </label>
+        <label htmlFor="relation-to">
+          К кому
+          <select id="relation-to" value={draft.toId} onChange={(e) => setDraft({ ...draft, toId: e.target.value })}>
+            {endOptions}
+          </select>
+        </label>
+      </div>
       <label htmlFor="relation-label">Смысл связи<input id="relation-label" autoFocus value={draft.label} placeholder="доверяет, преследует, хранит тайну…" onChange={(e) => setDraft({ ...draft, label: e.target.value })} /></label>
       <div className="control-form__row"><label htmlFor="relation-type">Тип<select id="relation-type" value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value as LocalRelationType })}>{Object.entries(RELATION_TYPE).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label htmlFor="relation-direction">Направление<select id="relation-direction" value={draft.direction} onChange={(e) => setDraft({ ...draft, direction: e.target.value as Draft['direction'] })}><option value="directed">От первого ко второму</option><option value="mutual">Взаимная</option></select></label><label htmlFor="relation-visibility">Видимость<select id="relation-visibility" value={draft.visibility} onChange={(e) => setDraft({ ...draft, visibility: e.target.value as 'master' | 'public' })}><option value="master">Только ведущим</option><option value="public">Для игроков</option></select></label></div>
       {draft.fromId === draft.toId && <p className="local-session-error">Выберите две разные сущности.</p>}

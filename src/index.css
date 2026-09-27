@@ -959,6 +959,7 @@ kbd {
 .campaign-relation-map__toolbar .campaign-relation-map__filters { margin: 0; }
 .relation-graph { height: min(640px, 70vh); border: 1px solid var(--border); border-radius: var(--radius-lg); overflow: hidden; background: var(--bg); }
 .relation-graph__node { padding: 8px 12px; border: 1px solid var(--border-strong) !important; border-radius: var(--radius) !important; background: var(--surface) !important; color: var(--text) !important; font-weight: 600; }
+.relation-graph__node--archived { border-style: dashed !important; background: var(--surface-2) !important; color: var(--muted) !important; font-weight: 500; }
 .relation-graph__hint { margin-top: var(--space-2); font-size: .82rem; }
 
 /* Stage 2: live panel and review wizard */

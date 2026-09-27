@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { newEntity } from './domain'
 import { blankSession, normalizeCampaign, withLocalSessions } from './normalize'
-import { completeReview, filterRelations, missingDecisions } from './sessionFlow'
+import { completeReview, filterRelations, missingDecisions, relationEntities } from './sessionFlow'
 import type { LocalCampaignRecord, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 const NOW = '2026-09-26T10:00:00.000Z'
@@ -91,5 +92,13 @@ describe('relations', () => {
     expect(filterRelations(campaign.relations, { visibility: 'all', type: 'enmity', entityId: '' }).map((relation) => relation.id)).toEqual(['r2'])
     expect(filterRelations(campaign.relations, { visibility: 'public', type: 'all', entityId: '' }).map((relation) => relation.id)).toEqual(['r1'])
     expect(filterRelations(campaign.relations, { visibility: 'all', type: 'all', entityId: 'c' }).map((relation) => relation.id)).toEqual(['r2'])
+  })
+})
+
+describe('relation ends (ТЗ-3, этап 2)', () => {
+  it('keeps archived entities that a shown relation still points at', () => {
+    const campaign = normalizeCampaign({ id: 'c', name: 'Город', entities: [newEntity({ id: 'a', type: 'npc', name: 'Олан' }), newEntity({ id: 'b', type: 'location', name: 'Маяк', status: 'archived' }), newEntity({ id: 'c', type: 'location', name: 'Склад', status: 'archived' })] }, NOW)!
+    expect(relationEntities(campaign, []).map((entity) => entity.id)).toEqual(['a'])
+    expect(relationEntities(campaign, ['a', 'b']).map((entity) => entity.id)).toEqual(['a', 'b'])
   })
 })

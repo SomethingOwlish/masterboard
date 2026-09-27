@@ -25,6 +25,23 @@ export const ENTITY_FIELDS: Record<LocalCampaignEntityType, Array<{ id: string; 
   lore: [{ id: 'section', label: 'Раздел' }, { id: 'text', label: 'Текст' }],
 }
 
+/**
+ * The same record under another type. Field values are kept: one whose label the
+ * new type also has moves into that slot, the rest travel on under their label,
+ * as imported fields do. «Погиб» belongs to NPCs only.
+ */
+export function retypeEntity<T extends Pick<LocalCampaignEntity, 'type' | 'fields' | 'dead'>>(entity: T, type: LocalCampaignEntityType): T {
+  if (entity.type === type) return entity
+  const fields: Record<string, string> = {}
+  for (const [key, value] of Object.entries(entity.fields)) {
+    const label = ENTITY_FIELDS[entity.type].find((field) => field.id === key)?.label ?? key
+    const slot = ENTITY_FIELDS[type].find((field) => field.label.toLocaleLowerCase() === label.toLocaleLowerCase())
+    fields[slot?.id ?? label] = value
+  }
+  const { dead: _dead, ...rest } = entity
+  return { ...(type === 'npc' ? entity : rest), type, fields } as T
+}
+
 export function newEntity(input: Partial<LocalCampaignEntity> & Pick<LocalCampaignEntity, 'type' | 'name'>): LocalCampaignEntity {
   return { id: `entity-${crypto.randomUUID()}`, description: '', tags: [], visibility: 'master', status: 'active', fields: {}, origin: { kind: 'manual' }, sources: [], ...input }
 }
@@ -57,6 +74,37 @@ export function entityUsages(campaign: LocalCampaignRecord, entityId: string): E
     relations: campaign.relations.filter((relation) => relation.fromId === entityId || relation.toId === entityId),
     clocks: campaign.clocks.filter((clock) => clock.entityIds.includes(entityId)),
     secrets: campaign.secrets.filter((secret) => secret.entityIds.includes(entityId)),
+  }
+}
+
+/** Plans of live sessions: these keep an entity from being deleted. Trashed sessions do not. */
+export const blockingPlans = (usages: EntityUsages): EntityPlanUsage[] => usages.plans.filter((usage) => !usage.trashed)
+
+/**
+ * Deletes an entity and every reference to it: relations, clocks, secrets,
+ * players' characters and not yet sent publications. Plan items in trashed
+ * sessions become plain text under its name, so a restored session has no
+ * dangling link. Live plans must be cleared first (see `blockingPlans`).
+ */
+export function removeEntity(campaign: LocalCampaignRecord, id: string): LocalCampaignRecord {
+  const entity = campaign.entities.find((item) => item.id === id)
+  if (!entity) return campaign
+  return {
+    ...campaign,
+    entities: campaign.entities.filter((item) => item.id !== id),
+    relations: campaign.relations.filter((relation) => relation.fromId !== id && relation.toId !== id),
+    clocks: campaign.clocks.map((clock) => ({ ...clock, entityIds: clock.entityIds.filter((item) => item !== id) })),
+    secrets: campaign.secrets.map((secret) => ({ ...secret, entityIds: secret.entityIds.filter((item) => item !== id) })),
+    players: campaign.players.map((player) => ({ ...player, characterIds: player.characterIds.filter((item) => item !== id) })),
+    publications: campaign.publications.filter((item) => item.entityId !== id || item.state === 'succeeded'),
+    sessionRecords: campaign.sessionRecords.map((session) => !session.deletedAt || !session.planItems.some((item) => item.entityId === id) ? session : {
+      ...session,
+      planItems: session.planItems.map((item) => {
+        if (item.entityId !== id) return item
+        const { entityId: _entityId, ...rest } = item
+        return { ...rest, source: 'text' as const, text: item.text || entity.name }
+      }),
+    }),
   }
 }
 

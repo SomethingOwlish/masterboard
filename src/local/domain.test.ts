@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { changeSecretStatus, entityUsages, filterEntities, moveClock, newClock, newEntity, newSecret, resolveClockTrigger, usageCount } from './domain'
+import { blockingPlans, changeSecretStatus, entityUsages, removeEntity, retypeEntity, filterEntities, moveClock, newClock, newEntity, newSecret, resolveClockTrigger, usageCount } from './domain'
 import { blankSession, normalizeCampaign, withLocalSessions } from './normalize'
 
 const NOW = '2026-09-26T10:00:00.000Z'
@@ -116,5 +116,27 @@ describe('NPC fate', () => {
   it('keeps the flag through a reload only for NPCs', () => {
     const campaign = normalizeCampaign({ id: 'c', name: 'К', entities: [{ id: 'a', type: 'npc', name: 'A', dead: true }, { id: 'b', type: 'location', name: 'B', dead: true }, { id: 'c', type: 'npc', name: 'C', dead: 'yes' }] }, NOW)!
     expect(campaign.entities.map((entity) => entity.dead)).toEqual([true, undefined, undefined])
+  })
+})
+
+describe('entity type and deletion (ТЗ-3, этап 2)', () => {
+  it('moves fields by label and drops «Погиб» outside NPCs', () => {
+    const npc = newEntity({ type: 'npc', name: 'Олан', dead: true, fields: { role: 'Фонарщик', goal: 'Свет' } })
+    const faction = retypeEntity(npc, 'faction')
+    expect(faction).toMatchObject({ type: 'faction', fields: { 'Роль в истории': 'Фонарщик', goal: 'Свет' } })
+    expect(faction.dead).toBeUndefined()
+    expect(retypeEntity(faction, 'npc').fields).toEqual({ role: 'Фонарщик', 'Цель': 'Свет' })
+  })
+
+  it('does not count trashed sessions as blocking and unlinks them on delete', () => {
+    const plan = (id: string) => ({ id, source: 'library' as const, entityId: 'olan', text: '', kind: 'npc' as const, priority: 'required' as const, status: 'prepared' as const, role: '', alternative: '', note: '', origin: 'prepared' as const })
+    const live = { ...blankSession(1, 'Сова', NOW, 's1'), planItems: [plan('a')] }
+    const trashed = { ...blankSession(2, 'Сова', NOW, 's2'), deletedAt: NOW, planItems: [plan('b')] }
+    const campaign = withLocalSessions(normalizeCampaign({ id: 'c', name: 'Город', entities: [newEntity({ id: 'olan', type: 'npc', name: 'Олан' })] }, NOW)!, [live, trashed])
+    expect(blockingPlans(entityUsages(campaign, 'olan')).map((usage) => usage.sessionId)).toEqual(['s1'])
+    const next = removeEntity(campaign, 'olan')
+    expect(next.sessionRecords[1].planItems[0]).toMatchObject({ source: 'text', text: 'Олан' })
+    expect(next.sessionRecords[1].planItems[0].entityId).toBeUndefined()
+    expect(next.sessionRecords[0]).toBe(campaign.sessionRecords[0])
   })
 })

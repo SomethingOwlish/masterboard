@@ -30,5 +30,22 @@
     "ACCESS_AUD": "40b9453d71bcaf7d87cd6f7be8fb2f4aecdc65110d7bce7c1d4b2e8415123451"
   },
   // Preview URLs bypass Access, so they stay off (same as lovegame).
-  "preview_urls": false
+  "preview_urls": false,
+  // Local development (`npm run worker:dev`): no Access, the Worker acts as DEV_USER_EMAIL.
+  // Wrangler does not inherit vars and bindings into an env, so D1 and the bridge are repeated here.
+  "env": {
+    "dev": {
+      // Empty Access settings switch the check off (worker/src/auth.ts).
+      "vars": { "ACCESS_TEAM_DOMAIN": "", "ACCESS_AUD": "", "DEV_USER_EMAIL": "owner@example.com" },
+      "d1_databases": [
+        {
+          "binding": "DB",
+          "database_name": "masterboard",
+          "database_id": "1510a7e6-b2f9-4eeb-b2ef-5ad23b6f67c9",
+          "migrations_dir": "worker/migrations"
+        }
+      ],
+      "services": [{ "binding": "LOREBRIDGE", "service": "lorebridge" }]
+    }
+  }
 }

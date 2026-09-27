@@ -11,7 +11,8 @@ export interface DirectorSheet {
 /** Everything that may be handed to players: public records linked to the session. */
 export interface PlayerHandouts {
   entities: LocalCampaignEntity[]
-  secrets: Array<{ id: string; title: string; text: string }>
+  /** Only the public wording: the secret's title is the master's name for it. */
+  secrets: Array<{ id: string; text: string }>
   clocks: LocalCampaignClock[]
 }
 
@@ -39,8 +40,9 @@ export function playerHandouts(campaign: LocalCampaignRecord, session: LocalSess
   return {
     entities: campaign.entities.filter((entity) => entity.visibility === 'public' && entity.status !== 'archived' && entityIds.has(entity.id)),
     secrets: campaign.secrets
-      .filter((secret) => (secretIds.has(secret.id) || secret.sessionIds.includes(session.id)) && secret.publicVersion.trim() && (secret.status === 'partial' || secret.status === 'selected' || secret.status === 'everyone'))
-      .map((secret) => ({ id: secret.id, title: secret.title, text: secret.publicVersion })),
+      // `selected` is known to some heroes only, so it stays off the shared sheet.
+      .filter((secret) => (secretIds.has(secret.id) || secret.sessionIds.includes(session.id)) && secret.publicVersion.trim() && (secret.status === 'partial' || secret.status === 'everyone'))
+      .map((secret) => ({ id: secret.id, text: secret.publicVersion })),
     clocks: campaign.clocks.filter((clock) => clock.visibility === 'public'),
   }
 }
