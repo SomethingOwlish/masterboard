@@ -214,6 +214,14 @@ export interface LocalSessionRecord {
   /** Decisions already applied, so reopening and re-closing a review is safe. */
   appliedDecisions: Record<string, LocalReviewDecision>
   nextSessionId?: string
+  /** When the next game is, set in the review: real date `YYYY-MM-DD` and free-text time. */
+  nextGame?: { date: string; time: string }
+  /**
+   * What the review sent to КК9 (stage M4): the journal page lives under an id
+   * derived from this session's id, so a resend rewrites the same page; the
+   * fingerprint lets lorebridge see a later edit in КК9 (decision R-4).
+   */
+  kk9Sent?: { stream: 'campaign' | 'worldNews' | 'gmPrivate'; pageId: string; fingerprint: number; sentAt: string; nextSession?: string }
   /** Node positions of the transitions graph, by plan item id. */
   planLayout: Record<string, { x: number; y: number }>
   printConfig: LocalPrintConfig

@@ -1,6 +1,7 @@
 import type { ExternalGateway } from '../adapters/fakeExternal'
 import { isExternalSystem, type CapabilityPassport, type ExternalConnection, type ExternalSystem, type PublicationQueueItem } from '../model/external'
 import { SYSTEM_LABEL, connectionKey, parseConnectionKey, type ExternalItem, type ExternalListing } from './integration'
+import type { Kk9SessionBody, Kk9SessionResult, Kk9State } from './kk9'
 
 /** A refusal from the Worker or lorebridge, with the bridge's `side` / `kind` when it gave them. */
 export class ExternalError extends Error {
@@ -47,6 +48,16 @@ export class HttpExternalGateway implements ExternalGateway {
     const { system, externalId } = parseConnectionKey(connectionId)
     const { items, ids } = await this.call<{ items: ExternalItem[]; ids?: string[] }>(`entities?system=${system}&externalId=${encodeURIComponent(externalId)}${type ? `&type=${encodeURIComponent(type)}` : ''}`)
     return { items, ids: ids ?? items.map((item) => item.id) }
+  }
+
+  /** Живое состояние стола КК9 (М4). Не кешируется: это то, что за столом сейчас. */
+  async kk9State(externalId: string): Promise<Kk9State> {
+    return this.call<Kk9State>(`state?system=kk9&externalId=${encodeURIComponent(externalId)}`)
+  }
+
+  /** Итоги сессии в КК9 (М4): частичный результат по каждой части. Ключ повтора — id сессии. */
+  async sendKk9Session(externalId: string, sessionId: string, body: Kk9SessionBody): Promise<Kk9SessionResult> {
+    return this.call<Kk9SessionResult>('session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ system: 'kk9', externalId, idempotencyKey: sessionId, ...body }) })
   }
 
   async publish(item: PublicationQueueItem): Promise<PublicationQueueItem> {

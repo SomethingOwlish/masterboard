@@ -6,6 +6,7 @@ import type { LocalCampaignRecord, LocalReviewDecision, LocalSessionPlanItem, Lo
 import { withSession } from '../../local/labels'
 import type { Persist } from './shared'
 import { liveSessions, nextSessionNumber } from '../../local/sessions'
+import { Kk9SendPanel } from './Kk9Panels'
 
 const STEPS = ['Итоги', 'Решения по пунктам', 'Последствия', 'Время в мире', 'Следующая сессия'] as const
 const DECISION: Record<LocalReviewDecision, string> = { carry: 'Перенести в следующую', library: 'Вернуть только в библиотеку', cancel: 'Отменить', keep: 'Оставить неиспользованным' }
@@ -39,6 +40,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
       {session.reviewNotes && <p>{session.reviewNotes}</p>}
       <ul className="session-review-panel__summary">{items.map((item) => <li key={item.id}><strong>{itemTitle(item)}</strong> — {DECISION[session.reviewDecisions[item.id]]}</li>)}</ul>
       {nextSession && <Button variant="primary" onClick={() => openSession(nextSession.id)}>Открыть сессию №{nextSession.number}: {nextSession.title}</Button>}
+      <Kk9SendPanel campaign={campaign} session={session} persist={persist} itemTitle={itemTitle} canSend={canComplete} hint={completeHint} />
     </section>
   }
 
@@ -85,6 +87,10 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
     </div>}
 
     {step === 4 && <div className="session-review-wizard__body">
+      <fieldset className="session-review-wizard__next-game"><legend>Когда следующая игра</legend>
+        <div className="row"><input type="date" aria-label="Дата следующей игры" value={session.nextGame?.date ?? ''} onChange={(e) => update({ ...session, nextGame: { date: e.target.value, time: session.nextGame?.time ?? '' } })} /><input aria-label="Время следующей игры" value={session.nextGame?.time ?? ''} placeholder="19:00" onChange={(e) => update({ ...session, nextGame: { date: session.nextGame?.date ?? '', time: e.target.value } })} /></div>
+        <small className="muted">Дата ляжет в следующую сессию{campaign.integrations.kk9 ? ' и уйдёт в КК9 вместе с итогами' : ''}.</small>
+      </fieldset>
       {carried.length ? <>
         <p>Переносятся пункты: {carried.map(itemTitle).join(', ')}.</p>
         <label htmlFor="review-target">Куда перенести<select id="review-target" value={target} onChange={(e) => setTarget(e.target.value)}><option value="new">Новая сессия №{nextSessionNumber(campaign)}</option>{drafts.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}</select></label>

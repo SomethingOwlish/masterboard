@@ -116,3 +116,25 @@ lorebook — миры, где мастер автор; lovegame — кампан
   - свежесть: `updatedAt` (его ставит мост и, после `kk9app#121`, сам КК9), а
     без него — отпечаток содержимого.
 - Masterboard кладёт `place` в тип `location`.
+
+### КК9 на планировании сессий (этап М4) — добавлено 27 сентября 2026
+
+Аудит и решения — `systemsetup/docs/tz/m4-kk9-session-planning-2026-09-27.md`.
+
+- **Места → сцены КК9.** Тип `place` пишется (`create`, `update`): название,
+  описание → текст, «Фон» → фон, незнакомые поля — абзацем в текст; сцена
+  заводится неактивной. Обратно приходит тем же местом. Сцена плана Masterboard
+  — запись для мастера и в КК9 не едет (Р-3).
+- **`GET /mb/state?system=kk9&externalId=`** — живое состояние стола:
+  `campaign {name, gameDate, weather, worldNote, nextSession}`,
+  `party[] {id, name, physical, mental, energy, tension {current, max, overcap, zone}, stunned, statuses[] {name, term}}`,
+  `journal[] {id, stream, title, body, at}` (последние десять каждого потока,
+  без архива), `requests[] {id, kind, character, name, description, at}`
+  (только открытые). Только мастеру; Masterboard его не сохраняет.
+- **`POST /mb/session`** `{system: 'kk9', externalId, idempotencyKey, journal?, nextSession?}`:
+  `journal {stream, title, body, expectedFingerprint?, force?}` — страница под
+  id от ключа повтора (id сессии Masterboard), повтор её переписывает; правка в
+  КК9 после прошлой отправки → в ответе `journal: {ok: false, status: 409,
+  current}`, `force` переписывает (Р-4). `nextSession` — строка, как её пишет
+  КК9. Ответ — частичный результат по каждой части.
+- Worker пропускает `state` (GET) и `session` (POST).

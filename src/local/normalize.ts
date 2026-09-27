@@ -87,6 +87,10 @@ function normalizeSession(raw: unknown, index: number, fallbackDate: string, tea
     reviewDecisions: isObject(raw.reviewDecisions) ? (raw.reviewDecisions as Record<string, LocalReviewDecision>) : {},
     appliedDecisions: isObject(raw.appliedDecisions) ? (raw.appliedDecisions as Record<string, LocalReviewDecision>) : {},
     nextSessionId: typeof raw.nextSessionId === 'string' ? raw.nextSessionId : undefined,
+    ...(isObject(raw.nextGame) ? { nextGame: { date: validSessionDate(text(raw.nextGame.date)) ? text(raw.nextGame.date) : '', time: text(raw.nextGame.time) } } : {}),
+    ...(isObject(raw.kk9Sent) && typeof raw.kk9Sent.pageId === 'string' && typeof raw.kk9Sent.fingerprint === 'number'
+      ? { kk9Sent: { stream: oneOf(raw.kk9Sent.stream, ['campaign', 'worldNews', 'gmPrivate'] as const, 'campaign'), pageId: raw.kk9Sent.pageId, fingerprint: raw.kk9Sent.fingerprint, sentAt: text(raw.kk9Sent.sentAt), ...(typeof raw.kk9Sent.nextSession === 'string' ? { nextSession: raw.kk9Sent.nextSession } : {}) } }
+      : {}),
     planLayout: isObject(raw.planLayout) ? (raw.planLayout as LocalSessionRecord['planLayout']) : {},
     printConfig: isObject(raw.printConfig) ? { ...defaultPrintConfig(), ...(raw.printConfig as Partial<LocalPrintConfig>) } : defaultPrintConfig(),
     ...(typeof raw.deletedAt === 'string' && raw.deletedAt ? { deletedAt: raw.deletedAt } : {}),
