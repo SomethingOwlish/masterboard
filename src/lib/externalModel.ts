@@ -35,7 +35,8 @@ export function canPublish(
     return { allowed: false, reason: capability.unavailableReason ?? 'The source module is disabled' }
   }
   if (!capability.operations.includes(OPERATION_CAPABILITY[operation])) {
-    return { allowed: false, reason: `Operation ${operation} is not supported by this connection` }
+    // The source says why when it can (e.g. КК9 text edited in Лорбук) — show that, not a generic refusal.
+    return { allowed: false, reason: capability.unavailableReason ?? `Operation ${operation} is not supported by this connection` }
   }
   return { allowed: true }
 }
