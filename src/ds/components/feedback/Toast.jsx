@@ -1,12 +1,14 @@
 import React from 'react'
 import { Icon } from '../core/Icon'
+import { Button } from '../core/Button'
 
 /**
  * Toast — a small floating notification for sync results, saves and errors.
  * Tone-coloured left rail + icon. Render one or stack several; pair with your
- * own timeout logic. Designed to sit bottom-right above content.
+ * own timeout logic. Designed to sit bottom-right above content. `action`
+ * adds one inline button (e.g. «Отменить» after a delete).
  */
-export function Toast({ tone = 'neutral', icon, title, message, onClose, style, ...rest }) {
+export function Toast({ tone = 'neutral', icon, title, message, action, onClose, style, ...rest }) {
   const tones = {
     neutral: { c: 'var(--muted)', i: 'info' },
     success: { c: 'var(--success)', i: 'check' },
@@ -43,8 +45,13 @@ export function Toast({ tone = 'neutral', icon, title, message, onClose, style, 
         {title && <div style={{ font: 'var(--type-ui)', fontWeight: 'var(--weight-semibold)', color: 'var(--text)' }}>{title}</div>}
         {message && <div style={{ color: 'var(--muted)', fontSize: 'var(--text-xs)', marginTop: 1 }}>{message}</div>}
       </div>
+      {action && (
+        <Button size="sm" variant="soft" onClick={action.onClick} style={{ flex: '0 0 auto', marginTop: -2 }}>
+          {action.label}
+        </Button>
+      )}
       {onClose && (
-        <button type="button" aria-label="Dismiss" onClick={onClose} style={{ border: 'none', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'inline-flex', marginTop: -1 }}>
+        <button type="button" aria-label="Закрыть" onClick={onClose} style={{ border: 'none', background: 'transparent', color: 'var(--muted)', cursor: 'pointer', padding: 2, display: 'inline-flex', marginTop: -1 }}>
           <Icon name="x" size={14} />
         </button>
       )}

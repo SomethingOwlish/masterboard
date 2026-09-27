@@ -2,6 +2,7 @@ import { createContext, useCallback, useContext, useEffect, useRef, useState, ty
 import { IdbStorageGateway } from '../adapters/idbStorageGateway'
 import { createLocalCampaignCatalog, type LocalCampaignCatalog } from './catalog'
 import { applyMine, type MergeConflict } from './merge'
+import { forgetCampaign, rememberCampaign } from './latestCampaign'
 import { SERVER_POLL_MS, SharedConflictError, type CampaignCatalog } from './remote'
 import type { LocalCampaignRecord } from './types'
 
@@ -68,6 +69,9 @@ export function useLocalCampaign(id: string): LocalCampaignState {
   const shared = catalog.shared
   const drafts = shared?.drafts
   const delay = shared?.saveDelayMs ?? 0
+
+  useEffect(() => { if (campaign) rememberCampaign(campaign) }, [campaign])
+  useEffect(() => () => forgetCampaign(id), [id])
 
   const flush = useCallback(async () => {
     if (timer.current !== null) { window.clearTimeout(timer.current); timer.current = null }
@@ -178,6 +182,7 @@ export function useLocalCampaign(id: string): LocalCampaignState {
 
   const persist = useCallback((next: LocalCampaignRecord) => {
     setCampaign(next)
+    rememberCampaign(next)
     pending.current = next
     if (drafts) {
       const base = shared?.baseline?.(next.id) ?? null

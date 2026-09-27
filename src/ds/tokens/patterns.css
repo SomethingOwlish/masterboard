@@ -155,6 +155,7 @@
   background: var(--surface-2);
 }
 .mb-modal__message { margin: 0; color: var(--muted); font-size: var(--text-sm); line-height: 1.55; }
+.mb-modal__list { margin: var(--space-2) 0 0; padding-left: var(--space-5); color: var(--text); font-size: var(--text-sm); line-height: 1.55; }
 @media (max-width: 620px) {
   .mb-modal-scrim { align-items: flex-end; padding: var(--space-3) var(--space-3) 0; }
   .mb-modal { border-radius: var(--radius-xl) var(--radius-xl) 0 0; }

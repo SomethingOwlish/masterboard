@@ -5,7 +5,8 @@ import { Button } from '../core/Button'
 /**
  * ConfirmDialog — a small Modal preset for destructive or consequential
  * actions ("Delete campaign?", "Remove relation?"). Tone-aware icon + confirm
- * button. Built on Modal so it inherits the scrim, blur and motion.
+ * button. Built on Modal so it inherits the scrim, blur and motion. `items`
+ * lists the consequences under the message.
  */
 export function ConfirmDialog({
   open = true,
@@ -13,6 +14,7 @@ export function ConfirmDialog({
   onConfirm,
   title = 'Are you sure?',
   message,
+  items,
   confirmLabel = 'Confirm',
   cancelLabel = 'Cancel',
   tone = 'danger',
@@ -37,6 +39,11 @@ export function ConfirmDialog({
       }
     >
       {message && <p className="mb-modal__message">{message}</p>}
+      {items?.length > 0 && (
+        <ul className="mb-modal__list">
+          {items.map((item) => <li key={item}>{item}</li>)}
+        </ul>
+      )}
     </Modal>
   )
 }

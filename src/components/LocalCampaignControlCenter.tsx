@@ -6,6 +6,7 @@ import { newTask, taskOriginLabel } from '../local/sessionFlow'
 import type { LocalCampaignRecord, LocalCampaignTask, LocalInboxItem } from '../local/types'
 import { ClocksPanel } from './local/ClocksPanel'
 import { SecretsPanel } from './local/SecretsPanel'
+import { removeWithUndo } from './toast'
 
 type Props = { campaign: LocalCampaignRecord; persist: (next: LocalCampaignRecord) => void }
 type Panel = 'clocks' | 'secrets' | 'tasks' | 'inbox'
@@ -23,12 +24,14 @@ export function LocalCampaignControlCenter({ campaign, persist }: Props) {
   const saveTask = () => { if (!taskText.trim()) return; const tasks = editingTaskId ? campaign.tasks.map((item) => item.id === editingTaskId ? { ...item, text: taskText.trim() } : item) : [...campaign.tasks, newTask(taskText, 'masterboard')]; persist({ ...campaign, tasks }); setTaskText(''); setEditingTaskId(null) }
   const addInbox = () => { const raw = inboxText.trim(); if (!raw) return; persist({ ...campaign, inbox: [...campaign.inbox, newInboxItem(raw, new Date().toISOString())] }); setInboxText('') }
   const consume = (item: LocalInboxItem, target: InboxTarget) => persist(consumeInbox(campaign, item, target))
+  const removeTask = (id: string) => removeWithUndo(persist, campaign, { ...campaign, tasks: campaign.tasks.filter((item) => item.id !== id) }, `Задача «${campaign.tasks.find((item) => item.id === id)?.text ?? ''}»`)
+  const removeInbox = (id: string) => removeWithUndo(persist, campaign, { ...campaign, inbox: campaign.inbox.filter((item) => item.id !== id) }, `Запись «${campaign.inbox.find((item) => item.id === id)?.text ?? ''}»`)
 
   return <section className="campaign-section control-center"><header className="panel-heading"><div><span className="panel-kicker">Оперативный слой</span><h2>Пульт кампании</h2><p>Давление мира, закрытые знания и то, что мастеру нельзя потерять.</p></div></header><nav className="control-center__tabs" aria-label="Разделы пульта">{([['clocks', 'Часы', campaign.clocks.length], ['secrets', 'Секреты', campaign.secrets.length], ['tasks', 'Задачи', campaign.tasks.filter((item) => !item.done).length], ['inbox', 'Входящие', campaign.inbox.length]] as const).map(([id, label, count]) => <button key={id} className={panel === id ? 'active' : ''} onClick={() => setPanel(id)}>{label}<span>{count}</span></button>)}</nav>
     {panel === 'clocks' && <ClocksPanel campaign={campaign} persist={persist} />}
     {panel === 'secrets' && <SecretsPanel campaign={campaign} persist={persist} />}
-    {panel === 'tasks' && <Tasks originOf={(task) => taskOriginLabel(task, campaign)} tasks={campaign.tasks} text={taskText} editing={Boolean(editingTaskId)} setText={setTaskText} save={saveTask} edit={(task) => { setEditingTaskId(task.id); setTaskText(task.text) }} cancel={() => { setEditingTaskId(null); setTaskText('') }} toggle={(id) => persist({ ...campaign, tasks: campaign.tasks.map((item) => item.id === id ? { ...item, done: !item.done } : item) })} remove={(id) => persist({ ...campaign, tasks: campaign.tasks.filter((item) => item.id !== id) })} />}
-    {panel === 'inbox' && <Inbox items={campaign.inbox} text={inboxText} setText={setInboxText} add={addInbox} consume={consume} remove={(id) => persist({ ...campaign, inbox: campaign.inbox.filter((item) => item.id !== id) })} />}
+    {panel === 'tasks' && <Tasks originOf={(task) => taskOriginLabel(task, campaign)} tasks={campaign.tasks} text={taskText} editing={Boolean(editingTaskId)} setText={setTaskText} save={saveTask} edit={(task) => { setEditingTaskId(task.id); setTaskText(task.text) }} cancel={() => { setEditingTaskId(null); setTaskText('') }} toggle={(id) => persist({ ...campaign, tasks: campaign.tasks.map((item) => item.id === id ? { ...item, done: !item.done } : item) })} remove={removeTask} />}
+    {panel === 'inbox' && <Inbox items={campaign.inbox} text={inboxText} setText={setInboxText} add={addInbox} consume={consume} remove={removeInbox} />}
   </section>
 }
 

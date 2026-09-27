@@ -8,6 +8,8 @@ import { ConfirmDialog } from '../ds'
 export interface ConfirmOptions {
   title?: string
   message?: string
+  /** Consequences, one per line (ТЗ-3, этап 5): what the action unlinks or changes. */
+  items?: string[]
   confirmLabel?: string
   cancelLabel?: string
   tone?: 'danger' | 'accent'
@@ -38,10 +40,11 @@ export function ConfirmHost() {
   return (
     <ConfirmDialog
       open
-      title={current.title ?? 'Are you sure?'}
+      title={current.title ?? 'Продолжить?'}
       message={current.message}
-      confirmLabel={current.confirmLabel ?? 'Confirm'}
-      cancelLabel={current.cancelLabel ?? 'Cancel'}
+      items={current.items}
+      confirmLabel={current.confirmLabel ?? 'Подтвердить'}
+      cancelLabel={current.cancelLabel ?? 'Отмена'}
       tone={current.tone ?? 'danger'}
       icon={current.icon}
       onClose={close}

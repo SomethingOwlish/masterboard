@@ -4,6 +4,9 @@ import { arcNeedsReason, newArc } from '../../local/domain'
 import { ARC_STATUS } from '../../local/labels'
 import type { LocalStoryArc } from '../../local/types'
 import { Editor, type SectionProps } from './shared'
+import { arcRemovalImpact, removeArc } from '../../local/removal'
+import { useConfirm } from '../useConfirm'
+import { removeWithUndo } from '../toast'
 
 
 const ARC_COLUMNS: Array<{ status: LocalStoryArc['status']; label: string; hint: string }> = [
@@ -29,6 +32,20 @@ export function ArcsSection({ campaign, persist }: SectionProps) {
     persist({ ...campaign, storyArcs: editor === 'new' ? [...arcs, arc] : arcs.map((item) => item.id === arc.id ? arc : item) })
     setEditor(null)
   }
+  const confirm = useConfirm()
+  /** Linked to sessions or clocks — ask and list them; otherwise at once, with «Отменить». */
+  const remove = (arc: LocalStoryArc) => {
+    const impact = arcRemovalImpact(campaign, arc.id)
+    const next = removeArc(campaign, arc.id)
+    if (!impact.length) { removeWithUndo(persist, campaign, next, `Линия «${arc.title}»`); setEditor(null); return }
+    confirm({
+      title: `Удалить линию «${arc.title}»?`,
+      message: 'Вместе с ней:',
+      items: impact,
+      confirmLabel: 'Удалить',
+      onConfirm: () => { persist(next); setEditor(null) },
+    })
+  }
   const visibleColumns = ARC_COLUMNS.filter((column) => column.status !== 'paused' && column.status !== 'cancelled' || arcs.some((arc) => arc.status === column.status))
 
   return <>
@@ -46,7 +63,13 @@ export function ArcsSection({ campaign, persist }: SectionProps) {
         <label htmlFor="arc-progress">Прогресс · {draft.progress}%<input id="arc-progress" type="range" min="0" max="100" step="10" value={draft.progress} onChange={(event) => setDraft({ ...draft, progress: Number(event.target.value) })} /></label>
       </div>
       {arcNeedsReason(draft.status) && <label htmlFor="arc-reason">Почему линия {draft.status === 'paused' ? 'приостановлена' : 'отменена'}<textarea id="arc-reason" rows={2} value={draft.statusReason} onChange={(event) => setDraft({ ...draft, statusReason: event.target.value })} />{reasonMissing && <small className="local-session-error">Укажите причину — она сохранится на карточке.</small>}</label>}
-      <footer>{editor !== 'new' && <Button tone="danger" onClick={() => { persist({ ...campaign, storyArcs: arcs.filter((item) => item.id !== editor.id), sessionRecords: campaign.sessionRecords.map((session) => ({ ...session, arcId: session.arcId === editor.id ? '' : session.arcId, backgroundArcIds: session.backgroundArcIds.filter((id) => id !== editor.id) })) }); setEditor(null) }}>Удалить</Button>}<Button onClick={() => setEditor(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={!draft.title.trim() || reasonMissing} onClick={save}>Сохранить</Button></footer>
+      <footer>
+        {editor !== 'new' && (
+          <Button tone="danger" onClick={() => remove(editor)}>
+            Удалить
+          </Button>
+        )}
+        <Button onClick={() => setEditor(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={!draft.title.trim() || reasonMissing} onClick={save}>Сохранить</Button></footer>
     </Editor>}
   </>
 }

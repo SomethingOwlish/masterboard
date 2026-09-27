@@ -6,6 +6,8 @@ export interface ConfirmDialogProps {
   onConfirm?: () => void
   title?: string
   message?: string
+  /** Consequences, one per line, shown as a list under the message. */
+  items?: string[]
   confirmLabel?: string
   cancelLabel?: string
   tone?: 'danger' | 'accent'

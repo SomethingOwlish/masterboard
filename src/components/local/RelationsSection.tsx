@@ -6,6 +6,7 @@ import type { LocalCampaignRelation, LocalRelationType } from '../../local/types
 import { Editor, type SectionProps } from './shared'
 import { LazyBoundary } from './LazyBoundary'
 import { PeekLink } from './Peek'
+import { removeWithUndo } from '../toast'
 
 const RelationsGraph = lazy(() => import('./RelationsGraph'))
 
@@ -22,6 +23,10 @@ export function RelationsSection({ campaign, persist }: SectionProps) {
   const entityName = (id: string) => campaign.entities.find((entity) => entity.id === id)?.name ?? 'Удалённая сущность'
   const openEditor = (relation: LocalCampaignRelation | 'new', preset?: Partial<Draft>) => { setEditor(relation); setDraft(relation === 'new' ? { ...blank(activeEntities[0]?.id, activeEntities[1]?.id), ...preset } : { fromId: relation.fromId, toId: relation.toId, label: relation.label, type: relation.type, direction: relation.direction, visibility: relation.visibility }) }
   const save = () => { if (!draft.label.trim() || draft.fromId === draft.toId || !editor) return; const relation: LocalCampaignRelation = { ...draft, label: draft.label.trim(), id: editor === 'new' ? `relation-${crypto.randomUUID()}` : editor.id }; persist({ ...campaign, relations: editor === 'new' ? [...campaign.relations, relation] : campaign.relations.map((item) => item.id === relation.id ? relation : item) }); setEditor(null) }
+  const remove = (relation: LocalCampaignRelation) => {
+    removeWithUndo(persist, campaign, { ...campaign, relations: campaign.relations.filter((item) => item.id !== relation.id) }, `Связь ${entityName(relation.fromId)} — ${relation.label} — ${entityName(relation.toId)}`)
+    setEditor(null)
+  }
   const visible = filterRelations(campaign.relations, filter)
   // The relation's current ends stay choosable even when archived, marked as such.
   const endOptions = relationEntities(campaign, [draft.fromId, draft.toId]).map((entity) => (
@@ -56,7 +61,13 @@ export function RelationsSection({ campaign, persist }: SectionProps) {
       <label htmlFor="relation-label">Смысл связи<input id="relation-label" autoFocus value={draft.label} placeholder="доверяет, преследует, хранит тайну…" onChange={(e) => setDraft({ ...draft, label: e.target.value })} /></label>
       <div className="control-form__row"><label htmlFor="relation-type">Тип<select id="relation-type" value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value as LocalRelationType })}>{Object.entries(RELATION_TYPE).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label htmlFor="relation-direction">Направление<select id="relation-direction" value={draft.direction} onChange={(e) => setDraft({ ...draft, direction: e.target.value as Draft['direction'] })}><option value="directed">От первого ко второму</option><option value="mutual">Взаимная</option></select></label><label htmlFor="relation-visibility">Видимость<select id="relation-visibility" value={draft.visibility} onChange={(e) => setDraft({ ...draft, visibility: e.target.value as 'master' | 'public' })}><option value="master">Только ведущим</option><option value="public">Для игроков</option></select></label></div>
       {draft.fromId === draft.toId && <p className="local-session-error">Выберите две разные сущности.</p>}
-      <footer>{editor !== 'new' && <Button tone="danger" onClick={() => { persist({ ...campaign, relations: campaign.relations.filter((item) => item.id !== editor.id) }); setEditor(null) }}>Удалить</Button>}<Button onClick={() => setEditor(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={!draft.label.trim() || draft.fromId === draft.toId} onClick={save}>Сохранить</Button></footer>
+      <footer>
+        {editor !== 'new' && (
+          <Button tone="danger" onClick={() => remove(editor)}>
+            Удалить
+          </Button>
+        )}
+        <Button onClick={() => setEditor(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={!draft.label.trim() || draft.fromId === draft.toId} onClick={save}>Сохранить</Button></footer>
     </Editor>}
   </>
 }

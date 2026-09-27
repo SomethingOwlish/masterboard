@@ -59,6 +59,12 @@ describe('ТЗ-3, этап 2: печать, сущности, связи, час
     const remove = screen.getByRole('button', { name: 'Удалить' })
     expect(remove).toBeEnabled()
     await user.click(remove)
+    // ТЗ-3, этап 5: with links the delete asks first and lists what it unlinks.
+    const ask = await screen.findByRole('dialog', { name: 'Удалить «Олан»?' })
+    expect(within(ask).getByText('Игрок «Аня» — больше не играет за неё')).toBeInTheDocument()
+    expect(within(ask).getByText('1 пункт в удалённых сессиях — станет текстом с её именем')).toBeInTheDocument()
+    expect(within(ask).getByText('1 неотправленная операция в «Публикации» — уберётся из очереди')).toBeInTheDocument()
+    await user.click(within(ask).getByRole('button', { name: 'Удалить' }))
     await waitFor(async () => {
       const saved = (await catalog.find(id))!
       expect(saved.entities).toEqual([])
