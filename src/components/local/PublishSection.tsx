@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Badge, Button, EmptyState, Select } from '../../ds'
 import type { ExternalConnection, PublicationOperation, PublicationQueueItem } from '../../model/external'
 import { useActing } from '../../local/actingContext'
-import { SYSTEM_LABEL, WRITABLE_SYSTEMS, connectionKey, parseConnectionKey, targetTypes } from '../../local/integration'
+import { LINKABLE_SYSTEMS, SYSTEM_LABEL, WRITABLE_SYSTEMS, connectionKey, parseConnectionKey, targetTypes, type LinkableSystem } from '../../local/integration'
 import { confirmSelected, enqueue, OPERATION_LABEL, previewDrafts, reasonLabel, retrySelected, sendConfirmed, STATE_LABEL } from '../../local/publishing'
 import type { LocalCampaignRecord } from '../../local/types'
 import { useConnections, useExternal, usePassports } from '../../local/useExternal'
@@ -12,10 +12,10 @@ import { ENTITY_LABEL, type Persist, type SectionProps } from './shared'
 const OPERATIONS: PublicationOperation[] = ['create', 'update', 'change-visibility', 'archive']
 const TONE: Record<PublicationQueueItem['state'], 'neutral' | 'accent' | 'warning' | 'success' | 'danger'> = { draft: 'neutral', ready: 'accent', blocked: 'warning', succeeded: 'success', failed: 'danger' }
 
-/** Where this campaign publishes: one world in lorebook, one campaign in lovegame (decision F4, owner only). */
+/** Where this campaign reads from and publishes to: one world in lorebook, one campaign in lovegame and in КК9 (decision F4, owner only). */
 function CampaignLinks({ campaign, persist, connections }: { campaign: LocalCampaignRecord; persist: Persist; connections: ExternalConnection[] }) {
   const acting = useActing(campaign)
-  const link = (system: 'lorebook' | 'lovegame', externalId: string) => {
+  const link = (system: LinkableSystem, externalId: string) => {
     const connection = connections.find((item) => item.system === system && item.externalId === externalId)
     const integrations = { ...campaign.integrations }
     if (connection) integrations[system] = { externalId, label: connection.label, url: connection.url }
@@ -24,11 +24,11 @@ function CampaignLinks({ campaign, persist, connections }: { campaign: LocalCamp
   }
   return <section className="publish-section__links" aria-label="Связи кампании">
     <header><h3>Связи кампании</h3><p className="muted">{acting.canManage ? 'Куда публикуют все мастера этой кампании. Меняет только владелец.' : `Меняет владелец кампании.`}</p></header>
-    <dl>{WRITABLE_SYSTEMS.map((system) => {
+    <dl>{LINKABLE_SYSTEMS.map((system) => {
       const current = campaign.integrations[system]
       const options = connections.filter((item) => item.system === system)
       return <div key={system}><dt>{SYSTEM_LABEL[system]}</dt><dd>{acting.canManage
-        ? <Select aria-label={`Связь с ${SYSTEM_LABEL[system]}`} value={current?.externalId ?? ''} onChange={(e) => link(system as 'lorebook' | 'lovegame', e.target.value)}><option value="">— не связано —</option>{current && !options.some((item) => item.externalId === current.externalId) && <option value={current.externalId}>{current.label} (нет доступа)</option>}{options.map((item) => <option key={item.id} value={item.externalId}>{item.label}</option>)}</Select>
+        ? <Select aria-label={`Связь с ${SYSTEM_LABEL[system]}`} value={current?.externalId ?? ''} onChange={(e) => link(system, e.target.value)}><option value="">— не связано —</option>{current && !options.some((item) => item.externalId === current.externalId) && <option value={current.externalId}>{current.label} (нет доступа)</option>}{options.map((item) => <option key={item.id} value={item.externalId}>{item.label}</option>)}</Select>
         : current ? (current.url ? <a href={current.url} target="_blank" rel="noreferrer">{current.label}</a> : current.label) : <span className="muted">не связано</span>}</dd></div>
     })}<div><dt>{SYSTEM_LABEL.systemsetup}</dt><dd className="muted">только чтение — правила можно взять в библиотеку</dd></div></dl>
   </section>

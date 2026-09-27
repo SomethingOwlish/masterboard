@@ -1,4 +1,4 @@
-// Masterboard ↔ lorebook / lovegame / systemsetup through lorebridge
+// Masterboard ↔ lorebook / lovegame / systemsetup / kk9 through lorebridge
 // (docs/contracts/lorebridge-masterboard.md, decisions F2–F4).
 
 import type { CapabilityPassport, ExternalSystem, PublicationOperation } from '../model/external'
@@ -36,8 +36,14 @@ export interface ExternalPatch {
   status?: string
 }
 
-export const SYSTEM_LABEL: Record<ExternalSystem, string> = { lorebook: 'Лорбук', lovegame: 'ЛавГеймс', systemsetup: 'SystemSetup' }
-/** Systems a campaign can publish to; systemsetup is read-only (decision E4). */
+export const SYSTEM_LABEL: Record<ExternalSystem, string> = { lorebook: 'Лорбук', lovegame: 'ЛавГеймс', systemsetup: 'SystemSetup', kk9: 'КК9' }
+/** Systems a campaign links to one world / campaign of (decision F4). systemsetup has no container to link. */
+export const LINKABLE_SYSTEMS = ['lorebook', 'lovegame', 'kk9'] as const
+export type LinkableSystem = typeof LINKABLE_SYSTEMS[number]
+/**
+ * Systems a campaign can publish to; systemsetup is read-only (decision E4).
+ * kk9 is read-only for now: writing NPCs and items there is stage M3.
+ */
 export const WRITABLE_SYSTEMS: ExternalSystem[] = ['lorebook', 'lovegame']
 
 export const connectionKey = (system: ExternalSystem, externalId: string) => `${system}:${externalId}`
@@ -57,12 +63,14 @@ const IMPORT_TYPE: Record<ExternalSystem, Record<string, LocalCampaignEntityType
   lorebook: { character: 'npc', location: 'location', faction: 'faction', item: 'item', event: 'note', lore: 'note', note: 'note' },
   lovegame: { npc: 'npc', handout: 'handout', codex: 'note' },
   systemsetup: { system: 'home-rule' },
+  // КК9: сцена — место (аудит М0, решение Р-А).
+  kk9: { character: 'character', npc: 'npc', place: 'location', item: 'item' },
 }
 export const importType = (system: ExternalSystem, type: string): LocalCampaignEntityType => IMPORT_TYPE[system][type] ?? 'note'
 
 /** Types the destination accepts for a new record; the table's choice first when it is among them. */
 export function targetTypes(passport: CapabilityPassport | undefined, system: ExternalSystem, type: LocalCampaignEntityType): Array<{ id: string; label: string }> {
-  const preferred = system === 'systemsetup' ? '' : TARGET_TYPE[system][type]
+  const preferred = system === 'lorebook' || system === 'lovegame' ? TARGET_TYPE[system][type] : ''
   const accepted = passport?.entities.filter((entity) => entity.enabled && entity.operations.includes('create')).map((entity) => ({ id: entity.entityType, label: entity.label })) ?? []
   if (!accepted.length) return preferred ? [{ id: preferred, label: preferred }] : []
   return [...accepted.filter((item) => item.id === preferred), ...accepted.filter((item) => item.id !== preferred)]

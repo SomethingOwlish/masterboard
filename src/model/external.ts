@@ -1,7 +1,7 @@
 import type { ID } from './types'
 
 /** Systems that can expose read-only projections or accept explicit publications. */
-export const EXTERNAL_SYSTEMS = ['lovegame', 'lorebook', 'systemsetup'] as const
+export const EXTERNAL_SYSTEMS = ['lovegame', 'lorebook', 'systemsetup', 'kk9'] as const
 export type ExternalSystem = typeof EXTERNAL_SYSTEMS[number]
 export const isExternalSystem = (value: unknown): value is ExternalSystem => typeof value === 'string' && (EXTERNAL_SYSTEMS as readonly string[]).includes(value)
 
