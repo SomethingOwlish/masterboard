@@ -134,9 +134,10 @@ export function createLocalCampaignCatalog(gateway: StorageGateway, options: Cat
       const snapshot = await gateway.get(path(id))
       return snapshot ? normalizeCampaign(snapshot.data, now()) : null
     },
-    async create(name: string, idea: string): Promise<LocalCampaignRecord> {
+    /** `integrations` — the base chosen at creation (ТЗ-2, R1). */
+    async create(name: string, idea: string, integrations: LocalCampaignRecord['integrations'] = {}): Promise<LocalCampaignRecord> {
       await initialize()
-      const campaign = blankCampaign(name, idea, now())
+      const campaign = { ...blankCampaign(name, idea, now()), integrations }
       await gateway.set(path(campaign.id), { ...campaign })
       return structuredClone(campaign)
     },

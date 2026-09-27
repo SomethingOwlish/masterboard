@@ -10,17 +10,15 @@ describe('publishing to lorebook and lovegame', () => {
   it('links the campaign, queues with the default type, sends, and retries after an outage', async () => {
     const user = userEvent.setup()
     const bridge = new FakeBridge()
-    const { catalog, id } = await readyCampaign({ entities: [newEntity({ id: 'npc', type: 'npc', name: 'Олан', fields: { motive: 'Искупление' } })] })
+    const { catalog, id } = await readyCampaign({ entities: [newEntity({ id: 'npc', type: 'npc', name: 'Олан', fields: { motive: 'Искупление' } })], integrations: { lorebook: { externalId: 'w-port', label: 'Лунный порт' } } })
     renderApp(`/local/campaign/${id}/publish`, catalog, bridge)
-    expect(screen.queryByLabelText('Что публикуем')).not.toBeInTheDocument()
-    await user.selectOptions(await screen.findByLabelText('Связь с Лорбук'), 'w-port')
     await user.selectOptions(await screen.findByLabelText('Что публикуем'), 'npc')
     await waitFor(() => expect(screen.getByLabelText('Тип там')).toHaveValue('character'))
     await user.click(screen.getByRole('button', { name: 'В очередь' }))
     bridge.failing.add(LOREBOOK)
     await user.click(screen.getByRole('button', { name: '1. Проверить черновики' }))
     const queue = await screen.findByRole('list', { name: 'Очередь публикации' })
-    const pick = await within(queue).findByLabelText('Выбрать: Олан → Лорбук · Лунный порт')
+    const pick = await within(queue).findByLabelText('Выбрать: Олан → Мир · Лорбук · Лунный порт')
     await waitFor(() => expect(pick).toBeEnabled())
     await user.click(pick)
     await user.click(screen.getByRole('button', { name: '2. Подтвердить выбранные' }))
@@ -30,7 +28,7 @@ describe('publishing to lorebook and lovegame', () => {
     expect(within(queue).getByText('Лорбук: база не ответила')).toBeInTheDocument()
 
     bridge.failing.clear()
-    await user.click(within(queue).getByLabelText('Выбрать: Олан → Лорбук · Лунный порт'))
+    await user.click(within(queue).getByLabelText('Выбрать: Олан → Мир · Лорбук · Лунный порт'))
     await user.click(screen.getByRole('button', { name: 'Повторить выбранные' }))
     await user.click(screen.getByRole('button', { name: '3. Отправить подтверждённые (1)' }))
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Отправить' }))
@@ -45,7 +43,7 @@ describe('publishing to lorebook and lovegame', () => {
     bridge.listConnections = async () => { const { ExternalError } = await import('../local/external'); throw new ExternalError('не настроена', 501, 'unconfigured') }
     const { catalog, id } = await readyCampaign()
     renderApp(`/local/campaign/${id}/publish`, catalog, bridge)
-    expect(await screen.findByText('Связь с Лорбуком и ЛавГеймс ещё не настроена на сервере Мастерборда.')).toBeInTheDocument()
+    expect(await screen.findByText('Связь с внешними системами ещё не настроена на сервере Мастерборда.')).toBeInTheDocument()
   })
 })
 
@@ -80,6 +78,13 @@ describe('import and refresh in the library', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Применить' }))
     await waitFor(async () => expect((await catalog.find(id))?.entities.at(-1)?.fields.role).toBe('соучастник'))
   })
+  it('asks to connect when the campaign has no world or table', async () => {
+    const { catalog, id } = await readyCampaign()
+    renderApp(`/local/campaign/${id}/publish`, catalog, new FakeBridge())
+    expect(await screen.findByText(/не подключена к миру или столу/)).toBeInTheDocument()
+    expect(screen.queryByLabelText('Что публикуем')).not.toBeInTheDocument()
+  })
+
   it('marks lore moved from SystemSetup and shows «К удалению» when the system dropped the record', async () => {
     const user = userEvent.setup()
     const bridge = new FakeBridge()

@@ -8,6 +8,7 @@ import {
   Pointer, Image as ImageIcon, Library, SearchX, Shapes,
   MousePointer2, Highlighter, Square, Circle, Minus, Type, Eraser, Undo2, Smile, Clapperboard, ArrowUpRight,
   Eye, EyeOff, Share2, Play, GitMerge, Cloud,
+  Plug, Unlink, Table2, LayoutGrid, Inbox, Bookmark, SlidersHorizontal, Ellipsis, Swords, Sparkles, UserRound, Import, ListFilter, PanelRight,
 } from 'lucide-react'
 
 /**
@@ -32,6 +33,9 @@ const MAP = {
   type: Type, eraser: Eraser, 'undo-2': Undo2, smile: Smile, clapperboard: Clapperboard, 'arrow-up-right': ArrowUpRight,
   eye: Eye, 'eye-off': EyeOff, 'share-2': Share2, play: Play,
   'git-merge': GitMerge, cloud: Cloud,
+  plug: Plug, unlink: Unlink, 'table-2': Table2, 'layout-grid': LayoutGrid, inbox: Inbox, bookmark: Bookmark,
+  'sliders-horizontal': SlidersHorizontal, ellipsis: Ellipsis, swords: Swords, sparkles: Sparkles, 'user-round': UserRound,
+  import: Import, 'list-filter': ListFilter, 'panel-right': PanelRight,
 }
 
 export function Icon({ name, size = 20, className = '', style, ...rest }) {

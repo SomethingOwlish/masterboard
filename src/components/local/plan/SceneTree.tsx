@@ -4,6 +4,7 @@ import { ENTITY_FIELDS } from '../../../local/domain'
 import type { LocalSessionPlanItem, LocalSessionPlanKind } from '../../../local/types'
 import { ENTITY_LABEL, SubmitField } from '../shared'
 import { DRAG_ITEM, DRAG_SOURCE, KIND_LABEL, PLAN_KINDS, PRIORITIES, USE_STATUS, type LinkedSource, type PlanApi, type PlanTarget } from './planApi'
+import { PeekLink } from '../Peek'
 
 type Item = LocalSessionPlanItem
 
@@ -124,7 +125,7 @@ function TreeItem({ api, item, open, toggle }: { api: PlanApi; item: Item; open:
         {entity && <div className="scene-tree__record">
           <p>{entity.description || 'Описание пока не добавлено.'}</p>
           {ENTITY_FIELDS[entity.type].some((field) => entity.fields[field.id]) && <dl>{ENTITY_FIELDS[entity.type].filter((field) => entity.fields[field.id]).map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{entity.fields[field.id]}</dd></div>)}</dl>}
-          <footer>{entity.tags.map((tag) => <Badge size="sm" key={tag}>#{tag}</Badge>)}<Badge size="sm" tone={entity.visibility === 'public' ? 'success' : 'warning'}>{entity.visibility === 'public' ? 'Для игроков' : 'Только ведущим'}</Badge><Button size="sm" icon="pencil" aria-label={`Редактировать запись: ${title}`} onClick={() => api.editEntity(entity.id)}>Редактировать запись</Button></footer>
+          <footer><PeekLink className="peek-link--button" target={{ kind: 'entity', id: entity.id }}>Карточка</PeekLink>{entity.tags.map((tag) => <Badge size="sm" key={tag}>#{tag}</Badge>)}<Badge size="sm" tone={entity.visibility === 'public' ? 'success' : 'warning'}>{entity.visibility === 'public' ? 'Для игроков' : 'Только ведущим'}</Badge><Button size="sm" icon="pencil" aria-label={`Редактировать запись: ${title}`} onClick={() => api.editEntity(entity.id)}>Редактировать запись</Button></footer>
         </div>}
         {secret && <div className="scene-tree__record"><dl><div><dt>Правда</dt><dd>{secret.truth || '—'}</dd></div>{secret.revealCondition && <div><dt>Раскрыть, когда</dt><dd>{secret.revealCondition}</dd></div>}</dl></div>}
         <SubmitField label={`Заметка ${title}`} value={item.note} placeholder="Заметка для этой сессии: условие, роль, реплика…" onSubmit={(note) => api.patchItem(item.id, { note })} />

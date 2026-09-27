@@ -1,6 +1,7 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Badge, Button, EmptyState, Icon } from '../ds'
-import { newClock, newEntity, newSecret } from '../local/domain'
+import { consumeInbox, newInboxItem, type InboxTarget } from '../local/inbox'
 import { newTask, taskOriginLabel } from '../local/sessionFlow'
 import type { LocalCampaignRecord, LocalCampaignTask, LocalInboxItem } from '../local/types'
 import { ClocksPanel } from './local/ClocksPanel'
@@ -8,30 +9,26 @@ import { SecretsPanel } from './local/SecretsPanel'
 
 type Props = { campaign: LocalCampaignRecord; persist: (next: LocalCampaignRecord) => void }
 type Panel = 'clocks' | 'secrets' | 'tasks' | 'inbox'
-type InboxTarget = 'note' | 'task' | 'entity' | 'clock' | 'secret'
+const PANELS: Panel[] = ['clocks', 'secrets', 'tasks', 'inbox']
 
 export function LocalCampaignControlCenter({ campaign, persist }: Props) {
-  const [panel, setPanel] = useState<Panel>('clocks')
+  const [params] = useSearchParams()
+  const asked = params.get('tab')
+  const [panel, setPanel] = useState<Panel>(PANELS.includes(asked as Panel) ? asked as Panel : 'clocks')
+  useEffect(() => { if (PANELS.includes(asked as Panel)) setPanel(asked as Panel) }, [asked])
   const [taskText, setTaskText] = useState('')
   const [editingTaskId, setEditingTaskId] = useState<string | null>(null)
   const [inboxText, setInboxText] = useState('')
 
   const saveTask = () => { if (!taskText.trim()) return; const tasks = editingTaskId ? campaign.tasks.map((item) => item.id === editingTaskId ? { ...item, text: taskText.trim() } : item) : [...campaign.tasks, newTask(taskText, 'masterboard')]; persist({ ...campaign, tasks }); setTaskText(''); setEditingTaskId(null) }
-  const addInbox = () => { const raw = inboxText.trim(); if (!raw) return; const tags = [...raw.matchAll(/#([\p{L}\p{N}_-]+)/gu)].map((match) => match[1].toLocaleLowerCase()); const item: LocalInboxItem = { id: `inbox-${crypto.randomUUID()}`, text: raw.replace(/#[\p{L}\p{N}_-]+/gu, '').trim(), tags, createdAt: new Date().toISOString() }; persist({ ...campaign, inbox: [...campaign.inbox, item] }); setInboxText('') }
-  const consumeInbox = (item: LocalInboxItem, target: InboxTarget) => {
-    const rest = { ...campaign, inbox: campaign.inbox.filter((entry) => entry.id !== item.id) }
-    if (target === 'note') persist({ ...rest, notes: [...campaign.notes, item.text] })
-    if (target === 'task') persist({ ...rest, tasks: [...campaign.tasks, newTask(item.text, 'inbox')] })
-    if (target === 'entity') persist({ ...rest, entities: [...campaign.entities, newEntity({ type: 'note', name: item.text, tags: item.tags, origin: { kind: 'inbox' } })] })
-    if (target === 'clock') persist({ ...rest, clocks: [...campaign.clocks, newClock({ title: item.text })] })
-    if (target === 'secret') persist({ ...rest, secrets: [...campaign.secrets, newSecret({ title: item.text, truth: item.text })] })
-  }
+  const addInbox = () => { const raw = inboxText.trim(); if (!raw) return; persist({ ...campaign, inbox: [...campaign.inbox, newInboxItem(raw, new Date().toISOString())] }); setInboxText('') }
+  const consume = (item: LocalInboxItem, target: InboxTarget) => persist(consumeInbox(campaign, item, target))
 
-  return <section className="campaign-section control-center"><header className="panel-heading"><div><span className="panel-kicker">Оперативный слой</span><h2>Пульт кампании</h2><p>Давление мира, закрытые знания и то, что мастеру нельзя потерять.</p></div><Badge tone="success" dot>Локально</Badge></header><nav className="control-center__tabs" aria-label="Разделы пульта">{([['clocks', 'Часы', campaign.clocks.length], ['secrets', 'Секреты', campaign.secrets.length], ['tasks', 'Задачи', campaign.tasks.filter((item) => !item.done).length], ['inbox', 'Входящие', campaign.inbox.length]] as const).map(([id, label, count]) => <button key={id} className={panel === id ? 'active' : ''} onClick={() => setPanel(id)}>{label}<span>{count}</span></button>)}</nav>
+  return <section className="campaign-section control-center"><header className="panel-heading"><div><span className="panel-kicker">Оперативный слой</span><h2>Пульт кампании</h2><p>Давление мира, закрытые знания и то, что мастеру нельзя потерять.</p></div></header><nav className="control-center__tabs" aria-label="Разделы пульта">{([['clocks', 'Часы', campaign.clocks.length], ['secrets', 'Секреты', campaign.secrets.length], ['tasks', 'Задачи', campaign.tasks.filter((item) => !item.done).length], ['inbox', 'Входящие', campaign.inbox.length]] as const).map(([id, label, count]) => <button key={id} className={panel === id ? 'active' : ''} onClick={() => setPanel(id)}>{label}<span>{count}</span></button>)}</nav>
     {panel === 'clocks' && <ClocksPanel campaign={campaign} persist={persist} />}
     {panel === 'secrets' && <SecretsPanel campaign={campaign} persist={persist} />}
     {panel === 'tasks' && <Tasks originOf={(task) => taskOriginLabel(task, campaign)} tasks={campaign.tasks} text={taskText} editing={Boolean(editingTaskId)} setText={setTaskText} save={saveTask} edit={(task) => { setEditingTaskId(task.id); setTaskText(task.text) }} cancel={() => { setEditingTaskId(null); setTaskText('') }} toggle={(id) => persist({ ...campaign, tasks: campaign.tasks.map((item) => item.id === id ? { ...item, done: !item.done } : item) })} remove={(id) => persist({ ...campaign, tasks: campaign.tasks.filter((item) => item.id !== id) })} />}
-    {panel === 'inbox' && <Inbox items={campaign.inbox} text={inboxText} setText={setInboxText} add={addInbox} consume={consumeInbox} remove={(id) => persist({ ...campaign, inbox: campaign.inbox.filter((item) => item.id !== id) })} />}
+    {panel === 'inbox' && <Inbox items={campaign.inbox} text={inboxText} setText={setInboxText} add={addInbox} consume={consume} remove={(id) => persist({ ...campaign, inbox: campaign.inbox.filter((item) => item.id !== id) })} />}
   </section>
 }
 

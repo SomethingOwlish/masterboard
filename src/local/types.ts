@@ -2,7 +2,7 @@
 
 import type { ExternalSystem, PublicationQueueItem } from '../model/external'
 
-export type LocalCampaignEntityType = 'character' | 'npc' | 'creature' | 'location' | 'faction' | 'rumor' | 'item' | 'audience' | 'note' | 'letter' | 'handout' | 'map' | 'home-rule'
+export type LocalCampaignEntityType = 'character' | 'npc' | 'creature' | 'location' | 'faction' | 'rumor' | 'item' | 'audience' | 'note' | 'letter' | 'handout' | 'map' | 'home-rule' | 'event' | 'lore'
 
 export interface LocalCampaignEntity {
   id: string
@@ -19,6 +19,11 @@ export interface LocalCampaignEntity {
   origin: LocalEntityOrigin
   /** Records in lorebook / lovegame / systemsetup this entity was imported from or published to. */
   sources: EntitySource[]
+  /**
+   * Where this entity also lives (ТЗ-2, R3): `world` / `table` of the campaign.
+   * Unset — by the type's rule (`publishRules`, else `DEFAULT_RULES`); `[]` — only here.
+   */
+  destinations?: Array<'world' | 'table'>
 }
 
 /** The part of an entity that travels between Masterboard and another system. */
@@ -58,6 +63,10 @@ export interface CampaignLink {
   externalId: string
   label: string
   url?: string
+  /** Connection the record lives in when it differs from `externalId` (a SystemSetup system inside `packs`). */
+  connectionId?: string
+  /** When the link was checked against the passport in the connection wizard. */
+  checkedAt?: string
 }
 
 export interface LocalEntityOrigin {
@@ -236,7 +245,8 @@ export interface LocalSessionRecord {
 
 /** `email` is the Cloudflare Access login; it links a master to a signed-in person in shared campaigns. */
 export interface LocalMaster { id: string; name: string; role: 'owner' | 'co-master'; email?: string }
-export interface LocalPlayer { id: string; name: string; characterIds: string[]; note: string }
+/** `profileId` — the player's profile in the shared directory (ТЗ-2, R11). */
+export interface LocalPlayer { id: string; name: string; characterIds: string[]; note: string; profileId?: string }
 export interface LocalGroup { id: string; name: string; playerIds: string[] }
 export interface LocalHandover { id: string; fromId: string; toId: string; byId: string; createdAt: string }
 
@@ -258,6 +268,8 @@ export interface LocalPrintConfig {
 
 export type LocalReviewDecision = 'carry' | 'library' | 'cancel' | 'keep'
 
+export interface LocalImportRecord { id: string; at: string; source: string; kind: 'records' | 'sessions' | 'file'; count: number }
+
 export interface LocalCampaignRecord {
   id: string
   name: string
@@ -271,10 +283,16 @@ export interface LocalCampaignRecord {
   improv: LocalImprovItem[]
   /** Personal overview layouts, by master id. */
   dashboardLayouts: Record<string, LocalDashboardLayout>
+  /** Personal saved library filters, by master id (ТЗ-2, R5 D). Filter shape: `EntityFilter` in domain.ts. */
+  savedFilters?: Record<string, Array<{ id: string; name: string; filter: Record<string, unknown> }>>
   /** Batch publication queue to lorebook / lovegame. */
   publications: PublicationQueueItem[]
   /** Where this campaign reads from and publishes to, per system. */
   integrations: Partial<Record<ExternalSystem, CampaignLink>>
+  /** What was taken in and from where (ТЗ-2, R6), newest last. */
+  importLog?: LocalImportRecord[]
+  /** Where each type goes by default (ТЗ-2, R3/R10); missing types use `DEFAULT_RULES`. */
+  publishRules?: Partial<Record<LocalCampaignEntityType, Array<'world' | 'table'>>>
   notes: string[]
   sessionRecords: LocalSessionRecord[]
   activeSessionId?: string

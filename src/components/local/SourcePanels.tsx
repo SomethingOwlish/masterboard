@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Badge, Button, Icon, Select } from '../../ds'
-import { LINKABLE_SYSTEMS, REMOVED_HINT, SYSTEM_LABEL, connectionKey, importItems, importType, planRefresh, resolveRefresh, statusBadge, type ExternalItem, type RefreshPlan } from '../../local/integration'
+import { REMOVED_HINT, ROLE_LABEL, SYSTEM_LABEL, connectionKey, linkedRole, parseConnectionKey, roleConnection, statusBadge, type CampaignRole, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord } from '../../local/types'
 import { useConnections, useExternal } from '../../local/useExternal'
+import { logImport } from '../../local/imports'
 import { ENTITY_LABEL, Editor, type Persist } from './shared'
 
+const ROLES: CampaignRole[] = ['world', 'table', 'system']
 const date = (value: string) => value ? new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
 const show = (value: unknown) => Array.isArray(value) ? value.map((tag) => `#${tag}`).join(' ') || '—' : value === 'public' ? 'Для игроков' : value === 'master' ? 'Только ведущим' : String(value ?? '') || '—'
 
@@ -20,13 +22,15 @@ function SourceMarks({ status, fromSystemsetup }: { status?: string; fromSystems
 /** Sources a campaign can read from: its linked world / campaign and systemsetup (decision F2). */
 function useSources(campaign: LocalCampaignRecord) {
   const state = useConnections()
-  const linked = LINKABLE_SYSTEMS.flatMap((system) => { const link = campaign.integrations[system]; return link ? [{ id: connectionKey(system, link.externalId), system, containerId: link.externalId, label: `${SYSTEM_LABEL[system]} · ${link.label}` }] : [] })
-  const systems = state.status === 'ready' ? state.connections.filter((item) => item.system === 'systemsetup').map((item) => ({ id: item.id, system: item.system, containerId: item.externalId, label: `${SYSTEM_LABEL.systemsetup} · ${item.label}` })) : []
+  const linked = ROLES.flatMap((role) => { const found = linkedRole(campaign, role); if (!found) return []; const id = roleConnection(found.system, found.link); return [{ id, system: found.system, containerId: parseConnectionKey(id).externalId, only: found.link.connectionId ? found.link.externalId : undefined, label: `${ROLE_LABEL[role]} · ${SYSTEM_LABEL[found.system]} · ${found.link.label}` }] })
+  // Without a linked system every SystemSetup pack stays readable, as before R1.
+  const systems = linkedRole(campaign, 'system') || state.status !== 'ready' ? [] : state.connections.filter((item) => item.system === 'systemsetup').map((item) => ({ id: item.id, system: item.system, containerId: item.externalId, only: undefined, label: `${SYSTEM_LABEL.systemsetup} · ${item.label}` }))
   return { state, sources: [...linked, ...systems] }
 }
 
 /** «Из источника»: pick records in lorebook / lovegame / systemsetup and copy them into the library. */
-export function ImportDialog({ campaign, persist, close }: { campaign: LocalCampaignRecord; persist: Persist; close: () => void }) {
+/** `stay` keeps the dialog open after adding, to take records from several sources in turn (the base of a new campaign). */
+export function ImportDialog({ campaign, persist, close, stay = false }: { campaign: LocalCampaignRecord; persist: Persist; close: () => void; stay?: boolean }) {
   const port = useExternal()
   const { state, sources } = useSources(campaign)
   const [sourceId, setSourceId] = useState('')
@@ -34,34 +38,39 @@ export function ImportDialog({ campaign, persist, close }: { campaign: LocalCamp
   const [error, setError] = useState<string | null>(null)
   const [chosen, setChosen] = useState<string[]>([])
   const [query, setQuery] = useState('')
+  const [added, setAdded] = useState<string | null>(null)
   const source = sources.find((item) => item.id === sourceId) ?? sources[0]
   useEffect(() => {
     if (!source) return
     let alive = true
     setItems(null); setError(null); setChosen([])
-    port.entities(source.id).then((found) => { if (alive) setItems(found) }, (failure: unknown) => { if (alive) { setItems([]); setError(failure instanceof Error ? failure.message : 'Не удалось прочитать записи') } })
+    port.entities(source.id).then((found) => { if (alive) setItems(source.only ? found.filter((item) => item.id === source.only) : found) }, (failure: unknown) => { if (alive) { setItems([]); setError(failure instanceof Error ? failure.message : 'Не удалось прочитать записи') } })
     return () => { alive = false }
   }, [port, source?.id]) // eslint-disable-line react-hooks/exhaustive-deps
   const linked = new Set(source ? campaign.entities.flatMap((entity) => entity.sources.filter((item) => item.system === source.system && item.containerId === source.containerId).map((item) => item.id)) : [])
   const visible = (items ?? []).filter((item) => !query.trim() || item.name.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
   const add = () => {
     if (!source || !items) return
-    persist(importItems(campaign, source.system, source.containerId, items.filter((item) => chosen.includes(item.id)), new Date().toISOString()).campaign)
-    close()
+    const result = importItems(campaign, source.system, source.containerId, items.filter((item) => chosen.includes(item.id)), new Date().toISOString())
+    persist(logImport(result.campaign, source.label, 'records', result.added, new Date().toISOString()))
+    if (!stay) { close(); return }
+    setChosen([]); setAdded(`Добавлено в библиотеку: ${result.added} из «${source.label}».`)
   }
-  return <Editor kicker="Лорбук · ЛавГеймс · SystemSetup" title="Из источника" close={close}>
+  return <Editor kicker="Мир · стол · система" title="Из источника" close={close}>
     {state.status === 'loading' && <p className="muted" role="status">Узнаём, какие источники вам доступны…</p>}
-    {(state.status === 'unconfigured' || state.status === 'error') && <p className="local-session-error" role="alert">{state.status === 'unconfigured' ? 'Связь с Лорбуком и ЛавГеймс ещё не настроена на сервере Мастерборда.' : state.message}</p>}
-    {state.status === 'ready' && !sources.length && <p className="muted">Кампания пока ни с чем не связана. Владелец связывает её с миром Лорбука и кампанией ЛавГеймс в разделе «Публикация».</p>}
+    {(state.status === 'unconfigured' || state.status === 'error') && <p className="local-session-error" role="alert">{state.status === 'unconfigured' ? 'Связь с внешними системами ещё не настроена на сервере Мастерборда.' : state.message}</p>}
+    {state.status === 'ready' && !sources.length && <p className="muted">Кампания пока ни с чем не связана. Владелец подключает мир, стол и систему в разделе «Интеграции».</p>}
     {source && <>
       <div className="control-form__row"><label htmlFor="import-source">Откуда<Select id="import-source" value={source.id} onChange={(e) => setSourceId(e.target.value)}>{sources.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</Select></label><label htmlFor="import-query">Поиск<input id="import-query" value={query} placeholder="Название" onChange={(e) => setQuery(e.target.value)} /></label></div>
       {error && <p className="local-session-error" role="alert">{error}</p>}
+      {added && <p className="muted" role="status">{added}</p>}
+      {items && items.length > 1 && <label className="source-import__all"><input type="checkbox" checked={visible.every((item) => linked.has(item.id) || chosen.includes(item.id))} onChange={(event) => setChosen(event.target.checked ? [...new Set([...chosen, ...visible.filter((item) => !linked.has(item.id)).map((item) => item.id)])] : chosen.filter((id) => !visible.some((item) => item.id === id)))} /> Выбрать все{query.trim() ? ' найденные' : ''}</label>}
       {items === null ? <p className="muted" role="status">Читаем записи…</p> : visible.length ? <ul className="source-import__list" aria-label="Записи источника">{visible.map((item) => {
         const already = linked.has(item.id)
         return <li key={item.id}><label><input type="checkbox" disabled={already} checked={already || chosen.includes(item.id)} onChange={() => setChosen(chosen.includes(item.id) ? chosen.filter((id) => id !== item.id) : [...chosen, item.id])} /><span className="source-import__text"><strong>{item.name}</strong><small>{item.type} → {ENTITY_LABEL[importType(source.system, item.type)]}{item.visibility === 'master' ? ' · только ведущим' : ''}{item.archived ? ' · в архиве' : ''}</small></span><SourceMarks status={item.archived ? undefined : item.status} fromSystemsetup={item.source?.app === 'systemsetup'} />{already && <Badge size="sm" tone="neutral">уже в библиотеке</Badge>}</label></li>
       })}</ul> : !error && <p className="muted">{items.length ? 'Ничего не найдено.' : 'В источнике пока нет записей.'}</p>}
     </>}
-    <footer><Button onClick={close}>Отмена</Button><Button variant="primary" icon="download" disabled={!chosen.length} onClick={add}>{chosen.length ? `Добавить ${chosen.length} в библиотеку` : 'Добавить в библиотеку'}</Button></footer>
+    <footer><Button onClick={close}>{stay && added ? 'Готово' : 'Отмена'}</Button><Button variant="primary" icon="download" disabled={!chosen.length} onClick={add}>{chosen.length ? `Добавить ${chosen.length} в библиотеку` : 'Добавить в библиотеку'}</Button></footer>
   </Editor>
 }
 

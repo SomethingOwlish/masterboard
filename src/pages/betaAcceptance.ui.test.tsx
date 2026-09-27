@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MemoryStorageGateway } from '../adapters/memoryStorageGateway'
 import { createLocalCampaignCatalog } from '../local/catalog'
-import { renderApp } from '../test/renderApp'
+import { renderApp, goToSection } from '../test/renderApp'
 
 beforeEach(() => window.localStorage.clear())
 
@@ -22,15 +22,14 @@ describe('beta acceptance', () => {
     await user.click(await screen.findByRole('link', { name: /Соляные копи/ }))
     await user.type(await screen.findByLabelText('Название первой сессии'), 'Спуск{Enter}')
     const id = router.state.location.pathname.split('/')[3]
-    const nav = () => screen.getByRole('navigation', { name: 'Разделы кампании' })
 
     // 2. Arc, clock and secret.
-    await user.click(within(await screen.findByRole('navigation', { name: 'Разделы кампании' })).getByRole('link', { name: /Сюжет/ }))
+    await goToSection(user, 'Сюжет')
     await user.click(await screen.findByRole('button', { name: 'Новая линия' }))
     await user.type(screen.getByLabelText('Название'), 'Обвал')
     await user.selectOptions(screen.getByLabelText('Состояние'), 'active')
     await user.click(screen.getByRole('button', { name: 'Сохранить' }))
-    await user.click(within(nav()).getByRole('link', { name: /Пульт/ }))
+    await goToSection(user, 'Пульт')
     await user.click(await screen.findByRole('button', { name: 'Новые часы' }))
     await user.type(screen.getByLabelText('Название'), 'Крепь трещит')
     await user.selectOptions(screen.getByLabelText('Сегментов'), '4')
@@ -44,7 +43,7 @@ describe('beta acceptance', () => {
     await user.click(screen.getByRole('button', { name: 'Сохранить' }))
 
     // 3. Plan the session.
-    await user.click(within(nav()).getByRole('link', { name: /Сессии/ }))
+    await goToSection(user, 'Сессии')
     await user.click(await screen.findByRole('button', { name: 'Добавить в план' }))
     await user.selectOptions(screen.getByLabelText('Тип пункта плана'), 'event')
     await user.selectOptions(screen.getByLabelText('Приоритет пункта'), 'required')
@@ -80,7 +79,7 @@ describe('beta acceptance', () => {
     expect(await screen.findByRole('article', { name: 'Пункт плана: Встреча с рудокопами' })).toBeInTheDocument()
 
     // 7. Print: the player sheet shows the revealed secret's public version only.
-    await user.click(within(nav()).getByRole('link', { name: /Печать/ }))
+    await goToSection(user, 'Печать')
     await user.selectOptions(await screen.findByLabelText('Сессия'), screen.getByRole('option', { name: /№1 Спуск/ }))
     await user.click(screen.getByRole('button', { name: 'Материалы игроков' }))
     const players = screen.getByRole('article', { name: 'Материалы игроков' })

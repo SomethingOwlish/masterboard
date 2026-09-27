@@ -17,7 +17,8 @@ export class BridgeUnavailableError extends Error {
 
 // state и session — живое состояние стола КК9 и итоги сессии (этап М4);
 // backup — итог резервной копии (GET) и копия сейчас (POST), этап М5.
-const ROUTES: Record<string, Array<'GET' | 'POST'>> = { connections: ['GET'], passport: ['GET'], entities: ['GET'], publish: ['POST'], state: ['GET'], session: ['POST'], backup: ['GET', 'POST'] }
+// schema — поля карточек по типам записей (ТЗ-2, R2); мост без неё отвечает 404.
+const ROUTES: Record<string, Array<'GET' | 'POST'>> = { connections: ['GET'], passport: ['GET'], entities: ['GET'], schema: ['GET'], publish: ['POST'], state: ['GET'], session: ['POST'], backup: ['GET', 'POST'] }
 
 /** Forwards `route` (after /api/ext/) to lorebridge; null when the route is unknown. */
 export async function forwardToBridge(request: Request, route: string, email: string, env: BridgeEnv): Promise<Response | null> {

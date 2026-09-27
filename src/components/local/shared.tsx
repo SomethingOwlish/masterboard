@@ -7,6 +7,7 @@ import { useLocalCatalog } from '../../local/useLocalCampaign'
 import type { CampaignConflicts } from '../../local/useLocalCampaign'
 import { conflictPlace, conflictValue } from '../../local/merge'
 import type { LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
+import { usePeek } from '../../local/peekContext'
 
 export type Persist = (next: LocalCampaignRecord) => void
 export interface SectionProps { campaign: LocalCampaignRecord; persist: Persist }
@@ -21,24 +22,66 @@ export const CAMPAIGN_SECTIONS = [
   { id: 'world', label: 'Заметки', icon: 'book-open' },
   { id: 'improv', label: 'Заготовки', icon: 'dices' },
   { id: 'team', label: 'Команда', icon: 'users' },
-  { id: 'print', label: 'Печать', icon: 'printer' },
+  { id: 'import', label: 'Импорт', icon: 'import' },
+  { id: 'integrations', label: 'Интеграции', icon: 'plug' },
   { id: 'publish', label: 'Публикация', icon: 'upload' },
+  { id: 'print', label: 'Печать', icon: 'printer' },
 ] as const
+type SectionId = typeof CAMPAIGN_SECTIONS[number]['id']
+
+/** Menu groups (ТЗ-2, R4): a group with one section is a plain link. */
+export const NAV_GROUPS = [
+  { id: 'prep', label: 'Подготовка', sections: ['overview', 'session', 'arcs', 'control'] },
+  { id: 'world', label: 'Мир', sections: ['library', 'map', 'world', 'improv'] },
+  { id: 'team', label: 'Команда', sections: ['team'] },
+  { id: 'exchange', label: 'Обмен', sections: ['import', 'integrations', 'publish', 'print'] },
+] as const satisfies ReadonlyArray<{ id: string; label: string; sections: readonly SectionId[] }>
 
 /** Every `section` route value the campaign page understands. */
-export const KNOWN_SECTIONS = new Set<string>([...CAMPAIGN_SECTIONS.map((item) => item.id), 'play', 'review'])
+export const KNOWN_SECTIONS = new Set<string>([...CAMPAIGN_SECTIONS.map((item) => item.id), 'play', 'review', 'entity'])
 
 const SESSION_MODES = new Set(['session', 'play', 'review'])
+const sectionOf = (id: string) => CAMPAIGN_SECTIONS.find((item) => item.id === id)!
 
+/**
+ * Campaign menu (ТЗ-2, R4 C): groups open a list of their sections; the active
+ * group shows which section is open. Plus the campaign search (Ctrl+K).
+ */
 export function CampaignNav({ campaignId, section, className }: { campaignId: string; section: string; className?: string }) {
-  return <nav className={className} aria-label="Разделы кампании">{CAMPAIGN_SECTIONS.map((item) => {
-    const active = item.id === section || (item.id === 'session' && SESSION_MODES.has(section))
-    return <Link key={item.id} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} to={`/local/campaign/${campaignId}/${item.id}`}><Icon name={item.icon} size={16} /> {item.label}</Link>
-  })}</nav>
+  const [open, setOpen] = useState<string | null>(null)
+  const peek = usePeek()
+  const current = SESSION_MODES.has(section) ? 'session' : section === 'entity' ? 'library' : section
+  useEffect(() => {
+    if (!open) return
+    const onDown = (event: MouseEvent) => { if (!(event.target as HTMLElement).closest?.('.campaign-nav__group')) setOpen(null) }
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(null) }
+    window.addEventListener('mousedown', onDown); window.addEventListener('keydown', onKey)
+    return () => { window.removeEventListener('mousedown', onDown); window.removeEventListener('keydown', onKey) }
+  }, [open])
+  const link = (id: SectionId, onClick?: () => void) => { const item = sectionOf(id); const active = id === current; return <Link key={id} role={onClick ? 'menuitem' : undefined} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} to={`/local/campaign/${campaignId}/${id}`} onClick={onClick}><Icon name={item.icon} size={16} /> {item.label}</Link> }
+  return <nav className={`campaign-nav${className ? ` ${className}` : ''}`} aria-label="Разделы кампании">
+    {NAV_GROUPS.map((group) => {
+      if (group.sections.length === 1) return <div key={group.id} className={`campaign-nav__group campaign-nav__group--single${group.sections[0] === current ? ' active' : ''}`}>{link(group.sections[0])}</div>
+      const active = (group.sections as readonly string[]).includes(current)
+      const expanded = open === group.id
+      return <div key={group.id} className={`campaign-nav__group${active ? ' active' : ''}`}>
+        <button type="button" aria-haspopup="menu" aria-expanded={expanded} onClick={() => setOpen(expanded ? null : group.id)}>{group.label}{active && <span className="campaign-nav__current">{sectionOf(current).label}</span>}<Icon name="chevron-down" size={14} /></button>
+        {expanded && <div className="campaign-nav__menu" role="menu" aria-label={group.label}>{group.sections.map((id) => link(id, () => setOpen(null)))}</div>}
+      </div>
+    })}
+    {peek && <button type="button" className="campaign-nav__search" onClick={peek.search} aria-label="Поиск по кампании"><Icon name="search" size={15} /> Поиск <kbd>Ctrl K</kbd></button>}
+  </nav>
 }
 
 export function CampaignHeader({ campaign, section }: { campaign: LocalCampaignRecord; section: string }) {
-  return <header className="local-dashboard-header"><div className="local-dashboard-header__utility"><Link to="/"><Icon name="arrow-left" size={16} /> Кампании</Link><strong>{campaign.name}</strong><div className="row"><ActingMasterSelect campaign={campaign} /><StorageBadge campaignId={campaign.id} /><LocalThemeControl /></div></div><CampaignNav className="local-dashboard-nav" campaignId={campaign.id} section={section} /></header>
+  return <header className="local-dashboard-header campaign-topbar"><Link className="campaign-topbar__back" to="/" aria-label="Все кампании"><Icon name="arrow-left" size={16} /> <span>Кампании</span></Link><strong className="campaign-topbar__name">{campaign.name}</strong><CampaignNav campaignId={campaign.id} section={section} /><div className="row campaign-topbar__tools"><ActingMasterSelect campaign={campaign} /><StorageIcon campaignId={campaign.id} /><LocalThemeControl /></div></header>
+}
+
+/** The same as `StorageBadge`, as an icon for the compact campaign bar. */
+function StorageIcon({ campaignId }: { campaignId: string }) {
+  const { shared } = useLocalCatalog()
+  const label = shared?.isShared(campaignId) ? 'Общая кампания' : 'Локальные данные'
+  return <span className="campaign-topbar__storage" title={label}><Icon name={shared?.isShared(campaignId) ? 'cloud' : 'hard-drive'} size={16} /><span className="sr-only">{label}</span></span>
 }
 
 /** Where this campaign lives: on the shared server or only in this browser. */
@@ -116,7 +159,7 @@ export function Capture({ value, setValue, add, label = 'Добавить' }: { 
 }
 
 export const ENTITY_TYPES: Array<{ value: LocalCampaignEntityType; label: string }> = [
-  ['character', 'Персонаж'], ['npc', 'Персонаж ведущего'], ['creature', 'Существо'], ['location', 'Локация'], ['faction', 'Фракция'], ['rumor', 'Слух'], ['item', 'Предмет'], ['audience', 'Аудитория'], ['note', 'Заметка'], ['letter', 'Письмо'], ['handout', 'Раздаточный материал'], ['map', 'Карта'], ['home-rule', 'Домашнее правило'],
+  ['character', 'Персонаж'], ['npc', 'Персонаж ведущего'], ['creature', 'Существо'], ['location', 'Локация'], ['faction', 'Фракция'], ['rumor', 'Слух'], ['item', 'Предмет'], ['audience', 'Аудитория'], ['note', 'Заметка'], ['letter', 'Письмо'], ['handout', 'Раздаточный материал'], ['map', 'Карта'], ['event', 'Событие'], ['lore', 'Лор / статья'], ['home-rule', 'Домашнее правило'],
 ].map(([value, label]) => ({ value: value as LocalCampaignEntityType, label }))
 export const ENTITY_LABEL = Object.fromEntries(ENTITY_TYPES.map((item) => [item.value, item.label])) as Record<LocalCampaignEntityType, string>
 

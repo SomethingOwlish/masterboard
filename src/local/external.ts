@@ -1,6 +1,6 @@
 import type { ExternalGateway } from '../adapters/fakeExternal'
 import { isExternalSystem, type CapabilityPassport, type ExternalConnection, type ExternalSystem, type PublicationQueueItem } from '../model/external'
-import { SYSTEM_LABEL, connectionKey, parseConnectionKey, type ExternalItem, type ExternalListing } from './integration'
+import { SYSTEM_LABEL, connectionKey, parseConnectionKey, type ExternalItem, type ExternalListing, type ExternalSchema } from './integration'
 import type { BackupStatus } from './backup'
 import type { Kk9SessionBody, Kk9SessionResult, Kk9State } from './kk9'
 
@@ -49,6 +49,18 @@ export class HttpExternalGateway implements ExternalGateway {
     const { system, externalId } = parseConnectionKey(connectionId)
     const { items, ids } = await this.call<{ items: ExternalItem[]; ids?: string[] }>(`entities?system=${system}&externalId=${encodeURIComponent(externalId)}${type ? `&type=${encodeURIComponent(type)}` : ''}`)
     return { items, ids: ids ?? items.map((item) => item.id) }
+  }
+
+  /**
+   * Card fields by record type (ТЗ-2, R2). Optional in the contract: a bridge
+   * without `/mb/schema` answers 404 or 501, and the answer is «no schema».
+   */
+  async schema(connectionId: string): Promise<ExternalSchema> {
+    const { system, externalId } = parseConnectionKey(connectionId)
+    try { return (await this.call<{ types?: ExternalSchema }>(`schema?system=${system}&externalId=${encodeURIComponent(externalId)}`)).types ?? [] } catch (error) {
+      if (error instanceof ExternalError && (error.status === 404 || error.status === 501 || error.status === 405)) return []
+      throw error
+    }
   }
 
   /** Живое состояние стола КК9 (М4). Не кешируется: это то, что за столом сейчас. */

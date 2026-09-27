@@ -42,6 +42,17 @@ CREATE INDEX IF NOT EXISTS campaign_members_email ON campaign_members (email)
 
 **Проверка:** в D1 → `masterboard` → **Tables** видны `documents` и `campaign_members`.
 
+> **27.09.2026, ТЗ-2 (справочник игроков):** нужна миграция `0002_players.sql` — `npm run worker:migrate` применит её. Через консоль D1 — две команды по одной:
+>
+> ```sql
+> CREATE TABLE IF NOT EXISTS players (id TEXT PRIMARY KEY, data TEXT NOT NULL, revision INTEGER NOT NULL, updated_at TEXT NOT NULL, updated_by TEXT NOT NULL)
+> ```
+> ```sql
+> CREATE TABLE IF NOT EXISTS player_notes (player_id TEXT NOT NULL, email TEXT NOT NULL, text TEXT NOT NULL, updated_at TEXT NOT NULL, PRIMARY KEY (player_id, email))
+> ```
+>
+> Без этих таблиц страница «Игроки» пишет «Справочник недоступен», остальное работает.
+
 ---
 
 ## Шаг 2. Вход по почте (Cloudflare Access)

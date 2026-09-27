@@ -5,7 +5,7 @@ import { beforeEach, describe, expect, it } from 'vitest'
 import { newSecret } from '../local/domain'
 import { blankSession } from '../local/normalize'
 import type { LocalSessionPlanItem } from '../local/types'
-import { readyCampaign, renderApp } from '../test/renderApp'
+import { readyCampaign, renderApp, goToSection } from '../test/renderApp'
 
 const OWL = { id: 'm-owl', name: 'Сова', role: 'owner' as const }
 const FOX = { id: 'm-fox', name: 'Лис', role: 'co-master' as const }
@@ -86,7 +86,7 @@ describe('stage 4: players and groups', () => {
     await user.click(screen.getByRole('button', { name: 'Сохранить' }))
     expect(within(screen.getByRole('region', { name: 'Группы' })).getByText('Вторая партия')).toBeInTheDocument()
 
-    await user.click(screen.getByRole('link', { name: /Сессии/ }))
+    await goToSection(user, 'Сессии')
     await user.click(await screen.findByRole('button', { name: 'Паспорт' }))
     await user.click(within(screen.getByRole('dialog')).getByLabelText('Лена'))
     await user.click(screen.getByRole('button', { name: 'Сохранить' }))

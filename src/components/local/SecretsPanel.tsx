@@ -1,3 +1,5 @@
+import { PeekLink } from './Peek'
+import type { PeekTarget } from '../../local/search'
 import { useState } from 'react'
 import { Badge, Button, EmptyState } from '../../ds'
 import { changeSecretStatus, newSecret, secretSessions, type RevealInput } from '../../local/domain'
@@ -7,6 +9,8 @@ import { useConfirm } from '../useConfirm'
 import { Checklist, Editor, type SectionProps } from './shared'
 import { recipientsLabel } from '../../local/team'
 import { liveSessions } from '../../local/sessions'
+
+type PeekChip = { label: string; target: PeekTarget }
 
 type Draft = Omit<LocalCampaignSecret, 'id' | 'reveals' | 'sessionIds'>
 
@@ -40,11 +44,11 @@ export function SecretsPanel({ campaign, persist }: SectionProps) {
   const sessionName = (id?: string) => { const session = campaign.sessionRecords.find((item) => item.id === id); return session ? `№${session.number} ${session.title}` : 'вне сессии' }
 
   return <div className="control-panel"><header><div><h3>Секреты и знания</h3><p>Мастерская истина отделена от формулировки для игроков. Каждое раскрытие попадает в историю.</p></div><Button variant="primary" icon="plus" onClick={() => openEditor('new')}>Новый секрет</Button></header>
-    {campaign.secrets.length ? <div className="secret-list">{campaign.secrets.map((secret) => { const sessions = secretSessions(secret, campaign); const links = [...secret.entityIds.map((id) => campaign.entities.find((entity) => entity.id === id)?.name), ...secret.clockIds.map((id) => { const title = campaign.clocks.find((clock) => clock.id === id)?.title; return title && `Часы: ${title}` }), ...sessions.map((session) => `Сессия №${session.number}`)].filter(Boolean) as string[]; return <article key={secret.id} aria-label={`Секрет: ${secret.title}`}>
+    {campaign.secrets.length ? <div className="secret-list">{campaign.secrets.map((secret) => { const sessions = secretSessions(secret, campaign); const links: PeekChip[] = [...secret.entityIds.flatMap((id) => { const name = campaign.entities.find((entity) => entity.id === id)?.name; return name ? [{ label: name, target: { kind: 'entity' as const, id } }] : [] }), ...secret.clockIds.flatMap((id) => { const title = campaign.clocks.find((clock) => clock.id === id)?.title; return title ? [{ label: `Часы: ${title}`, target: { kind: 'clock' as const, id } }] : [] }), ...sessions.map((session) => ({ label: `Сессия №${session.number}`, target: { kind: 'session' as const, id: session.id } }))]; return <article key={secret.id} aria-label={`Секрет: ${secret.title}`}>
       <header><div><Badge tone={secret.status === 'hidden' ? 'warning' : secret.status === 'everyone' ? 'success' : 'neutral'}>{SECRET_STATUS[secret.status]}</Badge>{recipientsLabel(campaign, secret.recipientIds, secret.recipients) && <span>{recipientsLabel(campaign, secret.recipientIds, secret.recipients)}</span>}</div><div><Button size="sm" onClick={() => openReveal(secret)}>Раскрыть…</Button><Button size="sm" icon="pencil" aria-label={`Редактировать секрет: ${secret.title}`} onClick={() => openEditor(secret)} /><Button size="sm" tone="danger" icon="trash-2" aria-label={`Удалить секрет: ${secret.title}`} onClick={() => remove(secret)} /></div></header>
       <h4>{secret.title}</h4>
       <dl><div><dt>Мастерская истина</dt><dd>{secret.truth}</dd></div><div><dt>Для игроков</dt><dd>{secret.publicVersion || 'Публичная формулировка не подготовлена.'}</dd></div>{secret.revealCondition && <div><dt>Условие раскрытия</dt><dd>{secret.revealCondition}</dd></div>}</dl>
-      {links.length > 0 && <div className="local-chips">{links.map((label) => <span key={label}>{label}</span>)}</div>}
+      {links.length > 0 && <div className="local-chips">{links.map((link) => <PeekLink key={link.label} className="local-chip" target={link.target}>{link.label}</PeekLink>)}</div>}
       {secret.reveals.length > 0 && <details className="clock-history"><summary>История раскрытий · {secret.reveals.length}</summary><ol>{[...secret.reveals].reverse().map((entry) => <li key={entry.id}><strong>{SECRET_STATUS[entry.status]}</strong><span>{[recipientsLabel(campaign, entry.recipientIds ?? [], entry.recipients), sessionName(entry.sessionId), entry.note].filter(Boolean).join(' · ')}</span><time>{new Date(entry.createdAt).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' })}</time></li>)}</ol></details>}
     </article> })}</div> : <EmptyState icon="shield" title="Секретов пока нет" hint="Зафиксируйте истину ведущего отдельно от того, что знают герои." action={<Button variant="primary" icon="plus" onClick={() => openEditor('new')}>Создать секрет</Button>} />}
 

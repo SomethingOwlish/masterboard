@@ -1,6 +1,7 @@
 import { lazy, Suspense, useState, type DragEvent, type ReactNode } from 'react'
 import { Badge, Button, Select } from '../../../ds'
-import { addFlow, alternativeGroups, timeline } from '../../../local/plan'
+import { AUTOMATIC_LOG, TIMELINE_DEFAULT, addFlow, alternativeGroups, filterTimeline, timeline, type TimelineOptions } from '../../../local/plan'
+import { PeekLink } from '../Peek'
 import type { LocalSessionPlanItem } from '../../../local/types'
 import { PlanItemCard } from './PlanItemCard'
 import { SceneTree } from './SceneTree'
@@ -45,13 +46,24 @@ function PlanList({ api }: { api: PlanApi }) {
   })}</div>
 }
 
+const TIMELINE_KEY = 'masterboard.timeline'
+const TIMELINE_TOGGLES: Array<[keyof TimelineOptions, string]> = [['others', 'Прочие пункты (герои, заметки…)'], ['dropped', 'Пропущенные и перенесённые'], ['journal', 'Журнал'], ['automatic', 'Служебные записи']]
+const readTimelineOptions = (): TimelineOptions => { try { return { ...TIMELINE_DEFAULT, ...JSON.parse(window.localStorage.getItem(TIMELINE_KEY) ?? '{}') } } catch { return TIMELINE_DEFAULT } }
+
+/** Timeline (ТЗ-2, R8 C): scenes and events by default; the rest behind switches, remembered in this browser. */
 function PlanTimeline({ api }: { api: PlanApi }) {
-  const steps = timeline(api.session)
-  const card = (item: LocalSessionPlanItem, children: LocalSessionPlanItem[]) => <div className={`plan-timeline__card plan-timeline__card--${item.status}`}><strong>{api.itemTitle(item)}</strong><small>{statusName[item.status]}</small>{children.length > 0 && <ul>{children.map((child) => <li key={child.id}>{api.itemTitle(child)}</li>)}</ul>}</div>
-  if (!steps.length) return <p className="session-plan__notice">План пуст.</p>
+  const [options, setOptionsState] = useState<TimelineOptions>(readTimelineOptions)
+  const setOptions = (next: TimelineOptions) => { setOptionsState(next); try { window.localStorage.setItem(TIMELINE_KEY, JSON.stringify(next)) } catch { /* private window */ } }
+  const all = timeline(api.session)
+  const steps = filterTimeline(all, options)
+  const log = options.journal ? api.session.log.filter((entry) => options.automatic || !AUTOMATIC_LOG.has(entry.kind)) : []
+  const hiddenLog = options.journal && !options.automatic ? api.session.log.length - log.length : 0
+  const card = (item: LocalSessionPlanItem, children: LocalSessionPlanItem[]) => <div className={`plan-timeline__card plan-timeline__card--${item.status}`}><strong>{item.entityId ? <PeekLink target={{ kind: 'entity', id: item.entityId }}>{api.itemTitle(item)}</PeekLink> : api.itemTitle(item)}</strong><small>{statusName[item.status]}</small>{children.length > 0 && <ul>{children.map((child) => <li key={child.id}>{api.itemTitle(child)}</li>)}</ul>}</div>
   return <div className="plan-timeline" aria-label="Временная линия">
-    <ol className="plan-timeline__plan">{steps.map((step, index) => <li key={step.kind === 'single' ? step.item.id : `fork-${step.group}`} aria-label={step.kind === 'fork' ? `Развилка: ${step.group}` : undefined}><span className="plan-timeline__index">{index + 1}</span>{step.kind === 'single' ? card(step.item, step.children) : <div className="plan-timeline__fork"><Badge size="sm" tone="warning">или: {step.group}</Badge>{step.branches.map((branch) => <div key={branch.item.id}>{card(branch.item, branch.children)}</div>)}</div>}</li>)}</ol>
-    {api.session.log.length > 0 && <><h3>Как было на самом деле</h3><ol className="plan-timeline__log">{api.session.log.map((entry) => <li key={entry.id}><time>{new Date(entry.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</time><span>{entry.text}</span></li>)}</ol></>}
+    <div className="plan-timeline__filters" role="group" aria-label="Что показывать">{TIMELINE_TOGGLES.map(([key, label]) => <label key={key} className={`home-chip${options[key] ? ' on' : ''}`}><input type="checkbox" checked={options[key]} disabled={key === 'automatic' && !options.journal} onChange={() => setOptions({ ...options, [key]: !options[key] })} />{label}</label>)}</div>
+    {steps.length ? <ol className="plan-timeline__plan">{steps.map((step, index) => <li key={step.kind === 'single' ? step.item.id : `fork-${step.group}`} aria-label={step.kind === 'fork' ? `Развилка: ${step.group}` : undefined}><span className="plan-timeline__index">{index + 1}</span>{step.kind === 'single' ? card(step.item, step.children) : <div className="plan-timeline__fork"><Badge size="sm" tone="warning">или: {step.group}</Badge>{step.branches.map((branch) => <div key={branch.item.id}>{card(branch.item, branch.children)}</div>)}</div>}</li>)}</ol> : <p className="session-plan__notice">{all.length ? 'Сцен и событий в плане нет — включите «Прочие пункты», чтобы увидеть остальное.' : 'План пуст.'}</p>}
+    {log.length > 0 && <><h3>Как было на самом деле</h3><ol className="plan-timeline__log">{log.map((entry) => <li key={entry.id}><time>{new Date(entry.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</time><span>{entry.text}</span></li>)}</ol></>}
+    {hiddenLog > 0 && <p className="muted">Скрыто служебных записей журнала: {hiddenLog}.</p>}
   </div>
 }
 
