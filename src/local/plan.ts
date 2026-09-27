@@ -109,3 +109,21 @@ export function timeline(session: LocalSessionRecord): TimelineStep[] {
   }
   return steps
 }
+
+/** What the timeline shows (ТЗ-2, R8): by default only scenes and events, and the journal without automatic lines. */
+export interface TimelineOptions { others: boolean; dropped: boolean; journal: boolean; automatic: boolean }
+export const TIMELINE_DEFAULT: TimelineOptions = { others: false, dropped: false, journal: true, automatic: false }
+const EVENT_KINDS = new Set<LocalSessionPlanItem['kind']>(['scene', 'event'])
+const DROPPED = new Set<LocalSessionPlanItem['status']>(['skipped', 'cancelled', 'moved'])
+/** Journal lines written by the app itself: clock moves and «Появилось: …». */
+export const AUTOMATIC_LOG = new Set(['clock', 'entity'])
+
+export function filterTimeline(steps: TimelineStep[], options: TimelineOptions): TimelineStep[] {
+  const keep = (item: LocalSessionPlanItem) => (options.others || EVENT_KINDS.has(item.kind)) && (options.dropped || !DROPPED.has(item.status))
+  const branch = (entry: { item: LocalSessionPlanItem; children: LocalSessionPlanItem[] }) => keep(entry.item) ? [{ item: entry.item, children: entry.children.filter(keep) }] : []
+  return steps.flatMap((step): TimelineStep[] => {
+    if (step.kind === 'single') return branch(step).map((entry) => ({ kind: 'single', ...entry }))
+    const branches = step.branches.flatMap(branch)
+    return branches.length ? [{ kind: 'fork', group: step.group, branches }] : []
+  })
+}

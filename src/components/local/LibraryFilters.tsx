@@ -33,6 +33,8 @@ export function LibraryFilters({ campaign, persist, filter, setFilter, total, sh
     ...(filter.source && filter.source !== 'all' ? [{ label: filter.source === 'none' ? 'Только здесь' : `Из: ${SYSTEM_LABEL[filter.source]}`, clear: { ...filter, source: 'all' as const } }] : []),
     ...(filter.fate && filter.fate !== 'all' ? [{ label: filter.fate === 'dead' ? 'Погибшие' : 'Живые', clear: { ...filter, fate: 'all' as const } }] : []),
     ...(filter.showArchived ? [{ label: 'С архивом', clear: { ...filter, showArchived: false } }] : []),
+    ...(filter.imported ? [{ label: 'Из импорта', clear: { ...filter, imported: false } }] : []),
+    ...(filter.missing ? [{ label: filter.missing === 'tags' ? 'Без тегов' : 'Без описания', clear: { ...filter, missing: undefined } }] : []),
   ]
   const saveCurrent = () => { const name = naming?.trim(); if (!name) return; setSaved([...saved, { id: `filter-${crypto.randomUUID()}`, name, filter }]); setNaming(null) }
   return <div className="library-filters">

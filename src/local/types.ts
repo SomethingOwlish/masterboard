@@ -263,6 +263,8 @@ export interface LocalPrintConfig {
 
 export type LocalReviewDecision = 'carry' | 'library' | 'cancel' | 'keep'
 
+export interface LocalImportRecord { id: string; at: string; source: string; kind: 'records' | 'sessions' | 'file'; count: number }
+
 export interface LocalCampaignRecord {
   id: string
   name: string
@@ -282,6 +284,8 @@ export interface LocalCampaignRecord {
   publications: PublicationQueueItem[]
   /** Where this campaign reads from and publishes to, per system. */
   integrations: Partial<Record<ExternalSystem, CampaignLink>>
+  /** What was taken in and from where (ТЗ-2, R6), newest last. */
+  importLog?: LocalImportRecord[]
   /** Where each type goes by default (ТЗ-2, R3/R10); missing types use `DEFAULT_RULES`. */
   publishRules?: Partial<Record<LocalCampaignEntityType, Array<'world' | 'table'>>>
   notes: string[]

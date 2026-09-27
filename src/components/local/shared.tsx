@@ -22,6 +22,7 @@ export const CAMPAIGN_SECTIONS = [
   { id: 'world', label: 'Заметки', icon: 'book-open' },
   { id: 'improv', label: 'Заготовки', icon: 'dices' },
   { id: 'team', label: 'Команда', icon: 'users' },
+  { id: 'import', label: 'Импорт', icon: 'import' },
   { id: 'integrations', label: 'Интеграции', icon: 'plug' },
   { id: 'publish', label: 'Публикация', icon: 'upload' },
   { id: 'print', label: 'Печать', icon: 'printer' },
@@ -33,7 +34,7 @@ export const NAV_GROUPS = [
   { id: 'prep', label: 'Подготовка', sections: ['overview', 'session', 'arcs', 'control'] },
   { id: 'world', label: 'Мир', sections: ['library', 'map', 'world', 'improv'] },
   { id: 'team', label: 'Команда', sections: ['team'] },
-  { id: 'exchange', label: 'Обмен', sections: ['integrations', 'publish', 'print'] },
+  { id: 'exchange', label: 'Обмен', sections: ['import', 'integrations', 'publish', 'print'] },
 ] as const satisfies ReadonlyArray<{ id: string; label: string; sections: readonly SectionId[] }>
 
 /** Every `section` route value the campaign page understands. */

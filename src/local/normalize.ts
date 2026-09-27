@@ -222,6 +222,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     })),
     integrations: normalizeLinks(value.integrations),
     ...(isObject(value.publishRules) ? { publishRules: normalizeRules(value.publishRules) } : {}),
+    ...(Array.isArray(value.importLog) ? { importLog: list<Raw>(value.importLog).filter((item) => isObject(item) && typeof item.id === 'string').map((item) => ({ id: item.id as string, at: text(item.at, now), source: text(item.source), kind: oneOf(item.kind, ['records', 'sessions', 'file'] as const, 'records'), count: typeof item.count === 'number' ? item.count : 0 })) } : {}),
     ...(isObject(value.savedFilters) ? { savedFilters: Object.fromEntries(Object.entries(value.savedFilters).map(([id, items]) => [id, list<Raw>(items).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.name === 'string' && isObject(item.filter)).map((item) => ({ id: item.id as string, name: item.name as string, filter: item.filter as Record<string, unknown> }))])) } : {}),
     publications: list<Raw>(value.publications).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.entityId === 'string') as unknown as LocalCampaignRecord['publications'],
     dashboardLayouts: isObject(value.dashboardLayouts) ? Object.fromEntries(Object.entries(value.dashboardLayouts).filter(([, layout]) => isObject(layout)).map(([id, layout]) => [id, normalizeLayout(layout as Raw)])) : {},

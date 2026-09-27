@@ -75,13 +75,17 @@ export interface EntityFilter {
   status?: 'all' | 'active' | 'inactive'
   /** Where it came from or went to: a system, or `none` — only in Masterboard. */
   source?: 'all' | 'none' | ExternalSystem
+  /** Records still missing something after an import (ТЗ-2, R6). */
+  missing?: 'tags' | 'description'
+  /** Only records that came in by import. */
+  imported?: boolean
   sort?: EntitySort
 }
 export const EMPTY_FILTER: EntityFilter = { query: '', type: 'all', showArchived: false, fate: 'all', tags: [], visibility: 'all', status: 'all', source: 'all', sort: 'added' }
 
 /** How many narrowing conditions are on, apart from the query and the type. */
 export const activeFilterCount = (filter: EntityFilter) =>
-  (filter.tags?.length ?? 0) + (filter.visibility && filter.visibility !== 'all' ? 1 : 0) + (filter.status && filter.status !== 'all' ? 1 : 0) + (filter.source && filter.source !== 'all' ? 1 : 0) + (filter.fate && filter.fate !== 'all' ? 1 : 0) + (filter.showArchived ? 1 : 0)
+  (filter.tags?.length ?? 0) + (filter.visibility && filter.visibility !== 'all' ? 1 : 0) + (filter.status && filter.status !== 'all' ? 1 : 0) + (filter.source && filter.source !== 'all' ? 1 : 0) + (filter.fate && filter.fate !== 'all' ? 1 : 0) + (filter.showArchived ? 1 : 0) + (filter.missing ? 1 : 0) + (filter.imported ? 1 : 0)
 
 const norm = (value: string) => value.toLocaleLowerCase().replace(/ё/g, 'е')
 
@@ -95,6 +99,8 @@ export function filterEntities(entities: LocalCampaignEntity[], filter: EntityFi
     (!filter.tags?.length || filter.tags.every((tag) => entity.tags.includes(tag))) &&
     (!filter.visibility || filter.visibility === 'all' || entity.visibility === filter.visibility) &&
     (!filter.status || filter.status === 'all' || entity.status === filter.status) &&
+    (!filter.missing || (filter.missing === 'tags' ? !entity.tags.length : !entity.description.trim())) &&
+    (!filter.imported || entity.origin.kind === 'import') &&
     (!filter.source || filter.source === 'all' || (filter.source === 'none' ? !entity.sources.length : entity.sources.some((source) => source.system === filter.source))) &&
     (!words.length || words.every((word) => norm(`${entity.name} ${entity.description} ${entity.tags.join(' ')} ${Object.values(entity.fields).join(' ')}`).includes(word))))
   const sort = filter.sort ?? 'added'

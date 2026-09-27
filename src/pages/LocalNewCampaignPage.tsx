@@ -11,6 +11,7 @@ import { ImprovSection } from '../components/local/ImprovSection'
 import { PublishSection } from '../components/local/PublishSection'
 import { IntegrationsSection } from '../components/local/IntegrationsSection'
 import { PeekProvider } from '../components/local/Peek'
+import { ImportSection } from '../components/local/ImportSection'
 import { EntityPage } from '../components/local/EntityPage'
 import { ActingProvider } from '../local/ActingProvider'
 import { RelationsSection } from '../components/local/RelationsSection'
@@ -31,6 +32,7 @@ const SECTIONS: Record<string, (props: SectionProps) => JSX.Element> = {
   improv: ImprovSection,
   publish: PublishSection,
   integrations: IntegrationsSection,
+  import: ImportSection,
 }
 
 export function LocalNewCampaignPage() {

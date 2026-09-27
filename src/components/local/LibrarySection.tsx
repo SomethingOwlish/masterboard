@@ -15,9 +15,9 @@ const STATUS_LABEL = ENTITY_STATUS_LABEL
 
 export function LibrarySection({ campaign, persist }: SectionProps) {
   const [editor, setEditor] = useState<LocalCampaignEntity | 'new' | null>(null)
-  const [filter, setFilter] = useState<EntityFilter>(EMPTY_FILTER)
-  const [view, setView] = useState<'cards' | 'table'>('cards')
   const [params, setParams] = useSearchParams()
+  const [filter, setFilter] = useState<EntityFilter>(() => { try { return { ...EMPTY_FILTER, ...JSON.parse(params.get('filter') ?? '{}') } } catch { return EMPTY_FILTER } })
+  const [view, setView] = useState<'cards' | 'table'>('cards')
   const [importing, setImportingState] = useState(params.get('import') === '1')
   const setImporting = (value: boolean) => { setImportingState(value); if (!value && params.has('import')) setParams({}) }
   const openEditor = (entity: LocalCampaignEntity | 'new') => setEditor(entity)

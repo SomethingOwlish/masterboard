@@ -3,6 +3,7 @@ import { Badge, Button, Icon, Select } from '../../ds'
 import { ROLE_LABEL, SYSTEM_LABEL, connectionKey, linkedRole, parseConnectionKey, roleConnection, type CampaignRole, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord } from '../../local/types'
 import { useConnections, useExternal } from '../../local/useExternal'
+import { logImport } from '../../local/imports'
 import { ENTITY_LABEL, Editor, type Persist } from './shared'
 
 const ROLES: CampaignRole[] = ['world', 'table', 'system']
@@ -42,7 +43,7 @@ export function ImportDialog({ campaign, persist, close, stay = false }: { campa
   const add = () => {
     if (!source || !items) return
     const result = importItems(campaign, source.system, source.containerId, items.filter((item) => chosen.includes(item.id)), new Date().toISOString())
-    persist(result.campaign)
+    persist(logImport(result.campaign, source.label, 'records', result.added, new Date().toISOString()))
     if (!stay) { close(); return }
     setChosen([]); setAdded(`Добавлено в библиотеку: ${result.added} из «${source.label}».`)
   }
