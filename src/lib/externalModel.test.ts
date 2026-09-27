@@ -62,6 +62,12 @@ describe('capability passport', () => {
     })
   })
 
+  it('names the source reason for a missing operation when the source gives one', () => {
+    const locked: CapabilityPassport = { ...passport, entities: [{ entityType: 'curator', label: 'Куратор', enabled: true, operations: ['read', 'create', 'change-visibility'], unavailableReason: 'Текст этой кампании КК9 правится в Лорбуке, в мире «Академия»' }] }
+    expect(canPublish(locked, 'curator', 'update')).toEqual({ allowed: false, reason: 'Текст этой кампании КК9 правится в Лорбуке, в мире «Академия»' })
+    expect(canPublish(locked, 'curator', 'change-visibility')).toEqual({ allowed: true })
+  })
+
   it('blocks a queue item before it can reach an adapter', () => {
     expect(preparePublication({ ...queueItem, operation: 'archive' }, passport, 'npc')).toMatchObject({
       state: 'blocked',
