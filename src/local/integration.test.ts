@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest'
 import { FakeBridge, LOREBOOK, LOVEGAME } from '../test/fakeBridge'
-import { importItems, patchFor, planRefresh, resolveRefresh, targetTypes } from './integration'
+import { importItems, patchFor, planRefresh, recordPublished, resolveRefresh, statusBadge, targetTypes } from './integration'
 import { normalizeCampaign } from './normalize'
 
 const NOW = '2026-09-26T10:00:00.000Z'
@@ -57,6 +57,46 @@ describe('refresh from source (I4)', () => {
     const { bridge, campaign } = await imported()
     const item = bridge.editThere(LOREBOOK, 'e1', { archived: true, status: 'archived' })
     expect(planRefresh(campaign.entities[0], campaign.entities[0].sources[0], item, NOW).next.status).toBe('archived')
+  })
+})
+
+describe('lore moved from SystemSetup (lorebridge ss.lore)', () => {
+  const MOVED = { app: 'systemsetup' as const, system: 'sys-k', dataset: 'codex', entry: 'obychai' }
+
+  it('remembers the mark and the status on import and keeps them through storage', async () => {
+    const bridge = new FakeBridge()
+    bridge.seed(LOREBOOK, { id: 'e9', type: 'lore', name: 'Старый обычай', status: 'canon', source: MOVED })
+    const { campaign } = importItems(empty(), 'lorebook', 'w-port', await bridge.entities(LOREBOOK), NOW)
+    expect(campaign.entities[0].sources[0]).toMatchObject({ from: 'systemsetup', status: 'canon' })
+    const stored = normalizeCampaign(JSON.parse(JSON.stringify(campaign)), NOW)!
+    expect(stored.entities[0].sources[0]).toMatchObject({ from: 'systemsetup', status: 'canon' })
+  })
+
+  it('a record marked «к удалению» stays in the library and the link shows it after refresh', async () => {
+    const bridge = new FakeBridge()
+    bridge.seed(LOREBOOK, { id: 'e9', type: 'lore', name: 'Старый обычай', status: 'canon', source: MOVED })
+    const { campaign } = importItems(empty(), 'lorebook', 'w-port', await bridge.entities(LOREBOOK), NOW)
+    const item = bridge.editThere(LOREBOOK, 'e9', { status: 'removed' })
+    const plan = planRefresh(campaign.entities[0], campaign.entities[0].sources[0], item, NOW)
+    expect(plan.next.status).toBe('active')
+    expect(plan.next.sources[0]).toMatchObject({ status: 'removed', from: 'systemsetup' })
+    expect(statusBadge('removed')).toEqual({ label: 'К удалению', tone: 'danger' })
+  })
+
+  it('a publication keeps what was known about the link', async () => {
+    const bridge = new FakeBridge()
+    bridge.seed(LOREBOOK, { id: 'e9', type: 'lore', name: 'Старый обычай', status: 'removed', source: MOVED })
+    const { campaign } = importItems(empty(), 'lorebook', 'w-port', await bridge.entities(LOREBOOK), NOW)
+    const entity = campaign.entities[0]
+    const next = recordPublished(campaign, [{ id: 'p1', entityId: entity.id, entityType: entity.type, connectionId: LOREBOOK, operation: 'update', patch: {}, state: 'succeeded', createdAt: NOW, result: { id: 'e9', updatedAt: 99 } }], NOW)
+    expect(next.entities[0].sources[0]).toMatchObject({ updatedAt: 99, status: 'removed', from: 'systemsetup' })
+  })
+
+  it('canon and records without a status show no badge; unknown statuses are not guessed', () => {
+    expect(statusBadge('canon')).toBeUndefined()
+    expect(statusBadge(undefined)).toBeUndefined()
+    expect(statusBadge('whatever')).toBeUndefined()
+    expect(statusBadge('review')?.label).toBe('Дорабатывается')
   })
 })
 
