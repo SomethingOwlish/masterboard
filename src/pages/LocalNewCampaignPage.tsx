@@ -1,3 +1,4 @@
+import { useEffect } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import { LocalCampaignControlCenter } from '../components/LocalCampaignControlCenter'
 import { LocalSessionsWorkspace } from '../components/LocalSessionsWorkspace'
@@ -19,6 +20,7 @@ import { WorldSection } from '../components/local/WorldSection'
 import { CampaignHeader, KNOWN_SECTIONS, SaveErrorBanner, ConflictNotice, type SectionProps } from '../components/local/shared'
 import { isCampaignReady } from '../local/normalize'
 import { useLocalCampaign } from '../local/useLocalCampaign'
+import { campaignScope, dismissToasts } from '../components/toast'
 
 const SECTIONS: Record<string, (props: SectionProps) => JSX.Element> = {
   overview: OverviewSection,
@@ -40,6 +42,8 @@ export function LocalNewCampaignPage() {
   const { campaignId = '', entityId } = params
   const section = entityId ? 'entity' : params.section ?? 'overview'
   const state = useLocalCampaign(campaignId)
+  // «Отменить» удаления живёт, пока открыта кампания.
+  useEffect(() => () => dismissToasts(campaignScope(campaignId)), [campaignId])
   if (state.status === 'loading') return <main className="target-dashboard created-dashboard" aria-busy="true"><p className="local-session-footnote">Загружаем кампанию…</p></main>
   if (state.status === 'missing') return <Navigate to="/" replace />
   if (section === 'entity' && !entityId) return <Navigate to={`/local/campaign/${campaignId}/library`} replace />

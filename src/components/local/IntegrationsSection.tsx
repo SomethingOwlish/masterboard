@@ -8,6 +8,7 @@ import { plural } from '../../local/labels'
 import type { CampaignLink, LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
 import { useBaseOptions, useExternal } from '../../local/useExternal'
 import { useConfirm } from '../useConfirm'
+import { rulesResetChanges } from '../../local/removal'
 import { ENTITY_TYPES, Editor, type Persist, type SectionProps } from './shared'
 
 const ROLES: CampaignRole[] = ['world', 'table', 'system']
@@ -95,9 +96,27 @@ function RulesTable({ campaign, persist, editable, only }: { campaign: LocalCamp
     const next = current.includes(role as WritableRole) ? current.filter((item) => item !== role) : [...current, role as WritableRole]
     persist({ ...campaign, publishRules: { ...campaign.publishRules, [type]: next } })
   }
-  const changed = Object.keys(campaign.publishRules ?? {}).length > 0
+  const confirm = useConfirm()
+  const changes = rulesResetChanges(campaign)
+  const places = (roles: WritableRole[]) => roles.map((role) => ROLE_LABEL[role].toLocaleLowerCase('ru')).join(', ') || 'только здесь'
+  const typeLabel = (type: LocalCampaignEntityType) => ENTITY_TYPES.find((item) => item.value === type)?.label ?? type
+  const reset = () => confirm({
+    title: 'Вернуть правила по умолчанию?',
+    message: 'Сущности, у которых место выбрано в карточке, не изменятся. Правила типов станут такими:',
+    items: changes.map((change) => `${typeLabel(change.type)}: ${places(change.from)} → ${places(change.to)}`),
+    confirmLabel: 'Вернуть',
+    tone: 'accent',
+    onConfirm: () => persist({ ...campaign, publishRules: undefined }),
+  })
   return <div className="integrations-rules">
-    <div className="section-bar section-bar--sub"><h3>Куда уходят сущности по умолчанию</h3>{editable && changed && !only && <Button size="sm" onClick={() => persist({ ...campaign, publishRules: undefined })}>Как было</Button>}</div>
+    <div className="section-bar section-bar--sub">
+      <h3>Куда уходят сущности по умолчанию</h3>
+      {editable && changes.length > 0 && !only && (
+        <Button size="sm" onClick={reset}>
+          По умолчанию
+        </Button>
+      )}
+    </div>
     <p className="muted">Лор — в мир, персонажи и вещи — на стол, остальное остаётся здесь. В карточке сущности выбор можно поменять.</p>
     <div className="integrations-rules__table" role="table" aria-label="Правила отправки">
       <div role="row" className="integrations-rules__head"><span role="columnheader">Тип</span>{roles.map((role) => <span key={role} role="columnheader">{ROLE_LABEL[role]}{only || linkedRole(campaign, role) ? '' : ' · не подключён'}</span>)}</div>

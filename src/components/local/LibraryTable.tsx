@@ -9,6 +9,8 @@ import { liveSessions } from '../../local/sessions'
 import type { LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalRelationType } from '../../local/types'
 import { PeekLink } from './Peek'
 import { ENTITY_LABEL, ENTITY_TYPES, type Persist } from './shared'
+import { useConfirm } from '../useConfirm'
+import { plural } from '../../local/labels'
 
 type Sort = NonNullable<EntityFilter['sort']>
 
@@ -64,7 +66,37 @@ function BulkBar({ campaign, persist, ids, clear }: { campaign: LocalCampaignRec
   const others = campaign.entities.filter((entity) => !ids.includes(entity.id) && entity.status !== 'archived')
   const apply = (next: LocalCampaignRecord, message: string) => { persist(next); setDone(message); setAction(null); setText(''); setValue('') }
   const now = () => new Date().toISOString()
-  const open = (next: Action) => { setAction(action === next ? null : next); setDone(null); setText(''); setValue(next === 'field' ? '__type' : next === 'plan' ? sessions[0]?.id ?? '' : next === 'relate' ? others[0]?.id ?? '' : ''); setRoles(linkedRoles) }
+  const open = (next: Action) => { setAction(action === next ? null : next); setDone(null); setText(''); setValue(next === 'plan' ? sessions[0]?.id ?? '' : next === 'relate' ? others[0]?.id ?? '' : ''); setRoles(linkedRoles) }
+  const confirm = useConfirm()
+  const records = `${ids.length} ${plural(ids.length, 'записи', 'записей', 'записей')}`
+  /** «Поле» has no default: a field (or type) must be picked; clearing a field and retyping a mixed pick ask first. */
+  const applyField = () => {
+    if (!value) return
+    if (value === '__type') {
+      if (!text) return
+      const type = text as LocalCampaignEntityType
+      const change = () => apply(setType(campaign, ids, type), `Изменено: ${ids.length}`)
+      if (types.length < 2) { change(); return }
+      confirm({
+        title: `Сменить тип у ${records} на «${ENTITY_LABEL[type]}»?`,
+        message: 'Выбраны записи разных типов. Поля, которым нет места в новом типе, останутся в блоке «Из основы».',
+        items: types.map((from) => `${ENTITY_LABEL[from]}: ${picked.filter((entity) => entity.type === from).length} → ${ENTITY_LABEL[type]}`),
+        confirmLabel: 'Сменить тип',
+        tone: 'accent',
+        onConfirm: change,
+      })
+      return
+    }
+    const label = fieldChoices.find((field) => field.key === value)?.label ?? value
+    if (text.trim()) { apply(setField(campaign, ids, value, text), `Изменено: ${ids.length}`); return }
+    const filled = picked.filter((entity) => entity.fields[value]?.trim()).length
+    confirm({
+      title: `Очистить поле «${label}» у ${records}?`,
+      message: filled ? `Значение сотрётся у ${filled} из них.` : 'Сейчас оно ни у кого не заполнено.',
+      confirmLabel: 'Очистить',
+      onConfirm: () => apply(setField(campaign, ids, value, ''), `Очищено: ${ids.length}`),
+    })
+  }
   return <div className="bulk-bar" role="region" aria-label="Действия с выбранными">
     <div className="bulk-bar__row">
       <strong>Выбрано: {ids.length}</strong>
@@ -75,7 +107,26 @@ function BulkBar({ campaign, persist, ids, clear }: { campaign: LocalCampaignRec
     {action === 'tags' && <form className="bulk-bar__form" onSubmit={(event) => event.preventDefault()}><input aria-label="Теги для выбранных" value={text} placeholder="важное, порт" onChange={(event) => setText(event.target.value)} /><Button size="sm" disabled={!text.trim()} onClick={() => apply(addTags(campaign, ids, text.split(',')), `Теги добавлены: ${ids.length}`)}>Добавить</Button><Button size="sm" disabled={!text.trim()} onClick={() => apply(removeTags(campaign, ids, text.split(',')), `Теги убраны: ${ids.length}`)}>Убрать</Button></form>}
     {action === 'visibility' && <div className="bulk-bar__form"><Button size="sm" onClick={() => apply(setVisibility(campaign, ids, 'master'), 'Теперь только ведущим')}>Только ведущим</Button><Button size="sm" onClick={() => apply(setVisibility(campaign, ids, 'public'), 'Теперь для игроков')}>Для игроков</Button></div>}
     {action === 'status' && <div className="bulk-bar__form"><Button size="sm" onClick={() => apply(setStatus(campaign, ids, 'archived'), `В архиве: ${ids.length}`)}>В архив</Button><Button size="sm" onClick={() => apply(setStatus(campaign, ids, 'active'), `Возвращены: ${ids.length}`)}>Из архива</Button><Button size="sm" onClick={() => apply(setStatus(campaign, ids, 'inactive'), `Неактивны: ${ids.length}`)}>Неактивные</Button></div>}
-    {action === 'field' && <form className="bulk-bar__form" onSubmit={(event) => event.preventDefault()}><Select aria-label="Какое поле" value={value} onChange={(event) => { setValue(event.target.value); setText('') }}>{fieldChoices.map((field) => <option key={field.key} value={field.key}>{field.label}</option>)}</Select>{value === '__type' ? <Select aria-label="Новый тип" value={text || types[0]} onChange={(event) => setText(event.target.value)}>{ENTITY_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}</Select> : <input aria-label="Значение поля" value={text} placeholder="Пусто — очистить" onChange={(event) => setText(event.target.value)} />}<Button size="sm" onClick={() => apply(value === '__type' ? setType(campaign, ids, (text || types[0]) as LocalCampaignEntityType) : setField(campaign, ids, value, text), `Изменено: ${ids.length}`)}>Применить к {ids.length}</Button></form>}
+    {action === 'field' && (
+      <form className="bulk-bar__form" onSubmit={(event) => { event.preventDefault(); applyField() }}>
+        <Select aria-label="Какое поле" value={value} onChange={(event) => { setValue(event.target.value); setText('') }}>
+          <option value="" disabled>Выберите поле</option>
+          {fieldChoices.map((field) => <option key={field.key} value={field.key}>{field.label}</option>)}
+        </Select>
+        {value === '__type' && (
+          <Select aria-label="Новый тип" value={text} onChange={(event) => setText(event.target.value)}>
+            <option value="" disabled>Выберите тип</option>
+            {ENTITY_TYPES.map((type) => <option key={type.value} value={type.value}>{type.label}</option>)}
+          </Select>
+        )}
+        {value && value !== '__type' && (
+          <input aria-label="Значение поля" value={text} placeholder="Пусто — очистить" onChange={(event) => setText(event.target.value)} />
+        )}
+        <Button size="sm" type="submit" disabled={!value || (value === '__type' && !text)}>
+          Применить к {ids.length}
+        </Button>
+      </form>
+    )}
     {action === 'send' && (linkedRoles.length ? <div className="bulk-bar__form">{linkedRoles.map((role) => <label key={role} className={`home-chip${roles.includes(role) ? ' on' : ''}`}><input type="checkbox" checked={roles.includes(role)} onChange={() => setRoles(roles.includes(role) ? roles.filter((item) => item !== role) : [...roles, role])} />{ROLE_LABEL[role]} · {SYSTEM_LABEL[linkedRole(campaign, role)!.system]}</label>)}<Button size="sm" onClick={() => apply(sendTo(campaign, ids, null, now()), 'В очереди «Публикации» по правилам')}>По правилам</Button><Button size="sm" variant="primary" disabled={!roles.length} onClick={() => apply(sendTo(campaign, ids, roles, now()), 'В очереди «Публикации»')}>В выбранные</Button></div> : <p className="muted bulk-bar__form">Кампания не подключена к миру или столу — это делается в «Интеграциях».</p>)}
     {action === 'plan' && (sessions.length ? <div className="bulk-bar__form"><Select aria-label="В какую сессию" value={value} onChange={(event) => setValue(event.target.value)}>{sessions.map((session) => <option key={session.id} value={session.id}>№{session.number} {session.title}</option>)}</Select><Button size="sm" onClick={() => apply(addToPlan(campaign, ids, value), 'Добавлено в план')}>Добавить в план</Button></div> : <p className="muted bulk-bar__form">Нет сессий в подготовке.</p>)}
     {action === 'relate' && (others.length ? <form className="bulk-bar__form" onSubmit={(event) => event.preventDefault()}><Select aria-label="С кем связать" value={value} onChange={(event) => setValue(event.target.value)}>{others.map((entity) => <option key={entity.id} value={entity.id}>{entity.name} · {ENTITY_LABEL[entity.type]}</option>)}</Select><Select aria-label="Вид связи" value={relType} onChange={(event) => setRelType(event.target.value as LocalRelationType)}>{Object.entries(RELATION_TYPE).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</Select><input aria-label="Подпись связи" value={text} placeholder="Подпись" onChange={(event) => setText(event.target.value)} /><Button size="sm" onClick={() => apply(relateTo(campaign, ids, value, relType, text), 'Связи добавлены')}>Связать</Button></form> : <p className="muted bulk-bar__form">Не с чем связать.</p>)}

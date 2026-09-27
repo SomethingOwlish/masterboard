@@ -8,6 +8,9 @@ import { ROLE_LABEL, SYSTEM_LABEL, WRITABLE_ROLES, entityRoles, linkedRole, rule
 import { enqueueByRoles } from '../../local/publishing'
 import { baseFields } from '../../local/bulk'
 import { useBaseSchema } from '../../local/useExternal'
+import { entityRemovalImpact } from '../../local/removal'
+import { useConfirm } from '../useConfirm'
+import { removeWithUndo } from '../toast'
 
 type Draft = Omit<LocalCampaignEntity, 'id'>
 const STATUS_LABEL = ENTITY_STATUS_LABEL
@@ -29,6 +32,21 @@ export function EntityEditor({ campaign, persist, entity, defaultType = 'npc', c
     close()
   }
   const planned = entity === 'new' ? 0 : blockingPlans(entityUsages(campaign, entity.id)).length
+  const confirm = useConfirm()
+  /** With links — ask and list them; a lone record goes at once, with «Отменить». */
+  const remove = () => {
+    if (entity === 'new') return
+    const impact = entityRemovalImpact(campaign, entity.id)
+    const next = removeEntity(campaign, entity.id)
+    if (!impact.length) { removeWithUndo(persist, campaign, next, `«${entity.name}» — из библиотеки`); close(); return }
+    confirm({
+      title: `Удалить «${entity.name}»?`,
+      message: 'Запись удалится из библиотеки. Вместе с ней:',
+      items: impact,
+      confirmLabel: 'Удалить',
+      onConfirm: () => { persist(next); close() },
+    })
+  }
   return <Editor title={entity === 'new' ? 'Новая сущность' : 'Редактировать сущность'} close={close} draft={draft} size="xl">
       <div className="control-form__row"><label htmlFor="local-entity-type">Тип<Select id="local-entity-type" value={draft.type} onChange={(event) => setDraft(retypeEntity(draft, event.target.value as LocalCampaignEntityType))}>{ENTITY_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</Select></label><label htmlFor="local-entity-name">Название<input id="local-entity-name" autoFocus value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label></div>
       <label htmlFor="local-entity-description">Рабочее описание<textarea className="auto-grow" id="local-entity-description" rows={3} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
@@ -44,7 +62,7 @@ export function EntityEditor({ campaign, persist, entity, defaultType = 'npc', c
             tone="danger"
             disabled={planned > 0}
             title={planned ? `Используется в планах сессий (${planned}) — уберите из планов или отправьте в архив` : undefined}
-            onClick={() => { persist(removeEntity(campaign, entity.id)); close() }}
+            onClick={remove}
           >
             Удалить
           </Button>

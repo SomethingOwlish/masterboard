@@ -6,6 +6,8 @@ export interface ToastProps {
   icon?: string
   title?: string
   message?: string
+  /** One inline action, e.g. `{ label: 'Отменить', onClick }`. */
+  action?: { label: string; onClick: () => void }
   onClose?: () => void
   style?: React.CSSProperties
 }

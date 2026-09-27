@@ -11,6 +11,8 @@ import { CampaignNav, Checklist, SessionModal, StorageBadge } from './local/shar
 import { ActingMasterSelect } from './local/ActingMasterSelect'
 import { useActing } from '../local/actingContext'
 import { useConfirm } from './useConfirm'
+import { removeWithUndo } from './toast'
+import { planItemRemovalImpact } from '../local/removal'
 import { handOver, masterName, runSessionHint, sessionPlayers } from '../local/team'
 import { PlanViews } from './local/plan/PlanViews'
 import { type LinkedSource, type PlanApi, type PlanTarget } from './local/plan/planApi'
@@ -133,6 +135,23 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
   const startBlocked = selected && running && running.id !== selected.id ? `Сессия №${running.number} уже идёт — завершите её, прежде чем начинать новую` : undefined
   const trashHint = selected?.status === 'active' ? 'Сессия ещё идёт — сначала завершите её' : selected && !acting.canRun(selected) ? runSessionHint(campaign, selected) : undefined
 
+  /** A scene with members or an item with transitions asks first; a lone item goes at once, with «Отменить». */
+  const removePlanItem = (session: LocalSessionRecord, id: string) => {
+    const item = session.planItems.find((entry) => entry.id === id)
+    if (!item) return
+    const titleOf = (itemId: string) => { const found = session.planItems.find((entry) => entry.id === itemId); return found ? itemTitle(found) : '' }
+    const nextSession = removeItem(session, id)
+    const next = withLocalSessions(campaign, sessions.map((entry) => entry.id === nextSession.id ? nextSession : entry), nextSession.id)
+    const impact = planItemRemovalImpact(session, id, titleOf)
+    if (!impact.length) { removeWithUndo(persist, campaign, next, `«${itemTitle(item)}» — из плана`); return }
+    confirm({
+      title: `Убрать ${item.kind === 'scene' ? 'сцену' : 'пункт'} «${itemTitle(item)}» из плана?`,
+      message: 'Вместе с этим:',
+      items: impact,
+      confirmLabel: 'Убрать',
+      onConfirm: () => persist(next),
+    })
+  }
   const planApi: PlanApi | null = selected ? {
     campaign,
     session: selected,
@@ -143,7 +162,7 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
     move: (id, target) => updateSession(moveItemTo(selected, id, target)),
     shift: moveItem,
     shiftAmongPeers: (id, delta) => updateSession(shiftAmongPeers(selected, id, delta)),
-    remove: (id) => updateSession(removeItem(selected, id)),
+    remove: (id) => removePlanItem(selected, id),
     saveToLibrary,
     addText,
     addLinked,

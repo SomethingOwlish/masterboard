@@ -1,59 +1,42 @@
 // App-wide toast notifications (save/sync/create/delete results). Mount
-// <ToastHost /> once near the app root; call useToast()(toast) from anywhere.
-// Bottom-right stack, auto-dismiss after a few seconds.
+// <ToastHost /> once near the app root; call useToast()(toast) from anywhere
+// (or `pushToast` / `removeWithUndo` from ./toast outside React).
+// Bottom-right stack, auto-dismiss after a few seconds; the timer pauses while
+// the pointer or focus is on the toast.
 
-import { useEffect } from 'react'
-import { create } from 'zustand'
+import { useEffect, useState } from 'react'
 import { Toast } from '../ds'
-
-type Tone = 'neutral' | 'success' | 'danger' | 'warning' | 'accent'
-
-export interface ToastInput {
-  tone?: Tone
-  title?: string
-  message?: string
-  icon?: string
-  /** ms before auto-dismiss; 0 keeps it until dismissed. Default 4000. */
-  duration?: number
-}
-
-interface ToastItem extends ToastInput {
-  id: number
-}
-
-interface ToastState {
-  items: ToastItem[]
-  push: (t: ToastInput) => void
-  dismiss: (id: number) => void
-}
-
-let nextId = 1
-
-const useToastStore = create<ToastState>((set) => ({
-  items: [],
-  push: (t) => set((s) => ({ items: [...s.items, { ...t, id: nextId++ }] })),
-  dismiss: (id) => set((s) => ({ items: s.items.filter((i) => i.id !== id) })),
-}))
+import { UNDO_MS, useToastStore, type ToastItem } from './toast'
 
 export function useToast() {
   return useToastStore((s) => s.push)
 }
 
 function ToastRow({ item, onDismiss }: { item: ToastItem; onDismiss: (id: number) => void }) {
-  const duration = item.duration ?? 4000
+  const duration = item.duration ?? (item.action ? UNDO_MS : 4000)
+  const [paused, setPaused] = useState(false)
   useEffect(() => {
-    if (duration <= 0) return
+    if (duration <= 0 || paused) return
     const t = setTimeout(() => onDismiss(item.id), duration)
     return () => clearTimeout(t)
-  }, [duration, item.id, onDismiss])
+  }, [duration, paused, item.id, onDismiss])
+  const action = item.action && { label: item.action.label, onClick: () => { onDismiss(item.id); item.action?.onClick() } }
   return (
-    <Toast
-      tone={item.tone}
-      icon={item.icon}
-      title={item.title}
-      message={item.message}
-      onClose={() => onDismiss(item.id)}
-    />
+    <div
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+    >
+      <Toast
+        tone={item.tone}
+        icon={item.icon}
+        title={item.title}
+        message={item.message}
+        action={action}
+        onClose={() => onDismiss(item.id)}
+      />
+    </div>
   )
 }
 
