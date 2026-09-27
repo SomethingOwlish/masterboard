@@ -11,7 +11,8 @@
     "lint": "eslint . --ext ts,tsx",
     "typecheck": "tsc --noEmit && tsc --noEmit -p worker",
     "test": "vitest run",
-    "worker:dev": "wrangler dev --var DEV_USER_EMAIL:owner@example.com",
+    "preworker:dev": "mkdir -p dist",
+    "worker:dev": "wrangler dev --env dev",
     "worker:migrate": "wrangler d1 migrations apply masterboard --remote",
     "deploy": "npm run build && wrangler deploy"
   },
