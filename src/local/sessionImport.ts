@@ -2,9 +2,10 @@
 // format becomes draft sessions with scenes, plan items and transitions. Library records,
 // secrets, masters, groups and arcs are referenced by name and resolved against the campaign.
 
-import { blankSession } from './normalize'
+import { newEntity, newSecret } from './domain'
+import { blankSession, withLocalSessions } from './normalize'
 import { nextSessionNumber, validSessionDate } from './sessions'
-import type { LocalCampaignRecord, LocalSessionFlow, LocalSessionPlanItem, LocalSessionPlanKind, LocalSessionRecord } from './types'
+import type { LocalCampaignEntityType, LocalCampaignRecord, LocalSessionFlow, LocalSessionPlanItem, LocalSessionPlanKind, LocalSessionRecord } from './types'
 
 export const SESSION_IMPORT_FORMAT = 'masterboard-sessions/v1'
 
@@ -15,6 +16,16 @@ const isObject = (value: unknown): value is Raw => Boolean(value) && typeof valu
 const text = (value: unknown): string => (typeof value === 'string' ? value.trim() : typeof value === 'number' ? String(value) : '')
 const key = (value: string) => value.trim().toLocaleLowerCase()
 const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : [])
+
+/**
+ * Hints that earlier templates carried as field values. A file filled from such
+ * a template may still hold them; they are dropped instead of becoming content.
+ */
+const TEMPLATE_HINTS = new Set(['О чём эта сессия в одном предложении', 'Главный вопрос или цель', 'С чего начинается игра', 'Что должно произойти в сцене', 'Имя записи из библиотеки'].map((hint) => hint.toLocaleLowerCase()))
+const content = (value: unknown): string => { const result = text(value); return TEMPLATE_HINTS.has(key(result)) ? '' : result }
+
+/** Plan kinds that have a home outside the plan: library records and campaign secrets. */
+const RECORD_TYPE: Partial<Record<LocalSessionPlanKind, LocalCampaignEntityType>> = { npc: 'npc', material: 'handout' }
 
 /** Plan kinds by code and by the Russian label shown in the planner. */
 const KINDS: Record<string, LocalSessionPlanKind> = {
@@ -31,7 +42,12 @@ export interface SessionImportResult {
   sessions: LocalSessionRecord[]
   /** Non-fatal problems: unknown names, bad dates, dropped transitions. */
   warnings: string[]
+  /** NPCs, materials and secrets named in the file but missing from the campaign. */
+  newRecords: ImportRecord[]
 }
+
+/** A record the import can create in the library (NPC, material) or among the secrets. */
+export interface ImportRecord { kind: 'npc' | 'material' | 'secret'; name: string }
 
 /**
  * Parses an import file. Accepts `{ format, sessions: [...] }`, a bare array of
@@ -79,7 +95,7 @@ export function parseSessionImport(source: string, campaign: LocalCampaignRecord
     else if (date) warnings.push(`${where}: дата «${date}» не в формате ГГГГ-ММ-ДД — не задана`)
     if (text(raw.status) === 'ready') session.status = 'ready'
 
-    for (const field of ['participants', 'inGameTime', 'timelinePosition', 'idea', 'focus', 'opening', 'lines', 'layers', 'systems'] as const) session[field] = text(raw[field])
+    for (const field of ['participants', 'inGameTime', 'timelinePosition', 'idea', 'focus', 'opening', 'lines', 'layers', 'systems'] as const) session[field] = content(raw[field])
 
     /** Plan items by lowercase title, for transitions. */
     const byTitle = new Map<string, LocalSessionPlanItem>()
@@ -91,19 +107,19 @@ export function parseSessionImport(source: string, campaign: LocalCampaignRecord
       if (kindText && !KINDS[kindText] && fallbackKind !== 'scene') warnings.push(`${where}: тип «${text(rawItem.kind)}» неизвестен — пункт стал заметкой`)
       const priorityText = key(text(rawItem.priority))
       const item: LocalSessionPlanItem = {
-        id: `plan-${crypto.randomUUID()}`, source: 'text', text: text(rawItem.title) || text(rawItem.text), kind,
+        id: `plan-${crypto.randomUUID()}`, source: 'text', text: content(rawItem.title) || content(rawItem.text), kind,
         priority: PRIORITIES[priorityText] ?? 'desired', status: 'prepared',
-        role: text(rawItem.role), alternative: text(rawItem.alternative), note: text(rawItem.note), origin: 'prepared',
+        role: content(rawItem.role), alternative: text(rawItem.alternative), note: content(rawItem.note), origin: 'prepared',
         // Scenes do not nest: a scene listed inside another one stays top-level.
         ...(sceneId && kind !== 'scene' ? { sceneId } : {}),
       }
-      const libraryName = text(rawItem.library)
+      const libraryName = content(rawItem.library)
       if (libraryName) {
         const entity = entities.get(key(libraryName))
         if (entity) Object.assign(item, { source: 'library', entityId: entity.id, text: item.text || entity.name })
         else { warnings.push(`${where}: в библиотеке нет «${libraryName}» — пункт добавлен текстом`); item.text ||= libraryName }
       }
-      const secretName = text(rawItem.secret)
+      const secretName = content(rawItem.secret)
       if (secretName) {
         const secret = secrets.get(key(secretName))
         if (secret) Object.assign(item, { secretId: secret.id, kind: 'secret', text: item.text || secret.title })
@@ -134,18 +150,76 @@ export function parseSessionImport(source: string, campaign: LocalCampaignRecord
   })
 
   if (!sessions.length) throw new Error('В файле не нашлось ни одной сессии')
-  return { sessions, warnings }
+  return { sessions, warnings, newRecords: missingRecords(sessions) }
 }
 
-/** Downloadable template: one filled example session plus field notes for a person or an LLM. */
+const recordKind = (item: LocalSessionPlanItem): ImportRecord['kind'] | null =>
+  item.source !== 'text' || item.secretId ? null : item.kind === 'secret' ? 'secret' : RECORD_TYPE[item.kind] ? item.kind as 'npc' | 'material' : null
+const recordKey = (kind: ImportRecord['kind'], name: string) => `${kind === 'secret' ? 'secret' : 'entity'}:${key(name)}`
+
+/** Text plan items that name an NPC, a material or a secret, one entry per name. */
+function missingRecords(sessions: LocalSessionRecord[]): ImportRecord[] {
+  const found = new Map<string, ImportRecord>()
+  for (const item of sessions.flatMap((session) => session.planItems)) {
+    const kind = recordKind(item)
+    if (kind && !found.has(recordKey(kind, item.text))) found.set(recordKey(kind, item.text), { kind, name: item.text })
+  }
+  return [...found.values()]
+}
+
+/**
+ * Appends imported sessions to the campaign. With `createRecords`, NPCs and
+ * materials missing from the library become library records and missing
+ * secrets become campaign secrets; the plan items then link to them, so they
+ * show up in the library, the secrets and «where used».
+ */
+export function applySessionImport(campaign: LocalCampaignRecord, result: SessionImportResult, createRecords: boolean): LocalCampaignRecord {
+  let sessions = result.sessions
+  const entities = [...campaign.entities]
+  const secrets = [...campaign.secrets]
+  if (createRecords) {
+    const created = new Map<string, string>()
+    sessions = sessions.map((session) => ({
+      ...session,
+      planItems: session.planItems.map((item) => {
+        const kind = recordKind(item)
+        if (!kind) return item
+        const id = recordKey(kind, item.text)
+        if (!created.has(id)) {
+          if (kind === 'secret') {
+            const secret = newSecret({ title: item.text, truth: item.note || item.text, sessionIds: [session.id] })
+            secrets.push(secret)
+            created.set(id, secret.id)
+          } else {
+            const entity = newEntity({ type: RECORD_TYPE[kind]!, name: item.text, description: item.note, origin: { kind: 'import', sessionId: session.id } })
+            entities.push(entity)
+            created.set(id, entity.id)
+          }
+        } else if (kind === 'secret') {
+          const secret = secrets.find((entry) => entry.id === created.get(id))
+          if (secret && !secret.sessionIds.includes(session.id)) secret.sessionIds = [...secret.sessionIds, session.id]
+        }
+        return kind === 'secret' ? { ...item, secretId: created.get(id) } : { ...item, source: 'library' as const, entityId: created.get(id) }
+      }),
+    }))
+  }
+  return withLocalSessions({ ...campaign, entities, secrets }, [...campaign.sessionRecords, ...sessions], sessions[0]?.id)
+}
+
+/**
+ * Downloadable template: one example session plus field notes for a person or an LLM.
+ * Free-text fields are left empty; what to write in them sits next to them in
+ * `_`-prefixed keys, which the import ignores.
+ */
 export function sessionImportTemplate(campaign: LocalCampaignRecord): string {
-  const npc = campaign.entities.find((entity) => entity.type === 'npc')?.name ?? 'Имя записи из библиотеки'
+  const npc = campaign.entities.find((entity) => entity.type === 'npc')?.name
   const template = {
     format: SESSION_IMPORT_FORMAT,
     _help: [
-      'Заполните массив sessions и загрузите файл кнопкой «Импортировать JSON» в разделе «Сессии». Поля, начинающиеся с «_», игнорируются.',
+      'Заполните массив sessions и загрузите файл кнопкой «Импортировать JSON» в разделе «Сессии». Поля, начинающиеся с «_», — подсказки, импорт их игнорирует.',
       'Каждая сессия создаётся как новый черновик с номером после существующих. Пустые поля можно удалить.',
       'master, group, arc — имена из раздела «Команда» и линий кампании; library — точное название записи в библиотеке; secret — название секрета.',
+      'NPC, материалы и секреты, которых ещё нет в кампании, при импорте можно сразу завести в библиотеке и секретах.',
       'date — ГГГГ-ММ-ДД. status — draft (черновик) или ready (готова).',
       'kind: scene, idea, goal, event, question, secret, npc, material, note, consequence (можно по-русски: сцена, идея, цель, событие, вопрос, секрет, нпс, материал, заметка, последствие).',
       'priority: required, desired, useful, backup (или: обязательно, желательно, полезно, запас).',
@@ -154,25 +228,25 @@ export function sessionImportTemplate(campaign: LocalCampaignRecord): string {
     ],
     sessions: [{
       title: 'Ночь красного прилива',
-      date: '',
+      date: '', _date: 'ГГГГ-ММ-ДД',
       status: 'draft',
       master: campaign.masters[0]?.name ?? '',
       group: campaign.groups[0]?.name ?? '',
       arc: campaign.storyArcs[0]?.title ?? '',
-      participants: '',
-      inGameTime: 'Третья ночь, после заката',
-      timelinePosition: '',
-      idea: 'О чём эта сессия в одном предложении',
-      focus: 'Главный вопрос или цель',
-      opening: 'С чего начинается игра',
+      participants: '', _participants: 'Кто играет, если не вся группа',
+      inGameTime: '', _inGameTime: 'Когда в мире игры, например «третья ночь, после заката»',
+      timelinePosition: '', _timelinePosition: 'Место на шкале кампании',
+      idea: '', _idea: 'О чём эта сессия в одном предложении',
+      focus: '', _focus: 'Главный вопрос или цель',
+      opening: '', _opening: 'С чего начинается игра',
       lines: '', layers: '', systems: '',
       scenes: [
         {
           title: 'Пристань',
           priority: 'required',
-          note: 'Что должно произойти в сцене',
+          note: '', _note: 'Что должно произойти в сцене',
           items: [
-            { kind: 'npc', library: npc, role: 'Проводник', priority: 'required' },
+            npc ? { kind: 'npc', library: npc, role: 'Проводник', priority: 'required' } : { kind: 'npc', text: 'Лодочник Гран', role: 'Проводник', priority: 'required', _text: 'Нового NPC импорт предложит завести в библиотеке; существующего укажите в library' },
             { kind: 'question', text: 'Кто открыл шлюзы?', priority: 'desired' },
             'Запах гари с верфи',
           ],

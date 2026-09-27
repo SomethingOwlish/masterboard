@@ -4,6 +4,7 @@ import { addFlow, alternativeGroups, timeline } from '../../../local/plan'
 import type { LocalSessionPlanItem } from '../../../local/types'
 import { PlanItemCard } from './PlanItemCard'
 import { SceneTree } from './SceneTree'
+import { LazyBoundary } from '../LazyBoundary'
 import { DRAG_ITEM, PRIORITIES, USE_STATUS, type PlanApi } from './planApi'
 
 const PlanGraph = lazy(() => import('./PlanGraph'))
@@ -28,7 +29,7 @@ export function PlanViews({ api, actions, panel }: { api: PlanApi; actions?: Rea
       <div className="session-plan__canvas">
         {view === 'tree' && <SceneTree api={api} />}
         {view === 'list' && <PlanList api={api} />}
-        {view === 'graph' && <Suspense fallback={<p className="muted">Загружаем граф…</p>}><PlanGraph api={api} /></Suspense>}
+        {view === 'graph' && <LazyBoundary><Suspense fallback={<p className="muted">Загружаем граф…</p>}><PlanGraph api={api} /></Suspense></LazyBoundary>}
         {view === 'timeline' && <PlanTimeline api={api} />}
         {view !== 'timeline' && <FlowsEditor api={api} />}
       </div>

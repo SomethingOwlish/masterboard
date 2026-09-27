@@ -97,7 +97,7 @@ function StatusSelect({ api, item }: { api: PlanApi; item: Item }) {
 }
 
 function MoveButtons({ api, item, title }: { api: PlanApi; item: Item; title: string }) {
-  return <span className="scene-tree__move"><Button size="sm" aria-label={`Выше: ${title}`} onClick={() => api.shiftAmongPeers(item.id, -1)}>↑</Button><Button size="sm" aria-label={`Ниже: ${title}`} onClick={() => api.shiftAmongPeers(item.id, 1)}>↓</Button><Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать ${title} из сессии`} onClick={() => api.remove(item.id)} /></span>
+  return <span className="scene-tree__move"><Button size="sm" icon="pencil" aria-label={`Редактировать: ${title}`} title="Редактировать" onClick={() => api.editItem(item.id)} /><Button size="sm" aria-label={`Выше: ${title}`} onClick={() => api.shiftAmongPeers(item.id, -1)}>↑</Button><Button size="sm" aria-label={`Ниже: ${title}`} onClick={() => api.shiftAmongPeers(item.id, 1)}>↓</Button><Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать ${title} из сессии`} onClick={() => api.remove(item.id)} /></span>
 }
 
 function TreeItem({ api, item, open, toggle }: { api: PlanApi; item: Item; open: boolean; toggle: () => void }) {

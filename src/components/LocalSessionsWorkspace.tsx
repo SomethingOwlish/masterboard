@@ -15,11 +15,13 @@ import { type LinkedSource, type PlanApi, type PlanTarget } from './local/plan/p
 import { LibraryPicker, PlanAddPanel } from './local/plan/PlanAdd'
 import { EntityEditor } from './local/EntityEditor'
 import { moveItemTo, removeItem, setItemStatus, shiftAmongPeers } from '../local/plan'
-import { parseSessionImport, sessionImportTemplate, type SessionImportResult } from '../local/sessionImport'
+import { applySessionImport, parseSessionImport, sessionImportTemplate, type SessionImportResult } from '../local/sessionImport'
+import { PlanItemEditor } from './local/plan/PlanItemEditor'
 import { downloadText } from '../local/download'
 import { duplicateSession, liveSessions, nextSessionNumber, restoreSession, runningSession, startSession, trashSession, trashedSessions, validSessionDate } from '../local/sessions'
 
 type Props = { campaign: LocalCampaignRecord; persist: (next: LocalCampaignRecord) => void; mode?: 'plan' | 'play' | 'review' }
+const RECORD_LABEL = { npc: 'NPC', material: 'Материал', secret: 'Секрет' } as const
 const statusLabel = { draft: 'Черновик', ready: 'Готова', active: 'Проводится', completed: 'Закрыта' } as const
 
 export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Props) {
@@ -41,6 +43,9 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
   const importInput = useRef<HTMLInputElement>(null)
   /** Parsed import file awaiting confirmation, or the reason it could not be read. */
   const [pendingImport, setPendingImport] = useState<SessionImportResult | { error: string } | null>(null)
+  /** Whether the import also creates the NPCs, materials and secrets it names. */
+  const [createRecords, setCreateRecords] = useState(true)
+  const [editingItemId, setEditingItemId] = useState<string | null>(null)
   const editingEntity = editingEntityId ? campaign.entities.find((entity) => entity.id === editingEntityId) : undefined
   const updateSession = (next: LocalSessionRecord) => persist(withLocalSessions(campaign, sessions.map((item) => item.id === next.id ? next : item), next.id))
   const choose = (id: string) => { setSelectedId(id); persist(withLocalSessions(campaign, sessions, id)) }
@@ -86,13 +91,13 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
 
   const readImport = async (file: File | undefined) => {
     if (!file) return
+    setCreateRecords(true)
     try { setPendingImport(parseSessionImport(await file.text(), campaign, acting.master.id, new Date().toISOString())) } catch (error) { setPendingImport({ error: error instanceof Error ? error.message : 'Не удалось прочитать файл' }) }
   }
   const confirmImport = () => {
     if (!pendingImport || 'error' in pendingImport) return
-    const first = pendingImport.sessions[0]
-    persist(withLocalSessions(campaign, [...sessions, ...pendingImport.sessions], first.id))
-    setSelectedId(first.id)
+    persist(applySessionImport(campaign, pendingImport, createRecords))
+    setSelectedId(pendingImport.sessions[0].id)
     setPendingImport(null)
   }
   const downloadTemplate = () => downloadText('masterboard-sessions-template.json', sessionImportTemplate(campaign))
@@ -121,7 +126,9 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
     addLinked,
     openPicker: (target) => setPickerTarget(target),
     editEntity: (id) => setEditingEntityId(id),
+    editItem: (id) => setEditingItemId(id),
   } : null
+  const editingItem = editingItemId ? selected?.planItems.find((item) => item.id === editingItemId) : undefined
 
   return <main className="sessions-workspace">
     <header className="sessions-workspace__top"><Link to={`/local/campaign/${campaign.id}/overview`}><Icon name="arrow-left" size={16} /> {campaign.name}</Link><CampaignNav campaignId={campaign.id} section={mode === 'plan' ? 'session' : mode} /><div className="row"><ActingMasterSelect campaign={campaign} /><StorageBadge campaignId={campaign.id} /></div></header>
@@ -137,8 +144,9 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
       </section>}
     </div>
     {editor && <Modal title={sessions.some((item) => item.id === editor.id) ? 'Паспорт сессии' : 'Новая сессия'} close={() => setEditor(null)}><div className="session-passport-form"><label>Название<input autoFocus value={editor.title} onChange={(event) => setEditor({ ...editor, title: event.target.value })} /></label><div className="control-form__row"><label>Номер<input type="number" min="1" value={editor.number} onChange={(event) => setEditor({ ...editor, number: Number(event.target.value) })} /></label><label>Статус<Select value={editor.status} onChange={(event) => setEditor({ ...editor, status: event.target.value as LocalSessionRecord['status'] })}>{Object.entries(statusLabel).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></label><label>Ответственный мастер<Select aria-label="Ответственный мастер" value={editor.masterId} disabled={sessions.some((item) => item.id === editor.id) && !acting.canRun(sessions.find((item) => item.id === editor.id)!)} onChange={(event) => setEditor({ ...editor, masterId: event.target.value })}>{campaign.masters.map((master) => <option key={master.id} value={master.id}>{master.name}</option>)}</Select></label></div><div className="control-form__row"><label>Группа<Select aria-label="Группа" value={editor.groupId} onChange={(event) => setEditor({ ...editor, groupId: event.target.value, guestPlayerIds: editor.guestPlayerIds.filter((id) => !campaign.groups.find((group) => group.id === event.target.value)?.playerIds.includes(id)) })}><option value="">Без группы</option>{campaign.groups.map((group) => <option key={group.id} value={group.id}>{group.name}</option>)}</Select></label><label>Заметка об участниках<input value={editor.participants} onChange={(event) => setEditor({ ...editor, participants: event.target.value })} /></label><label>Дата игры<input type="date" value={editor.date} aria-invalid={!validSessionDate(editor.date)} onChange={(event) => setEditor({ ...editor, date: event.target.value })} /></label></div>{!validSessionDate(editor.date) && <p className="session-plan__notice" role="alert">Такой даты нет в календаре.</p>}<Checklist legend="Приглашённые игроки" options={campaign.players.filter((player) => !campaign.groups.find((group) => group.id === editor.groupId)?.playerIds.includes(player.id)).map((player) => ({ id: player.id, label: player.name }))} value={editor.guestPlayerIds} onChange={(guestPlayerIds) => setEditor({ ...editor, guestPlayerIds })} empty="Все игроки уже в группе или пул игроков пуст (раздел «Команда»)." /><div className="control-form__row"><label>Арка<Select value={editor.arcId} onChange={(event) => setEditor({ ...editor, arcId: event.target.value })}><option value="">Без арки</option>{campaign.storyArcs.map((arc) => <option key={arc.id} value={arc.id}>{arc.title}</option>)}</Select></label><label>Внутриигровое время<input value={editor.inGameTime} onChange={(event) => setEditor({ ...editor, inGameTime: event.target.value })} /></label><label>Положение на шкале<input value={editor.timelinePosition} onChange={(event) => setEditor({ ...editor, timelinePosition: event.target.value })} /></label></div>{campaign.storyArcs.length > 1 && <fieldset className="session-passport-form__arcs"><legend>Фоновые линии</legend>{campaign.storyArcs.filter((arc) => arc.id !== editor.arcId).map((arc) => <label key={arc.id}><input type="checkbox" checked={editor.backgroundArcIds.includes(arc.id)} onChange={() => setEditor({ ...editor, backgroundArcIds: toggleId(editor.backgroundArcIds, arc.id) })} /> {arc.title}</label>)}</fieldset>}<label>Идея<textarea rows={2} value={editor.idea} onChange={(event) => setEditor({ ...editor, idea: event.target.value })} /></label><label>Цель, вопрос или тема<textarea rows={2} value={editor.focus} onChange={(event) => setEditor({ ...editor, focus: event.target.value })} /></label><label>Стартовая ситуация<textarea rows={2} value={editor.opening} onChange={(event) => setEditor({ ...editor, opening: event.target.value })} /></label><div className="control-form__row"><label>Связанные линии<input value={editor.lines} onChange={(event) => setEditor({ ...editor, lines: event.target.value })} /></label><label>Слои<input value={editor.layers} onChange={(event) => setEditor({ ...editor, layers: event.target.value })} /></label><label>Системы и миры<input value={editor.systems} onChange={(event) => setEditor({ ...editor, systems: event.target.value })} /></label></div></div><footer><Button onClick={() => setEditor(null)}>Отмена</Button><Button variant="primary" disabled={!editor.title.trim() || !validSessionDate(editor.date)} onClick={savePassport}>Сохранить</Button></footer></Modal>}
-    {pendingImport && <Modal title="Импорт сессий" close={() => setPendingImport(null)}>{'error' in pendingImport ? <p className="session-plan__notice" role="alert">{pendingImport.error}</p> : <div className="sessions-import-preview"><p>Будут созданы черновики:</p><ul>{pendingImport.sessions.map((session) => <li key={session.id}><strong>№{session.number} {session.title}</strong> <small>{session.planItems.filter((item) => item.kind === 'scene').length} сцен · {session.planItems.length} пунктов плана · {session.flows.length} переходов</small></li>)}</ul>{pendingImport.warnings.length > 0 && <details open><summary>Замечания · {pendingImport.warnings.length}</summary><ul>{pendingImport.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>}</div>}<footer><Button onClick={() => setPendingImport(null)}>{'error' in pendingImport ? 'Закрыть' : 'Отмена'}</Button>{!('error' in pendingImport) && <Button variant="primary" icon="upload" onClick={confirmImport}>Импортировать · {pendingImport.sessions.length}</Button>}</footer></Modal>}
+    {pendingImport && <Modal title="Импорт сессий" close={() => setPendingImport(null)}>{'error' in pendingImport ? <p className="session-plan__notice" role="alert">{pendingImport.error}</p> : <div className="sessions-import-preview"><p>Будут созданы черновики:</p><ul>{pendingImport.sessions.map((session) => <li key={session.id}><strong>№{session.number} {session.title}</strong> <small>{session.planItems.filter((item) => item.kind === 'scene').length} сцен · {session.planItems.length} пунктов плана · {session.flows.length} переходов</small></li>)}</ul>{pendingImport.newRecords.length > 0 && <fieldset className="sessions-import-preview__records"><legend>Новые записи · {pendingImport.newRecords.length}</legend><label><input type="checkbox" checked={createRecords} onChange={(event) => setCreateRecords(event.target.checked)} /> Создать в библиотеке и секретах</label><ul>{pendingImport.newRecords.map((record) => <li key={`${record.kind}-${record.name}`}><small>{RECORD_LABEL[record.kind]}</small> {record.name}</li>)}</ul>{!createRecords && <p className="muted">Останутся текстом в плане — перенести можно потом кнопкой «В библиотеку».</p>}</fieldset>}{pendingImport.warnings.length > 0 && <details open><summary>Замечания · {pendingImport.warnings.length}</summary><ul>{pendingImport.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>}</div>}<footer><Button onClick={() => setPendingImport(null)}>{'error' in pendingImport ? 'Закрыть' : 'Отмена'}</Button>{!('error' in pendingImport) && <Button variant="primary" icon="upload" onClick={confirmImport}>Импортировать · {pendingImport.sessions.length}</Button>}</footer></Modal>}
     {planApi && pickerTarget !== undefined && <LibraryPicker api={planApi} target={pickerTarget} close={() => setPickerTarget(undefined)} />}
+    {planApi && editingItem && <PlanItemEditor api={planApi} item={editingItem} close={() => setEditingItemId(null)} />}
     {editingEntity && <EntityEditor campaign={campaign} persist={persist} entity={editingEntity} close={() => setEditingEntityId(null)} />}
   </main>
 }
