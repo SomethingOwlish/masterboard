@@ -4,6 +4,7 @@ import { BridgeUnavailableError, forwardToBridge, type BridgeEnv } from './bridg
 import type { D1Like } from './d1'
 import { PermissionError } from './permissions'
 import { BadRequestError, ConflictError, DocumentStore, NotFoundError } from './store'
+import { PlayerStore } from './players'
 
 export interface Env extends AuthEnv, BridgeEnv {
   DB: D1Like
@@ -21,6 +22,8 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
  *   GET    /api/revisions/<path>         → { revision } | 404 (polled by open screens)
  *   PUT    /api/docs/<path>  { data, expectedRevision? } → Snapshot | 409 { current }
  *   DELETE /api/docs/<path>?expectedRevision=n
+ *   GET    /api/players                  → профили игроков для всех мастеров + своя заметка (players.ts)
+ *   PUT    /api/players/<id> { data, expectedRevision? } · PUT /api/players/<id>/note { text } · DELETE /api/players/<id>
  *   GET    /api/ext/connections | passport | entities | state | backup, POST /api/ext/publish | session | backup → lorebridge /mb/* (bridge.ts)
  *   POST   /api/internal/backup         → все общие кампании для бэкапа моста; только по общему секрету, без входа (backup.ts)
  */
@@ -39,6 +42,18 @@ export async function handleApi(request: Request, env: Env, fetcher: typeof fetc
     if (route.startsWith('ext/')) {
       const forwarded = await forwardToBridge(request, route.slice('ext/'.length), email, env)
       if (forwarded) return forwarded
+    }
+    if (route === 'players' || route.startsWith('players/')) {
+      const players = new PlayerStore(env.DB, email)
+      const [, id, part] = route.split('/')
+      if (!id && request.method === 'GET') return json(await players.list())
+      if (id && part === 'note' && request.method === 'PUT') { const body = await request.json() as { text?: unknown }; return json(await players.note(decodeURIComponent(id), typeof body.text === 'string' ? body.text : '')) }
+      if (id && !part && request.method === 'PUT') {
+        const body = await request.json() as { data?: unknown; expectedRevision?: number }
+        if (!body.data || typeof body.data !== 'object' || Array.isArray(body.data)) throw new BadRequestError('Нужно поле data с объектом')
+        return json(await players.set(decodeURIComponent(id), body.data as Record<string, unknown>, body.expectedRevision))
+      }
+      if (id && !part && request.method === 'DELETE') { await players.remove(decodeURIComponent(id)); return new Response(null, { status: 204 }) }
     }
     if (route.startsWith('collections/') && request.method === 'GET') return json(await store.list(decodeURIComponent(route.slice('collections/'.length))))
     if (route.startsWith('revisions/') && request.method === 'GET') {

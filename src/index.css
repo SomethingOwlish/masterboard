@@ -1543,3 +1543,29 @@ textarea.auto-grow { field-sizing: content; min-height: 2.4em; max-height: 50vh;
 .inbox-row__actions select { padding: 4px 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: .85rem; }
 .plan-timeline__filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--space-3); }
 .plan-timeline__filters .home-chip { padding: 3px 10px; font-size: .85rem; }
+
+/* ── ТЗ-2, R11: player directory ──────────────────────────────────────── */
+.players-page { display: grid; grid-template-columns: minmax(220px, 300px) minmax(0, 1fr); gap: var(--space-5); align-items: start; margin-top: var(--space-4); }
+.players-page__list { display: grid; gap: var(--space-2); }
+.players-page__list ul { display: grid; gap: 4px; margin: 0; padding: 0; list-style: none; }
+.players-page__list li button { display: grid; width: 100%; gap: 2px; padding: 8px 12px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text); font: inherit; text-align: left; cursor: pointer; }
+.players-page__list li button:hover { background: var(--surface-2); }
+.players-page__list li button.active { border-color: var(--accent); background: var(--accent-soft); }
+.players-page__list small { color: var(--muted); }
+.players-page__search { display: flex; align-items: center; gap: 8px; padding: 0 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--muted); }
+.players-page__search input { flex: 1; min-width: 0; padding: 8px 0; border: 0; background: transparent; color: var(--text); font: inherit; outline: none; }
+.players-page__name input { width: 100%; min-width: 220px; padding: 4px 8px; border: 1px solid transparent; border-radius: var(--radius-sm); background: transparent; color: var(--text); font: var(--type-display); font-size: 1.6rem; }
+.players-page__name input:hover, .players-page__name input:focus { border-color: var(--border); background: var(--surface); }
+.players-page__grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr)); gap: var(--space-3) var(--space-4); }
+.players-page__grid > label, .players-page__days { display: grid; gap: 6px; margin: 0; padding: 0; border: 0; color: var(--muted); }
+.players-page__grid textarea, .players-page__days input[type="text"], .players-page__days > input { padding: 8px 10px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; }
+.players-page__days .row { flex-wrap: wrap; gap: 4px; }
+.players-page__days .home-chip { padding: 3px 10px; }
+.players-page__mine { padding: var(--space-3); border: 1px dashed var(--accent); border-radius: var(--radius-sm); }
+.players-page__mine > button, .players-page__mine .mb-button { justify-self: start; }
+.players-page__profile h3 { margin: var(--space-4) 0 var(--space-2); font-size: 1.05rem; }
+.players-page__played { display: grid; gap: 4px; margin: 0; padding-left: 18px; }
+.team-section__profile { align-self: center; color: var(--accent); font-weight: 700; font-size: .9rem; }
+@media (max-width: 760px) { .players-page { grid-template-columns: 1fr; } }
+/* The «Новая кампания» tile no longer stretches to a card's height (R12). */
+.campaign-workspace__grid > .campaign-workspace__new { align-self: start; min-height: 0; height: auto; padding: var(--space-5); }

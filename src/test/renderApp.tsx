@@ -10,12 +10,14 @@ import { LocalCatalogProvider } from '../local/useLocalCampaign'
 import { ConfirmHost } from '../components/useConfirm'
 import { ExternalProvider, type ExternalPort } from '../local/useExternal'
 import { FakeBridge } from './fakeBridge'
+import { MemoryPlayersGateway, type PlayersGateway } from '../local/players'
+import { PlayersContext } from '../local/playersContext'
 
 /** Renders the app on `path`; lorebook / lovegame are an in-memory bridge unless a test passes its own. */
-export function renderApp(path: string, catalog: LocalCampaignCatalog = createLocalCampaignCatalog(new MemoryStorageGateway()), bridge: ExternalPort = new FakeBridge()) {
+export function renderApp(path: string, catalog: LocalCampaignCatalog = createLocalCampaignCatalog(new MemoryStorageGateway()), bridge: ExternalPort = new FakeBridge(), players: PlayersGateway = new MemoryPlayersGateway()) {
   const router = createMemoryRouter(routes, { initialEntries: [path] })
-  render(<LocalCatalogProvider catalog={catalog}><ExternalProvider port={bridge}><RouterProvider router={router} /><ConfirmHost /></ExternalProvider></LocalCatalogProvider>)
-  return { router, catalog, bridge }
+  render(<LocalCatalogProvider catalog={catalog}><ExternalProvider port={bridge}><PlayersContext.Provider value={players}><RouterProvider router={router} /><ConfirmHost /></PlayersContext.Provider></ExternalProvider></LocalCatalogProvider>)
+  return { router, catalog, bridge, players }
 }
 
 /** A campaign that already has session 1, so the dashboard opens. */

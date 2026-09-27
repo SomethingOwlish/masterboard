@@ -132,7 +132,7 @@ function PeekDrawer({ campaign, persist, target, back, close }: { campaign: Loca
           {player.note && <p>{player.note}</p>}
           <PeekSection title="Персонажи"><PeekList items={entities(player.characterIds)} empty="Пока нет" /></PeekSection>
         </>,
-        actions: <Button size="sm" variant="primary" icon="arrow-up-right" onClick={() => go('team')}>Открыть в команде</Button>,
+        actions: <>{player.profileId && <Button size="sm" icon="user-round" onClick={() => { close(); navigate(`/players?open=${player.profileId}`) }}>Профиль игрока</Button>}<Button size="sm" variant="primary" icon="arrow-up-right" onClick={() => go('team')}>Открыть в команде</Button></>,
       }
     }
     const session = campaign.sessionRecords.find((item) => item.id === target.id)

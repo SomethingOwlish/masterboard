@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, EmptyState } from '../../ds'
 import { useActing } from '../../local/actingContext'
 import { newGroup, newMaster, newPlayer, ownerOf, playerCharacters, removeGroup, removeMaster, removePlayer, transferOwnership } from '../../local/team'
@@ -8,6 +8,9 @@ import { useLocalCatalog } from '../../local/useLocalCampaign'
 import { useConfirm } from '../useConfirm'
 import { Checklist, Editor, type SectionProps } from './shared'
 import { PeekLink, PeekList } from './Peek'
+import { newProfile } from '../../local/players'
+import { usePlayersGateway } from '../../local/playersContext'
+import { DirectoryPicker } from './DirectoryPicker'
 
 export function TeamSection({ campaign, persist }: SectionProps) {
   const acting = useActing(campaign)
@@ -19,6 +22,14 @@ export function TeamSection({ campaign, persist }: SectionProps) {
   const shared = catalog.shared?.isShared(campaign.id) ?? false
   const [playerEditor, setPlayerEditor] = useState<LocalPlayer | null>(null)
   const [groupEditor, setGroupEditor] = useState<LocalGroup | null>(null)
+  const [picking, setPicking] = useState(false)
+  const players = usePlayersGateway()
+  /** A campaign-only player gets a profile in the shared directory and keeps a link to it (ТЗ-2, R11). */
+  const toDirectory = async (player: LocalPlayer) => {
+    const profile = { ...newProfile(player.name), notes: player.note }
+    await players.save(profile, 0)
+    persist({ ...campaign, players: campaign.players.map((item) => item.id === player.id ? { ...item, profileId: profile.id } : item) })
+  }
   const owner = ownerOf(campaign)
   const characters = campaign.entities.filter((entity) => entity.type === 'character' && entity.status !== 'archived')
   const lockedHint = `Только владелец кампании (${owner.name}) может это менять.`
@@ -50,8 +61,8 @@ export function TeamSection({ campaign, persist }: SectionProps) {
     </section>
 
     <section className="team-section__block" aria-label="Игроки">
-      <header className="row"><h3>Игроки</h3><Button size="sm" icon="plus" onClick={() => setPlayerEditor(newPlayer(''))}>Новый игрок</Button></header>
-      {campaign.players.length ? <ul className="team-section__list">{campaign.players.map((player) => { const groups = campaign.groups.filter((group) => group.playerIds.includes(player.id)); const heroes = playerCharacters(campaign, player); return <li key={player.id}><div><strong><PeekLink target={{ kind: 'player', id: player.id }}>{player.name}</PeekLink></strong><small>{groups.map((group) => group.name).join(', ') || 'без группы'}{heroes.length > 0 && <> · играет: <PeekList items={heroes.map((hero) => ({ target: { kind: 'entity', id: hero.id }, name: hero.name }))} /></>}</small>{player.note && <small>{player.note}</small>}</div><div className="row"><Button size="sm" icon="pencil" aria-label={`Редактировать игрока ${player.name}`} onClick={() => setPlayerEditor(structuredClone(player))} /><Button size="sm" tone="danger" icon="trash-2" aria-label={`Удалить игрока ${player.name}`} onClick={() => confirm({ title: `Удалить игрока ${player.name}?`, message: 'Игрок исчезнет из групп, приглашений и получателей секретов.', confirmLabel: 'Удалить', cancelLabel: 'Отмена', onConfirm: () => persist(removePlayer(campaign, player.id)) })} /></div></li> })}</ul> : <EmptyState icon="users" title="Игроков пока нет" hint="Добавьте игроков, чтобы собирать группы и выбирать, кому раскрыт секрет." />}
+      <header className="row"><h3>Игроки</h3><Button size="sm" icon="users" onClick={() => setPicking(true)}>Из справочника</Button><Button size="sm" icon="plus" onClick={() => setPlayerEditor(newPlayer(''))}>Новый игрок</Button></header>
+      {campaign.players.length ? <ul className="team-section__list">{campaign.players.map((player) => { const groups = campaign.groups.filter((group) => group.playerIds.includes(player.id)); const heroes = playerCharacters(campaign, player); return <li key={player.id}><div><strong><PeekLink target={{ kind: 'player', id: player.id }}>{player.name}</PeekLink></strong><small>{groups.map((group) => group.name).join(', ') || 'без группы'}{heroes.length > 0 && <> · играет: <PeekList items={heroes.map((hero) => ({ target: { kind: 'entity', id: hero.id }, name: hero.name }))} /></>}</small>{player.note && <small>{player.note}</small>}</div><div className="row">{player.profileId ? <Link className="team-section__profile" to={`/players?open=${player.profileId}`}>Профиль</Link> : <Button size="sm" icon="user-round" aria-label={`В справочник: ${player.name}`} onClick={() => void toDirectory(player)}>В справочник</Button>}<Button size="sm" icon="pencil" aria-label={`Редактировать игрока ${player.name}`} onClick={() => setPlayerEditor(structuredClone(player))} /><Button size="sm" tone="danger" icon="trash-2" aria-label={`Удалить игрока ${player.name}`} onClick={() => confirm({ title: `Удалить игрока ${player.name}?`, message: 'Игрок исчезнет из групп, приглашений и получателей секретов.', confirmLabel: 'Удалить', cancelLabel: 'Отмена', onConfirm: () => persist(removePlayer(campaign, player.id)) })} /></div></li> })}</ul> : <EmptyState icon="users" title="Игроков пока нет" hint="Добавьте игроков, чтобы собирать группы и выбирать, кому раскрыт секрет." />}
     </section>
 
     <section className="team-section__block" aria-label="Группы">
@@ -64,6 +75,7 @@ export function TeamSection({ campaign, persist }: SectionProps) {
       {acting.canManage ? <div className="row"><Button onClick={archive}>{campaign.archived ? 'Вернуть из архива' : 'В архив'}</Button><Button tone="danger" icon="trash-2" onClick={remove}>Удалить кампанию</Button></div> : <p className="muted" role="note">{lockedHint}</p>}
     </section>
 
+    {picking && <DirectoryPicker campaign={campaign} persist={persist} close={() => setPicking(false)} />}
     {playerEditor && <Editor title={campaign.players.some((item) => item.id === playerEditor.id) ? 'Игрок' : 'Новый игрок'} close={() => setPlayerEditor(null)}>
       <label htmlFor="player-name">Имя<input id="player-name" autoFocus value={playerEditor.name} onChange={(e) => setPlayerEditor({ ...playerEditor, name: e.target.value })} /></label>
       <Checklist legend="Персонажи игрока" options={characters.map((entity) => ({ id: entity.id, label: entity.name }))} value={playerEditor.characterIds} onChange={(characterIds) => setPlayerEditor({ ...playerEditor, characterIds })} empty="В библиотеке нет сущностей типа «Персонаж»." />

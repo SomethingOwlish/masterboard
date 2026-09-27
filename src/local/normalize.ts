@@ -211,7 +211,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     idea: text(value.idea),
     activeTime: text(value.activeTime, 'Время ещё не задано'),
     masters,
-    players: list<Raw>(value.players).filter((player) => isObject(player) && typeof player.id === 'string').map((player) => ({ id: player.id as string, name: text(player.name), characterIds: ids(player.characterIds), note: text(player.note) })),
+    players: list<Raw>(value.players).filter((player) => isObject(player) && typeof player.id === 'string').map((player) => ({ id: player.id as string, name: text(player.name), characterIds: ids(player.characterIds), note: text(player.note), ...(typeof player.profileId === 'string' ? { profileId: player.profileId } : {}) })),
     groups: team.groups,
     archived: value.archived === true,
     improv: list<Raw>(value.improv).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.text === 'string').map((item) => ({
