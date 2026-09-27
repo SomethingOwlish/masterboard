@@ -42,9 +42,10 @@ export const LINKABLE_SYSTEMS = ['lorebook', 'lovegame', 'kk9'] as const
 export type LinkableSystem = typeof LINKABLE_SYSTEMS[number]
 /**
  * Systems a campaign can publish to; systemsetup is read-only (decision E4).
- * kk9 is read-only for now: writing NPCs and items there is stage M3.
+ * kk9 takes only NPCs (into its library) and items (into its catalog) — the
+ * passport says so, and the queue offers nothing else there.
  */
-export const WRITABLE_SYSTEMS: ExternalSystem[] = ['lorebook', 'lovegame']
+export const WRITABLE_SYSTEMS: ExternalSystem[] = ['lorebook', 'lovegame', 'kk9']
 
 export const connectionKey = (system: ExternalSystem, externalId: string) => `${system}:${externalId}`
 export function parseConnectionKey(key: string): { system: ExternalSystem; externalId: string } {
@@ -58,6 +59,9 @@ export const TARGET_TYPE: Record<'lorebook' | 'lovegame', Record<LocalCampaignEn
   lovegame: { character: 'npc', npc: 'npc', creature: 'codex', location: 'codex', faction: 'codex', rumor: 'codex', item: 'codex', audience: 'codex', note: 'codex', letter: 'handout', handout: 'handout', map: 'handout', 'home-rule': 'codex' },
 }
 
+/** КК9: only NPCs and items are written there; a character goes as an NPC. */
+const KK9_TARGET: Partial<Record<LocalCampaignEntityType, string>> = { npc: 'npc', character: 'npc', creature: 'npc', item: 'item' }
+
 /** Masterboard type for a record read from another system. */
 const IMPORT_TYPE: Record<ExternalSystem, Record<string, LocalCampaignEntityType>> = {
   lorebook: { character: 'npc', location: 'location', faction: 'faction', item: 'item', event: 'note', lore: 'note', note: 'note' },
@@ -70,7 +74,7 @@ export const importType = (system: ExternalSystem, type: string): LocalCampaignE
 
 /** Types the destination accepts for a new record; the table's choice first when it is among them. */
 export function targetTypes(passport: CapabilityPassport | undefined, system: ExternalSystem, type: LocalCampaignEntityType): Array<{ id: string; label: string }> {
-  const preferred = system === 'lorebook' || system === 'lovegame' ? TARGET_TYPE[system][type] : ''
+  const preferred = system === 'lorebook' || system === 'lovegame' ? TARGET_TYPE[system][type] : system === 'kk9' ? KK9_TARGET[type] ?? '' : ''
   const accepted = passport?.entities.filter((entity) => entity.enabled && entity.operations.includes('create')).map((entity) => ({ id: entity.entityType, label: entity.label })) ?? []
   if (!accepted.length) return preferred ? [{ id: preferred, label: preferred }] : []
   return [...accepted.filter((item) => item.id === preferred), ...accepted.filter((item) => item.id !== preferred)]
