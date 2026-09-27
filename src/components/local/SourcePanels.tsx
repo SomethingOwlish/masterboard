@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Badge, Button, Icon, Select } from '../../ds'
-import { SYSTEM_LABEL, connectionKey, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
+import { LINKABLE_SYSTEMS, SYSTEM_LABEL, connectionKey, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord } from '../../local/types'
 import { useConnections, useExternal } from '../../local/useExternal'
 import { ENTITY_LABEL, Editor, type Persist } from './shared'
@@ -11,7 +11,7 @@ const show = (value: unknown) => Array.isArray(value) ? value.map((tag) => `#${t
 /** Sources a campaign can read from: its linked world / campaign and systemsetup (decision F2). */
 function useSources(campaign: LocalCampaignRecord) {
   const state = useConnections()
-  const linked = (['lorebook', 'lovegame'] as const).flatMap((system) => { const link = campaign.integrations[system]; return link ? [{ id: connectionKey(system, link.externalId), system, containerId: link.externalId, label: `${SYSTEM_LABEL[system]} · ${link.label}` }] : [] })
+  const linked = LINKABLE_SYSTEMS.flatMap((system) => { const link = campaign.integrations[system]; return link ? [{ id: connectionKey(system, link.externalId), system, containerId: link.externalId, label: `${SYSTEM_LABEL[system]} · ${link.label}` }] : [] })
   const systems = state.status === 'ready' ? state.connections.filter((item) => item.system === 'systemsetup').map((item) => ({ id: item.id, system: item.system, containerId: item.externalId, label: `${SYSTEM_LABEL.systemsetup} · ${item.label}` })) : []
   return { state, sources: [...linked, ...systems] }
 }

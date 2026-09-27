@@ -15,8 +15,8 @@ const source = (system: string) => ({ system, containerId: 'c1', id: 'x1', type:
 describe('П1: незнакомая система не перекрашивается в Лорбук', () => {
   const campaign = normalizeCampaign({
     id: 'c', name: 'К',
-    entities: [{ id: 'e1', type: 'npc', name: 'Олан', sources: [source('lovegame'), source('kk9')] }],
-    integrations: { lovegame: { externalId: 'g1', label: 'Игра' }, kk9: { externalId: 'k1', label: 'КК9' } },
+    entities: [{ id: 'e1', type: 'npc', name: 'Олан', sources: [source('lovegame'), source('ragnar')] }],
+    integrations: { lovegame: { externalId: 'g1', label: 'Игра' }, ragnar: { externalId: 'r1', label: 'Рагнар' } },
   }, NOW)!
 
   it('источник знакомой системы остаётся, незнакомой — уходит, а не становится lorebook', () => {
@@ -29,12 +29,12 @@ describe('П1: незнакомая система не перекрашивае
 
 describe('П2: ошибка называет систему', () => {
   it('русское имя берега из моста печатается префиксом', async () => {
-    const error = await door(() => json({ error: 'база не ответила', side: 'Лорбук' }, 502)).listConnections().catch((failure: ExternalError) => failure)
-    expect(error.message).toBe('Лорбук: база не ответила')
+    const error = await door(() => json({ error: 'база не ответила', side: 'Лорбук' }, 502)).listConnections().then(() => null, (failure: unknown) => failure as ExternalError)
+    expect(error!.message).toBe('Лорбук: база не ответила')
   })
   it('ключ системы переводится в подпись', async () => {
-    const error = await door(() => json({ error: 'нет', side: 'lovegame' }, 403)).listConnections().catch((failure: ExternalError) => failure)
-    expect(error.message).toBe('ЛавГеймс: нет')
+    const error = await door(() => json({ error: 'нет', side: 'lovegame' }, 403)).listConnections().then(() => null, (failure: unknown) => failure as ExternalError)
+    expect(error!.message).toBe('ЛавГеймс: нет')
   })
 })
 
@@ -53,5 +53,13 @@ describe('П5: пачка уходит по одной', () => {
     const result = await executeBatch([ready('a'), ready('b'), ready('c')], gateway, NOW)
     expect(result.succeeded).toBe(3)
     expect(peak).toBe(1)
+  })
+})
+
+describe('КК9 — знакомая система', () => {
+  it('источник и связь КК9 переживают загрузку кампании', () => {
+    const campaign = normalizeCampaign({ id: 'c', name: 'К', entities: [{ id: 'e1', type: 'npc', name: 'Декан', sources: [source('kk9')] }], integrations: { kk9: { externalId: 'k1', label: 'Академия' } } }, NOW)!
+    expect(campaign.entities[0].sources[0].system).toBe('kk9')
+    expect(campaign.integrations.kk9).toEqual({ externalId: 'k1', label: 'Академия', url: undefined })
   })
 })
