@@ -1,6 +1,6 @@
 import type { ExternalGateway } from '../adapters/fakeExternal'
-import type { CapabilityPassport, ExternalConnection, ExternalSystem, PublicationQueueItem } from '../model/external'
-import { SYSTEM_LABEL, connectionKey, parseConnectionKey, type ExternalItem } from './integration'
+import { isExternalSystem, type CapabilityPassport, type ExternalConnection, type ExternalSystem, type PublicationQueueItem } from '../model/external'
+import { SYSTEM_LABEL, connectionKey, parseConnectionKey, type ExternalItem, type ExternalListing } from './integration'
 
 /** A refusal from the Worker or lorebridge, with the bridge's `side` / `kind` when it gave them. */
 export class ExternalError extends Error {
@@ -20,7 +20,8 @@ export class HttpExternalGateway implements ExternalGateway {
     let body: Record<string, unknown> = {}
     try { body = text ? JSON.parse(text) : {} } catch { throw new ExternalError(`Сервер ответил не JSON (${response.status})`, response.status) }
     if (!response.ok) {
-      const side = typeof body.side === 'string' && body.side in SYSTEM_LABEL ? `${SYSTEM_LABEL[body.side as ExternalSystem]}: ` : ''
+      // lorebridge names the side in Russian («Лорбук»); a system key is accepted too.
+      const side = typeof body.side !== 'string' || !body.side ? '' : `${isExternalSystem(body.side) ? SYSTEM_LABEL[body.side] : body.side}: `
       throw new ExternalError(`${side}${typeof body.error === 'string' ? body.error : `ошибка ${response.status}`}`, response.status, typeof body.kind === 'string' ? body.kind : undefined, body.current as ExternalItem | undefined)
     }
     return body as T
@@ -38,9 +39,14 @@ export class HttpExternalGateway implements ExternalGateway {
   }
 
   async entities(connectionId: string, type?: string): Promise<ExternalItem[]> {
+    return (await this.listing(connectionId, type)).items
+  }
+
+  /** `ids` are all live records of the type, readable or not — how a hard delete becomes visible. */
+  async listing(connectionId: string, type?: string): Promise<ExternalListing> {
     const { system, externalId } = parseConnectionKey(connectionId)
-    const { items } = await this.call<{ items: ExternalItem[] }>(`entities?system=${system}&externalId=${encodeURIComponent(externalId)}${type ? `&type=${encodeURIComponent(type)}` : ''}`)
-    return items
+    const { items, ids } = await this.call<{ items: ExternalItem[]; ids?: string[] }>(`entities?system=${system}&externalId=${encodeURIComponent(externalId)}${type ? `&type=${encodeURIComponent(type)}` : ''}`)
+    return { items, ids: ids ?? items.map((item) => item.id) }
   }
 
   async publish(item: PublicationQueueItem): Promise<PublicationQueueItem> {

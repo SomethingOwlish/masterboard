@@ -46,26 +46,31 @@ export function confirmReady(items: PublicationQueueItem[], confirmedAt: string)
   return items.map((item) => item.state === 'ready' ? { ...item, confirmedAt } : item)
 }
 
-/** Execute ready items separately and retain an individual result for each one. */
+/**
+ * Execute ready items one by one and retain an individual result for each.
+ * Not in parallel: lorebridge remembers idempotency keys in KV, which is not
+ * atomic, so two identical requests in flight at once would both create.
+ */
 export async function executeBatch(
   items: PublicationQueueItem[],
   gateway: ExternalGateway,
   completedAt: string,
 ): Promise<BatchResult> {
-  const next = await Promise.all(items.map(async (item): Promise<PublicationQueueItem> => {
-    if (item.state !== 'ready' || !item.confirmedAt) return item
+  const next: PublicationQueueItem[] = []
+  for (const item of items) {
+    if (item.state !== 'ready' || !item.confirmedAt) { next.push(item); continue }
     try {
       const result = await gateway.publish(item)
-      return { ...result, completedAt }
+      next.push({ ...result, completedAt })
     } catch (error) {
-      return {
+      next.push({
         ...item,
         state: 'failed',
         completedAt,
         error: error instanceof Error ? error.message : String(error),
-      }
+      })
     }
-  }))
+  }
   return {
     items: next,
     succeeded: next.filter((item) => item.state === 'succeeded').length,

@@ -34,7 +34,7 @@ lorebook — миры, где мастер автор; lovegame — кампан
     "statuses": ["draft","review","approved","canon","nonCanon","archived"], "shortFields": ["Роль","Чего хочет"] }
 ] }
 ```
-- lorebook: включённые типы мира (`worldTypes()`), кроме `template`; операции `read, create, update, change-visibility, change-status, archive`. Для не-автора мира — только `read`.
+- lorebook: включённые типы мира (`worldTypes()`), кроме `template`; операции `read, create, update, change-visibility, change-status, archive`. Для не-хозяина мира — всё, кроме `change-visibility` (в Лорбуке правит всякий автор; скрывать запись от игроков вправе только хозяин мира), и `unavailableReason` объясняет это.
 - lovegame: `npc`, `handout`, `codex` с учётом модулей кампании; операции `read, create, update, change-visibility`. Архива нет (`unavailableReason`).
 - systemsetup: `system` — только `read`.
 
@@ -60,6 +60,6 @@ lorebook — миры, где мастер автор; lovegame — кампан
 - Ответ: `{ "id": "<externalEntityId>", "updatedAt": <ms>, "url": "…" }`.
 - `expectedUpdatedAt` не совпал — `409 { error, current: <item как в /mb/entities> }` (Masterboard показывает пополевой конфликт, решение I4).
 - Повтор с тем же `idempotencyKey` в течение суток возвращает первый результат (KV).
-- lorebook: `create` пишет как `/entity` (без привязки к кампании), `update` — через общий путь редактирования с историей, `archive` — статус `archived` (E3), `change-visibility` — `access` hidden/read.
+- lorebook: `create` пишет как `/entity` (без привязки к кампании), `update` — через общий путь редактирования, **без снимка в историю** (история правок — у самого Лорбука), `archive` — статус `archived` (E3), `change-visibility` — `access` hidden/read.
 - lovegame: `npc` → `npcs`, `handout` → `handouts`, `codex` → `codex`; `visibility` → `visibleToPlayer`.
 - systemsetup: только чтение — `405`.

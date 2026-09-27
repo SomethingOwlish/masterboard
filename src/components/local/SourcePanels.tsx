@@ -82,8 +82,14 @@ export function SourceLinks({ campaign, entity, persist }: { campaign: LocalCamp
   const refresh = async (source: EntitySource) => {
     setBusy(source.id); setNote(null)
     try {
-      const item = (await port.entities(connectionKey(source.system, source.containerId), source.type)).find((candidate) => candidate.id === source.id)
-      if (!item) { setNote(`В ${SYSTEM_LABEL[source.system]} этой записи больше нет.`); return }
+      const { items, ids } = await port.listing(connectionKey(source.system, source.containerId), source.type)
+      const item = items.find((candidate) => candidate.id === source.id)
+      if (!item) {
+        setNote(ids.includes(source.id)
+          ? `В ${SYSTEM_LABEL[source.system]} запись есть, но прочитать её вам сейчас нельзя.`
+          : `В ${SYSTEM_LABEL[source.system]} этой записи больше нет.`)
+        return
+      }
       const plan = planRefresh(entity, source, item, new Date().toISOString())
       if (plan.clashes.length) { setClash({ plan, source }); return }
       apply(plan.next)

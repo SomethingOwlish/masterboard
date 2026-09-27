@@ -60,6 +60,12 @@ export class FakeBridge implements ExternalPort {
     return { ...found, connectionId }
   }
   async entities(connectionId: string, type?: string) { return (this.records.get(connectionId) ?? []).filter((item) => !type || item.type === type) }
+  /** `hidden` are live records the master may not read: they are in `ids`, not in `items`. */
+  readonly hidden = new Map<string, string[]>()
+  async listing(connectionId: string, type?: string) {
+    const items = await this.entities(connectionId, type)
+    return { items, ids: [...items.map((item) => item.id), ...(this.hidden.get(connectionId) ?? [])] }
+  }
 
   async publish(item: PublicationQueueItem): Promise<PublicationQueueItem> {
     this.sent.push(item)

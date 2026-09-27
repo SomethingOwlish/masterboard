@@ -2,6 +2,7 @@ import { newArc, newClock, newEntity, newSecret } from './domain'
 import { newGroup, parseMasters } from './team'
 import { WIDGETS } from './labels'
 import { validSessionDate } from './sessions'
+import { EXTERNAL_SYSTEMS, isExternalSystem, type ExternalSystem } from '../model/external'
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord, LocalDashboardLayout, LocalGroup, LocalWidgetId, LocalMaster, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 type Raw = Record<string, unknown>
@@ -137,16 +138,21 @@ function normalizeEntity(raw: Raw): LocalCampaignEntity {
     ...(raw.dead === true && raw.type === 'npc' ? { dead: true } : {}),
     fields: stringMap(raw.fields),
     origin,
-    sources: list<Raw>(raw.sources).filter((source) => isObject(source) && typeof source.id === 'string' && typeof source.containerId === 'string').map(normalizeSource),
+    sources: list<Raw>(raw.sources).filter((source) => isObject(source) && isExternalSystem(source.system) && typeof source.id === 'string' && typeof source.containerId === 'string').map(normalizeSource),
   })
 }
 
 const stringMap = (value: unknown): Record<string, string> => isObject(value) ? Object.fromEntries(Object.entries(value).filter(([, item]) => typeof item === 'string')) as Record<string, string> : {}
 
+/**
+ * Only for sources of a system this build knows — `normalizeEntity` filters the
+ * rest out. The old fallback turned an unknown system into `lorebook`, and the
+ * next publication would have written that record into the wrong world.
+ */
 function normalizeSource(raw: Raw): EntitySource {
   const snapshot = isObject(raw.snapshot) ? raw.snapshot : {}
   return {
-    system: oneOf(raw.system, ['lorebook', 'lovegame', 'systemsetup'] as const, 'lorebook'),
+    system: raw.system as ExternalSystem,
     containerId: raw.containerId as string, id: raw.id as string, type: text(raw.type),
     url: typeof raw.url === 'string' ? raw.url : undefined,
     updatedAt: typeof raw.updatedAt === 'number' ? raw.updatedAt : 0,
@@ -162,7 +168,7 @@ function normalizeSource(raw: Raw): EntitySource {
 function normalizeLinks(value: unknown): LocalCampaignRecord['integrations'] {
   if (!isObject(value)) return {}
   const links: LocalCampaignRecord['integrations'] = {}
-  for (const system of ['lorebook', 'lovegame', 'systemsetup'] as const) {
+  for (const system of EXTERNAL_SYSTEMS) {
     const link = value[system]
     if (isObject(link) && typeof link.externalId === 'string') links[system] = { externalId: link.externalId, label: text(link.label, link.externalId), url: typeof link.url === 'string' ? link.url : undefined }
   }
