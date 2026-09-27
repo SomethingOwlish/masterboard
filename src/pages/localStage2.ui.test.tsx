@@ -5,7 +5,7 @@ import { describe, expect, it } from 'vitest'
 import { newClock, newEntity, newSecret } from '../local/domain'
 import { blankSession } from '../local/normalize'
 import type { LocalSessionPlanItem } from '../local/types'
-import { readyCampaign, renderApp } from '../test/renderApp'
+import { readyCampaign, renderApp, goToSection } from '../test/renderApp'
 
 const planItem = (id: string, text: string, patch: Partial<LocalSessionPlanItem> = {}): LocalSessionPlanItem => ({ id, source: 'text', text, kind: 'scene', priority: 'required', status: 'prepared', role: '', alternative: '', note: '', origin: 'prepared', ...patch })
 
@@ -81,7 +81,7 @@ describe('stage 2: live session', () => {
     await user.click(within(panel).getByRole('button', { name: 'В задачу' }))
     expect(within(panel).getByText('В задачах')).toBeInTheDocument()
     await waitFor(async () => expect((await catalog.find(id))?.tasks[0]).toMatchObject({ text: 'Нужна карта порта', source: 'session', origin: { sessionId: 'session-1' } }))
-    await user.click(screen.getByRole('link', { name: /Пульт/ }))
+    await goToSection(user, 'Пульт')
     await user.click(await screen.findByRole('button', { name: /Задачи/ }))
     expect(screen.getByText('Из сессии №1')).toBeInTheDocument()
   })

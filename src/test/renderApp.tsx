@@ -1,4 +1,5 @@
-import { render } from '@testing-library/react'
+import { render, screen, within } from '@testing-library/react'
+import { CAMPAIGN_SECTIONS, NAV_GROUPS } from '../components/local/shared'
 import { RouterProvider, createMemoryRouter } from 'react-router-dom'
 import { routes } from '../App'
 import { MemoryStorageGateway } from '../adapters/memoryStorageGateway'
@@ -23,4 +24,15 @@ export async function readyCampaign(patch: Partial<LocalCampaignRecord> = {}) {
   const campaign = await catalog.create('Город под стеклом', 'Идея')
   await catalog.update({ ...withLocalSessions(campaign, [{ ...blankSession(1, 'Сова', campaign.createdAt), title: 'Первая ночь' }]), ...patch })
   return { catalog, id: campaign.id }
+}
+
+/** Opens a campaign section through the grouped menu (ТЗ-2, R4): group first, then the section. */
+export async function goToSection(user: { click: (element: Element) => Promise<void> }, label: string) {
+  const nav = await screen.findByRole('navigation', { name: 'Разделы кампании' })
+  const direct = within(nav).queryByRole('link', { name: new RegExp(label) })
+  if (direct) return user.click(direct)
+  const group = NAV_GROUPS.find((item) => item.sections.some((id) => CAMPAIGN_SECTIONS.find((section) => section.id === id)?.label === label))
+  if (!group) throw new Error(`Нет раздела «${label}» в меню`)
+  await user.click(within(nav).getByRole('button', { name: new RegExp(group.label) }))
+  await user.click(within(nav).getByRole('menuitem', { name: new RegExp(label) }))
 }

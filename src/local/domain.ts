@@ -1,3 +1,4 @@
+import type { ExternalSystem } from '../model/external'
 import type {
   LocalCampaignClock, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignRelation, LocalCampaignSecret,
   LocalClockThreshold, LocalSecretStatus, LocalStoryArc,
@@ -61,16 +62,50 @@ export function entityUsages(campaign: LocalCampaignRecord, entityId: string): E
 
 export const usageCount = (usages: EntityUsages): number => usages.plans.length + usages.relations.length + usages.clocks.length + usages.secrets.length
 
-export interface EntityFilter { query: string; type: LocalCampaignEntityType | 'all'; showArchived: boolean; /** NPCs only: alive or dead. */ fate?: 'all' | 'alive' | 'dead' }
+export type EntitySort = 'name' | 'type' | 'used' | 'added'
+export interface EntityFilter {
+  query: string
+  type: LocalCampaignEntityType | 'all'
+  showArchived: boolean
+  /** NPCs only: alive or dead. */
+  fate?: 'all' | 'alive' | 'dead'
+  /** Every tag must be on the entity (ТЗ-2, R5). */
+  tags?: string[]
+  visibility?: 'all' | 'master' | 'public'
+  status?: 'all' | 'active' | 'inactive'
+  /** Where it came from or went to: a system, or `none` — only in Masterboard. */
+  source?: 'all' | 'none' | ExternalSystem
+  sort?: EntitySort
+}
+export const EMPTY_FILTER: EntityFilter = { query: '', type: 'all', showArchived: false, fate: 'all', tags: [], visibility: 'all', status: 'all', source: 'all', sort: 'added' }
 
-export function filterEntities(entities: LocalCampaignEntity[], filter: EntityFilter): LocalCampaignEntity[] {
-  const query = filter.query.trim().toLocaleLowerCase()
-  return entities.filter((entity) =>
+/** How many narrowing conditions are on, apart from the query and the type. */
+export const activeFilterCount = (filter: EntityFilter) =>
+  (filter.tags?.length ?? 0) + (filter.visibility && filter.visibility !== 'all' ? 1 : 0) + (filter.status && filter.status !== 'all' ? 1 : 0) + (filter.source && filter.source !== 'all' ? 1 : 0) + (filter.fate && filter.fate !== 'all' ? 1 : 0) + (filter.showArchived ? 1 : 0)
+
+const norm = (value: string) => value.toLocaleLowerCase().replace(/ё/g, 'е')
+
+/** Library filter: every word of the query anywhere in the record (name, description, tags, fields), plus the chosen conditions. */
+export function filterEntities(entities: LocalCampaignEntity[], filter: EntityFilter, usage?: (entity: LocalCampaignEntity) => number): LocalCampaignEntity[] {
+  const words = norm(filter.query.trim()).split(/\s+/).filter(Boolean)
+  const found = entities.filter((entity) =>
     (filter.showArchived || entity.status !== 'archived') &&
     (filter.type === 'all' || entity.type === filter.type) &&
     (!filter.fate || filter.fate === 'all' || (entity.type === 'npc' && Boolean(entity.dead) === (filter.fate === 'dead'))) &&
-    (!query || `${entity.name} ${entity.tags.join(' ')} ${Object.values(entity.fields).join(' ')}`.toLocaleLowerCase().includes(query)))
+    (!filter.tags?.length || filter.tags.every((tag) => entity.tags.includes(tag))) &&
+    (!filter.visibility || filter.visibility === 'all' || entity.visibility === filter.visibility) &&
+    (!filter.status || filter.status === 'all' || entity.status === filter.status) &&
+    (!filter.source || filter.source === 'all' || (filter.source === 'none' ? !entity.sources.length : entity.sources.some((source) => source.system === filter.source))) &&
+    (!words.length || words.every((word) => norm(`${entity.name} ${entity.description} ${entity.tags.join(' ')} ${Object.values(entity.fields).join(' ')}`).includes(word))))
+  const sort = filter.sort ?? 'added'
+  if (sort === 'name') return [...found].sort((a, b) => a.name.localeCompare(b.name, 'ru'))
+  if (sort === 'type') return [...found].sort((a, b) => a.type.localeCompare(b.type) || a.name.localeCompare(b.name, 'ru'))
+  if (sort === 'used' && usage) return [...found].sort((a, b) => usage(b) - usage(a) || a.name.localeCompare(b.name, 'ru'))
+  return found
 }
+
+/** A named set of library filters, personal to a master (ТЗ-2, R5 D). */
+export interface SavedFilter { id: string; name: string; filter: EntityFilter }
 
 // ─── Arcs ───────────────────────────────────────────────────────────────────
 

@@ -8,6 +8,7 @@ const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 export const routes: RouteObject[] = [
   { path: '/', element: <LocalCampaignsPage /> },
   { path: '/backups', element: <BackupsPage /> },
+  { path: '/local/campaign/:campaignId/entity/:entityId', element: <LocalNewCampaignPage /> },
   { path: '/local/campaign/:campaignId/:section?', element: <LocalNewCampaignPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ]

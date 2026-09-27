@@ -1,3 +1,5 @@
+import { PeekLink } from './Peek'
+import type { PeekTarget } from '../../local/search'
 import { useState } from 'react'
 import { Badge, Button, EmptyState } from '../../ds'
 import { moveClock, newClock, resolveClockTrigger } from '../../local/domain'
@@ -5,6 +7,8 @@ import { newTask } from '../../local/sessionFlow'
 import type { LocalCampaignClock, LocalCampaignTask, LocalClockThreshold } from '../../local/types'
 import { useConfirm } from '../useConfirm'
 import { Checklist, Editor, type SectionProps } from './shared'
+
+type PeekChip = { label: string; target: PeekTarget }
 
 const CLOCK_KIND: Record<LocalCampaignClock['kind'], string> = { threat: 'Угроза', goal: 'Цель', project: 'Проект', world: 'Мир' }
 type Draft = Omit<LocalCampaignClock, 'id' | 'history' | 'triggerStatus' | 'firedAt'>
@@ -50,7 +54,7 @@ export function ClocksPanel({ campaign, persist }: SectionProps) {
   const eventClock = event ? campaign.clocks.find((item) => item.id === event.clockId) : undefined
 
   return <div className="control-panel"><header><div><h3>Часы и угрозы</h3><p>Каждое движение сохраняет причину. Отметки и заполнение требуют подтверждения мастера.</p></div><Button variant="primary" icon="plus" onClick={() => openEditor('new')}>Новые часы</Button></header>
-    {campaign.clocks.length ? <div className="clock-grid">{campaign.clocks.map((clock) => { const reason = reasons[clock.id] ?? ''; const links = [arcTitle(clock.arcId) && `Линия: ${arcTitle(clock.arcId)}`, ...clock.entityIds.map((id) => campaign.entities.find((entity) => entity.id === id)?.name), ...clock.secretIds.map((id) => campaign.secrets.find((secret) => secret.id === id)?.title && `Секрет: ${campaign.secrets.find((secret) => secret.id === id)?.title}`)].filter(Boolean) as string[]; return <article key={clock.id} className={clock.value === clock.segments ? 'filled' : ''} aria-label={`Часы: ${clock.title}`}>
+    {campaign.clocks.length ? <div className="clock-grid">{campaign.clocks.map((clock) => { const reason = reasons[clock.id] ?? ''; const links: PeekChip[] = [...(arcTitle(clock.arcId) ? [{ label: `Линия: ${arcTitle(clock.arcId)}`, target: { kind: 'arc' as const, id: clock.arcId } }] : []), ...clock.entityIds.flatMap((id) => { const name = campaign.entities.find((entity) => entity.id === id)?.name; return name ? [{ label: name, target: { kind: 'entity' as const, id } }] : [] }), ...clock.secretIds.flatMap((id) => { const title = campaign.secrets.find((secret) => secret.id === id)?.title; return title ? [{ label: `Секрет: ${title}`, target: { kind: 'secret' as const, id } }] : [] })]; return <article key={clock.id} className={clock.value === clock.segments ? 'filled' : ''} aria-label={`Часы: ${clock.title}`}>
       <header><div><Badge tone={clock.kind === 'threat' ? 'warning' : 'neutral'}>{CLOCK_KIND[clock.kind]}</Badge><Badge tone={clock.visibility === 'public' ? 'success' : 'neutral'}>{clock.visibility === 'public' ? 'Для игроков' : 'Мастерское'}</Badge>{clock.triggerStatus === 'fired' && <Badge tone="danger">Сработали</Badge>}{clock.triggerStatus === 'deferred' && <Badge tone="warning">Ждут подтверждения</Badge>}</div><Button size="sm" icon="pencil" aria-label={`Редактировать часы: ${clock.title}`} onClick={() => openEditor(clock)} /></header>
       <h4>{clock.title}</h4>
       <div className="clock-track" aria-label={`${clock.value} из ${clock.segments}`}>{Array.from({ length: clock.segments }, (_, index) => <i key={index} className={[index < clock.value ? 'active' : '', clock.thresholds.some((item) => item.at === index + 1) ? 'threshold' : ''].join(' ').trim()} />)}</div>
@@ -58,7 +62,7 @@ export function ClocksPanel({ campaign, persist }: SectionProps) {
       <p>{clock.trigger || 'Событие при заполнении не задано.'}</p>
       {(clock.advanceCondition || clock.rollbackCondition) && <dl className="clock-conditions">{clock.advanceCondition && <div><dt>Растут, когда</dt><dd>{clock.advanceCondition}</dd></div>}{clock.rollbackCondition && <div><dt>Откатываются, когда</dt><dd>{clock.rollbackCondition}</dd></div>}</dl>}
       {clock.thresholds.length > 0 && <ul className="clock-thresholds">{clock.thresholds.map((item) => <li key={item.id} className={item.reachedAt ? 'reached' : ''}><strong>{item.at}</strong> {item.consequence}</li>)}</ul>}
-      {links.length > 0 && <div className="local-chips">{links.map((label) => <span key={label}>{label}</span>)}</div>}
+      {links.length > 0 && <div className="local-chips">{links.map((link) => <PeekLink key={link.label} className="local-chip" target={link.target}>{link.label}</PeekLink>)}</div>}
       {clock.triggerStatus === 'deferred' && <Button size="sm" variant="primary" onClick={() => { setAddTasks(true); setEvent({ clockId: clock.id, reached: [], filled: true }) }}>Подтвердить срабатывание</Button>}
       <input className="clock-reason" aria-label={`Причина движения: ${clock.title}`} value={reason} placeholder="Причина движения часов…" onChange={(e) => setReasons({ ...reasons, [clock.id]: e.target.value })} />
       <footer><Button size="sm" disabled={!clock.value || !reason.trim()} onClick={() => move(clock, -1)}>− Откатить</Button><Button size="sm" variant="primary" disabled={clock.value === clock.segments || !reason.trim()} onClick={() => move(clock, 1)}>+ Продвинуть</Button><Button size="sm" tone="danger" icon="trash-2" aria-label={`Удалить часы: ${clock.title}`} onClick={() => remove(clock)} /></footer>

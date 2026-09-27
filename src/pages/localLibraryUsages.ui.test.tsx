@@ -36,6 +36,7 @@ describe('library: NPC fate', () => {
     const card = (await screen.findByRole('heading', { name: 'Капитан' })).closest('article')!
     expect(within(card).getByText('Погиб')).toBeInTheDocument()
     await user.selectOptions(screen.getByLabelText('Тип сущности'), 'npc')
+    await user.click(screen.getByRole('button', { name: /Фильтры/ }))
     await user.selectOptions(screen.getByLabelText('Судьба NPC'), 'alive')
     expect(screen.queryByRole('heading', { name: 'Капитан' })).not.toBeInTheDocument()
     expect(screen.getByRole('heading', { name: 'Олан' })).toBeInTheDocument()

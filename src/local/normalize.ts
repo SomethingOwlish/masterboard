@@ -222,6 +222,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     })),
     integrations: normalizeLinks(value.integrations),
     ...(isObject(value.publishRules) ? { publishRules: normalizeRules(value.publishRules) } : {}),
+    ...(isObject(value.savedFilters) ? { savedFilters: Object.fromEntries(Object.entries(value.savedFilters).map(([id, items]) => [id, list<Raw>(items).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.name === 'string' && isObject(item.filter)).map((item) => ({ id: item.id as string, name: item.name as string, filter: item.filter as Record<string, unknown> }))])) } : {}),
     publications: list<Raw>(value.publications).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.entityId === 'string') as unknown as LocalCampaignRecord['publications'],
     dashboardLayouts: isObject(value.dashboardLayouts) ? Object.fromEntries(Object.entries(value.dashboardLayouts).filter(([, layout]) => isObject(layout)).map(([id, layout]) => [id, normalizeLayout(layout as Raw)])) : {},
     notes: list<unknown>(value.notes).filter((note): note is string => typeof note === 'string'),

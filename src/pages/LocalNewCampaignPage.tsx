@@ -10,6 +10,8 @@ import { TeamSection } from '../components/local/TeamSection'
 import { ImprovSection } from '../components/local/ImprovSection'
 import { PublishSection } from '../components/local/PublishSection'
 import { IntegrationsSection } from '../components/local/IntegrationsSection'
+import { PeekProvider } from '../components/local/Peek'
+import { EntityPage } from '../components/local/EntityPage'
 import { ActingProvider } from '../local/ActingProvider'
 import { RelationsSection } from '../components/local/RelationsSection'
 import { WorldSection } from '../components/local/WorldSection'
@@ -32,22 +34,25 @@ const SECTIONS: Record<string, (props: SectionProps) => JSX.Element> = {
 }
 
 export function LocalNewCampaignPage() {
-  const { campaignId = '', section = 'overview' } = useParams()
+  const params = useParams()
+  const { campaignId = '', entityId } = params
+  const section = entityId ? 'entity' : params.section ?? 'overview'
   const state = useLocalCampaign(campaignId)
   if (state.status === 'loading') return <main className="target-dashboard created-dashboard" aria-busy="true"><p className="local-session-footnote">Загружаем кампанию…</p></main>
   if (state.status === 'missing') return <Navigate to="/" replace />
+  if (section === 'entity' && !entityId) return <Navigate to={`/local/campaign/${campaignId}/library`} replace />
   if (!KNOWN_SECTIONS.has(section)) return <Navigate to={`/local/campaign/${campaignId}/overview`} replace />
   const { campaign, persist, saveError, retry, savedInBrowser, conflicts, resolveConflicts } = state
   const banner = <><SaveErrorBanner message={saveError} retry={retry} savedInBrowser={savedInBrowser} /><ConflictNotice campaign={campaign} conflicts={conflicts} resolve={resolveConflicts} /></>
   if (!isCampaignReady(campaign)) return <>{banner}<OnboardingRoom campaign={campaign} persist={persist} /></>
   const Section = SECTIONS[section]
-  return <ActingProvider key={campaign.id} campaign={campaign}>
+  return <ActingProvider key={campaign.id} campaign={campaign}><PeekProvider campaign={campaign} persist={persist}>
     {section === 'session' || section === 'play' || section === 'review'
       ? <>{banner}<LocalSessionsWorkspace campaign={campaign} persist={persist} mode={section === 'play' ? 'play' : section === 'review' ? 'review' : 'plan'} /></>
       : <main className="target-dashboard created-dashboard">
         <CampaignHeader campaign={campaign} section={section} />
         {banner}
-        <Section campaign={campaign} persist={persist} />
+        {entityId ? <EntityPage campaign={campaign} persist={persist} entityId={entityId} /> : <Section campaign={campaign} persist={persist} />}
       </main>}
-  </ActingProvider>
+  </PeekProvider></ActingProvider>
 }

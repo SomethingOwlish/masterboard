@@ -21,7 +21,11 @@ describe('local campaign workspace', () => {
     await user.click(screen.getByRole('button', { name: 'Создать сессию и открыть дашборд' }))
 
     const nav = await screen.findByRole('navigation', { name: 'Разделы кампании' })
-    expect(within(nav).getAllByRole('link').map((link) => link.textContent?.trim())).toEqual(['Обзор', 'Сессии', 'Сюжет', 'Пульт', 'Библиотека', 'Связи', 'Заметки', 'Заготовки', 'Команда', 'Печать', 'Интеграции', 'Публикация'])
+    expect(within(nav).getAllByRole('button', { expanded: false }).map((button) => button.textContent?.trim())).toEqual(['ПодготовкаОбзор', 'Мир', 'Обмен'])
+    expect(within(nav).getByRole('link', { name: /Команда/ })).toBeInTheDocument()
+    await user.click(within(nav).getByRole('button', { name: /Мир/ }))
+    expect(within(nav).getAllByRole('menuitem').map((link) => link.textContent?.trim())).toEqual(['Библиотека', 'Связи', 'Заметки', 'Заготовки'])
+    await user.click(within(nav).getByRole('button', { name: /Мир/ }))
     expect(screen.getByRole('heading', { name: 'Встреча у ворот' })).toBeInTheDocument()
     const id = router.state.location.pathname.split('/')[3]
     await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[0].title).toBe('Встреча у ворот'))
@@ -47,9 +51,11 @@ describe('local campaign workspace', () => {
   it('shows the full navigation inside the sessions workspace', async () => {
     const { catalog, id } = await readyCampaign()
     renderApp(`/local/campaign/${id}/session`, catalog)
+    const user = userEvent.setup()
     const nav = await screen.findByRole('navigation', { name: 'Разделы кампании' })
-    expect(within(nav).getByRole('link', { name: /Сессии/ })).toHaveAttribute('aria-current', 'page')
-    expect(within(nav).getByRole('link', { name: /Пульт/ })).toHaveAttribute('href', `/local/campaign/${id}/control`)
+    await user.click(within(nav).getByRole('button', { name: /Подготовка.*Сессии/ }))
+    expect(within(nav).getByRole('menuitem', { name: /Сессии/ })).toHaveAttribute('aria-current', 'page')
+    expect(within(nav).getByRole('menuitem', { name: /Пульт/ })).toHaveAttribute('href', `/local/campaign/${id}/control`)
   })
 
   it('adds a library entity that survives reloading', async () => {

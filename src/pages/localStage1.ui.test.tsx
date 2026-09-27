@@ -137,6 +137,7 @@ describe('stage 1: library', () => {
     const olan = (await screen.findByRole('heading', { name: 'Олан' })).closest('article')!
     await user.click(within(olan as HTMLElement).getByRole('button', { name: 'В архив' }))
     expect(screen.queryByRole('heading', { name: 'Олан' })).not.toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: /Фильтры/ }))
     await user.click(screen.getByLabelText(/Показать архив/))
     expect(screen.getByRole('heading', { name: 'Олан' })).toBeInTheDocument()
     await user.selectOptions(screen.getByLabelText('Тип сущности'), 'location')

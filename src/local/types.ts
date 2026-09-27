@@ -276,6 +276,8 @@ export interface LocalCampaignRecord {
   improv: LocalImprovItem[]
   /** Personal overview layouts, by master id. */
   dashboardLayouts: Record<string, LocalDashboardLayout>
+  /** Personal saved library filters, by master id (ТЗ-2, R5 D). Filter shape: `EntityFilter` in domain.ts. */
+  savedFilters?: Record<string, Array<{ id: string; name: string; filter: Record<string, unknown> }>>
   /** Batch publication queue to lorebook / lovegame. */
   publications: PublicationQueueItem[]
   /** Where this campaign reads from and publishes to, per system. */
