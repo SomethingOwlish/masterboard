@@ -59,8 +59,12 @@ export const TARGET_TYPE: Record<'lorebook' | 'lovegame', Record<LocalCampaignEn
   lovegame: { character: 'npc', npc: 'npc', creature: 'codex', location: 'codex', faction: 'codex', rumor: 'codex', item: 'codex', audience: 'codex', note: 'codex', letter: 'handout', handout: 'handout', map: 'handout', 'home-rule': 'codex' },
 }
 
-/** КК9: only NPCs and items are written there; a character goes as an NPC. */
-const KK9_TARGET: Partial<Record<LocalCampaignEntityType, string>> = { npc: 'npc', character: 'npc', creature: 'npc', item: 'item' }
+/**
+ * КК9: each library kind is its own destination (light / hard NPC, boss,
+ * curator, companion, daemon), chosen in the queue; the table only picks the
+ * default. A character goes as a light NPC, a creature as a companion.
+ */
+const KK9_TARGET: Partial<Record<LocalCampaignEntityType, string>> = { npc: 'npc-light', character: 'npc-light', creature: 'companion', item: 'item' }
 
 /** Masterboard type for a record read from another system. */
 const IMPORT_TYPE: Record<ExternalSystem, Record<string, LocalCampaignEntityType>> = {
@@ -68,7 +72,12 @@ const IMPORT_TYPE: Record<ExternalSystem, Record<string, LocalCampaignEntityType
   lovegame: { npc: 'npc', handout: 'handout', codex: 'note' },
   systemsetup: { system: 'home-rule' },
   // КК9: сцена — место (аудит М0, решение Р-А).
-  kk9: { character: 'character', npc: 'npc', place: 'location', item: 'item' },
+  kk9: {
+    character: 'character', place: 'location', item: 'item',
+    'npc-light': 'npc', 'npc-hard': 'npc', 'npc-boss': 'npc', curator: 'npc', 'npc-board': 'npc', companion: 'creature', daemon: 'creature',
+    // Прежнее общее имя видов библиотеки — у источников, заведённых до видов.
+    npc: 'npc',
+  },
 }
 export const importType = (system: ExternalSystem, type: string): LocalCampaignEntityType => IMPORT_TYPE[system][type] ?? 'note'
 
