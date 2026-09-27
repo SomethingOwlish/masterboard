@@ -29,6 +29,23 @@ describe('session lifecycle', () => {
     expect(screen.getByLabelText('Номер')).toHaveValue(3)
   })
 
+  it('imports sessions from a JSON file after a preview, keeping the import controls tucked away', async () => {
+    const user = userEvent.setup()
+    const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Первая ночь')], activeSessionId: 's1' })
+    renderApp(`/local/campaign/${id}/session`, catalog)
+    const summary = await screen.findByText('Импорт из файла')
+    expect(summary.closest('details')).not.toHaveAttribute('open')
+    const json = JSON.stringify({ format: 'masterboard-sessions/v1', sessions: [{ title: 'Прилив', scenes: [{ title: 'Пристань', items: ['Туман'] }] }] })
+    // jsdom's File has no text(); the browser one does.
+    const file = Object.assign(new File([json], 'sessions.json', { type: 'application/json' }), { text: async () => json })
+    await user.upload(screen.getByLabelText('Файл сессий для импорта'), file)
+    const dialog = await screen.findByRole('dialog', { name: 'Импорт сессий' })
+    expect(within(dialog).getByText('№2 Прилив')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: /Импортировать · 1/ }))
+    expect(await screen.findByRole('heading', { name: 'Прилив' })).toBeInTheDocument()
+    await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[1].planItems.map((item) => item.text)).toEqual(['Пристань', 'Туман']))
+  })
+
   it('blocks starting a second game and trashing a running one', async () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Идёт', { status: 'active' }), session('s2', 2, 'Следующая', { status: 'ready' })], activeSessionId: 's1' })
