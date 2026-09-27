@@ -51,6 +51,14 @@ lorebook — миры, где мастер автор; lovegame — кампан
 - lovegame: `visibility` из `visibleToPlayer`; `summary` — публичная часть (`publicBody`/`body`/`shortDesc`); мастерские поля (`gmBody`) не отдаются.
 - systemsetup: опубликованные системы `{id: key, type:'system', name, summary, updatedAt}`.
 
+### `GET /mb/schema?system=&externalId=` — необязательно (ТЗ-2, R2, 27.09.2026)
+Поля карточек по типам записей — чтобы Мастерборд показывал в карточке поля мира, стола и системы («Из основы»).
+```json
+{ "types": [ { "type": "npc-light", "fields": [ { "label": "Ранг" }, { "label": "Биография", "long": true } ] } ] }
+```
+- Пока в мосту маршрута нет, он отвечает `404` — Мастерборд считает, что схемы нет, и берёт поля из уже импортированных записей.
+- systemsetup: `externalId` — `packs`; поля — из схемы опубликованной системы.
+
 ### `POST /mb/publish`
 ```json
 { "system": "lorebook", "externalId": "<worldId>", "operation": "create|update|archive|change-visibility|change-status",

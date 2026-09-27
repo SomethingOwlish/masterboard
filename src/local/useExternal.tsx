@@ -2,7 +2,8 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { ExternalGateway } from '../adapters/fakeExternal'
 import type { CapabilityPassport, ExternalConnection } from '../model/external'
 import { ExternalError, HttpExternalGateway } from './external'
-import { ROLE_OF, type BaseOption, type CampaignRole, type ExternalItem, type ExternalListing } from './integration'
+import { ROLE_OF, importType, linkedRole, roleConnection, type BaseOption, type CampaignRole, type ExternalItem, type ExternalListing, type ExternalSchema } from './integration'
+import type { LocalCampaignEntityType, LocalCampaignRecord } from './types'
 import type { BackupStatus } from './backup'
 import type { Kk9SessionBody, Kk9SessionResult, Kk9State } from './kk9'
 
@@ -10,6 +11,8 @@ import type { Kk9SessionBody, Kk9SessionResult, Kk9State } from './kk9'
 export interface ExternalPort extends ExternalGateway {
   entities(connectionId: string, type?: string): Promise<ExternalItem[]>
   listing(connectionId: string, type?: string): Promise<ExternalListing>
+  /** Optional: a port without it has no schema (ТЗ-2, R2). */
+  schema?(connectionId: string): Promise<ExternalSchema>
   kk9State(externalId: string): Promise<Kk9State>
   sendKk9Session(externalId: string, sessionId: string, body: Kk9SessionBody): Promise<Kk9SessionResult>
   /** Итог последней резервной копии (М5). */
@@ -93,4 +96,19 @@ export function useBaseOptions(): BaseOptionsState {
   if (!systems) return { status: 'loading' }
   const of = (role: CampaignRole) => connections.connections.filter((item) => ROLE_OF[item.system] === role && item.system !== 'systemsetup').map((item): BaseOption => ({ system: item.system, externalId: item.externalId, label: item.label, url: item.url }))
   return { status: 'ready', options: { world: of('world'), table: of('table'), system: systems } }
+}
+
+/** Fields the linked world, table and system declare for a type (ТЗ-2, R2), read once per screen. */
+export function useBaseSchema(campaign: Pick<LocalCampaignRecord, 'integrations'>, type: LocalCampaignEntityType): Array<{ label: string; long?: boolean; from: string }> {
+  const port = useExternal()
+  const connections = (['world', 'table', 'system'] as CampaignRole[]).flatMap((role) => { const linked = linkedRole(campaign, role); return linked ? [{ id: roleConnection(linked.system, linked.link), system: linked.system }] : [] })
+  const key = connections.map((item) => item.id).join('|')
+  const [schemas, setSchemas] = useState<Record<string, ExternalSchema>>({})
+  useEffect(() => {
+    if (!port.schema || !key) return
+    let alive = true
+    for (const connection of connections) port.schema(connection.id).then((schema) => { if (alive) setSchemas((current) => ({ ...current, [connection.id]: schema })) }, () => undefined)
+    return () => { alive = false }
+  }, [port, key]) // eslint-disable-line react-hooks/exhaustive-deps
+  return connections.flatMap((connection) => (schemas[connection.id] ?? []).filter((entry) => importType(connection.system, entry.type) === type).flatMap((entry) => entry.fields.map((field) => ({ ...field, from: connection.system }))))
 }

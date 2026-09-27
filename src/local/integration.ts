@@ -23,6 +23,9 @@ export interface ExternalItem {
   url?: string
 }
 
+/** GET /mb/schema (ТЗ-2, R2): card fields of each record type there. */
+export type ExternalSchema = Array<{ type: string; fields: Array<{ label: string; long?: boolean }> }>
+
 /** GET /mb/entities: readable records plus the ids of every live record of the type. */
 export interface ExternalListing { items: ExternalItem[]; ids: string[] }
 
