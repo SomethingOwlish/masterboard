@@ -1,28 +1,11 @@
 import { createBrowserRouter, Navigate, type RouteObject } from 'react-router-dom'
 import { LocalCampaignsPage } from './pages/LocalCampaignsPage'
-import { LocalSessionDemoPage } from './pages/LocalSessionDemoPage'
-import { LocalCampaignDashboardPage } from './pages/LocalCampaignDashboardPage'
-import { LocalLibraryPage } from './pages/LocalLibraryPage'
-import { LocalPublicationManagerPage } from './pages/LocalPublicationManagerPage'
-import { LocalSessionBoardPage } from './pages/LocalSessionBoardPage'
-import { LocalConductorPage } from './pages/LocalConductorPage'
-import { LocalReviewPage } from './pages/LocalReviewPage'
-import { LocalStoryMapPage } from './pages/LocalStoryMapPage'
 import { LocalNewCampaignPage } from './pages/LocalNewCampaignPage'
 
 const basename = import.meta.env.BASE_URL.replace(/\/$/, '')
 
-// `/local/*` is the product; `/demo/*` pages are static showcases of later stages.
 export const routes: RouteObject[] = [
   { path: '/', element: <LocalCampaignsPage /> },
-  { path: '/demo/session', element: <LocalSessionDemoPage /> },
-  { path: '/demo/campaign', element: <LocalCampaignDashboardPage /> },
-  { path: '/demo/library', element: <LocalLibraryPage /> },
-  { path: '/demo/publications', element: <LocalPublicationManagerPage /> },
-  { path: '/demo/session-board', element: <LocalSessionBoardPage /> },
-  { path: '/demo/conductor', element: <LocalConductorPage /> },
-  { path: '/demo/review', element: <LocalReviewPage /> },
-  { path: '/demo/story-map', element: <LocalStoryMapPage /> },
   { path: '/local/campaign/:campaignId/:section?', element: <LocalNewCampaignPage /> },
   { path: '*', element: <Navigate to="/" replace /> },
 ]

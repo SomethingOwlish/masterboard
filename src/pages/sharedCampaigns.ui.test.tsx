@@ -1,10 +1,10 @@
 // @vitest-environment jsdom
-import { screen, waitFor } from '@testing-library/react'
+import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { beforeEach, describe, expect, it } from 'vitest'
 import { MemoryStorageGateway } from '../adapters/memoryStorageGateway'
 import { createLocalCampaignCatalog, type LocalCampaignCatalog } from '../local/catalog'
-import type { CampaignCatalog } from '../local/remote'
+import { SharedConflictError, type CampaignCatalog } from '../local/remote'
 import { readyCampaign, renderApp } from '../test/renderApp'
 
 const OWNER = 'owl@example.com'
@@ -120,5 +120,57 @@ describe('shared campaigns', () => {
     await user.type(input, 'Три{Enter}')
     await waitFor(async () => expect((await server.find(id))?.notes).toEqual(['Раз', 'Два', 'Три']))
     expect(writes).toBe(1)
+  })
+
+  it('shows another master\'s saved edits on an open campaign, but never over edits still waiting to be sent', async () => {
+    const user = userEvent.setup()
+    const { catalog: server, id } = await readyCampaign()
+    let version = 1
+    let taken = 1
+    const poll = async (campaignId: string) => {
+      if (version === taken) return null
+      taken = version
+      return { revision: version, data: (await server.find(campaignId))! }
+    }
+    renderApp(`/local/campaign/${id}/world`, signedIn(server, undefined, { poll, pollMs: 30, saveDelayMs: 400 }))
+    await screen.findByLabelText('Новая опорная точка')
+    await server.update({ ...(await server.find(id))!, notes: ['От Лиса'] })
+    version = 2
+    expect(await screen.findByText('От Лиса')).toBeInTheDocument()
+
+    await user.type(screen.getByLabelText('Новая опорная точка'), 'Моя{Enter}')
+    await server.update({ ...(await server.find(id))!, notes: ['От Лиса', 'Ещё от Лиса'] })
+    version = 3
+    await new Promise((resolve) => setTimeout(resolve, 120))
+    expect(screen.getByText('Моя')).toBeInTheDocument()
+    expect(screen.queryByText('Ещё от Лиса')).not.toBeInTheDocument()
+  })
+
+  it('lets the master pick «моя» or «их» where both masters changed the same thing', async () => {
+    const user = userEvent.setup()
+    const FOX = 'fox@example.com'
+    const { catalog: server, id } = await readyCampaign({ masters: [{ id: 'm-owl', name: 'Сова', role: 'owner', email: OWNER }, { id: 'm-fox', name: 'Лис', role: 'co-master', email: FOX }] })
+    let clashes = 1
+    const clashing: LocalCampaignCatalog = {
+      ...server,
+      async update(campaign) {
+        if (!clashes) return server.update(campaign)
+        clashes -= 1
+        const saved = await server.update({ ...campaign, notes: ['Версия Лиса'] })
+        throw Object.assign(new SharedConflictError([{ path: 'notes', mine: campaign.notes, theirs: ['Версия Лиса'] }], FOX), { saved })
+      },
+    }
+    renderApp(`/local/campaign/${id}/world`, signedIn(clashing, undefined, { saveDelayMs: 0 }))
+    await user.type(await screen.findByLabelText('Новая опорная точка'), 'Моя версия{Enter}')
+    const notice = await screen.findByText(/Правки объединены/)
+    expect(notice.closest('[role=status]')).toHaveTextContent('Вы и мастер Лис изменили одно и то же — 1 место')
+    expect(await screen.findByText('Версия Лиса')).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Разобрать' }))
+    const dialog = screen.getByRole('dialog', { name: 'Изменено у вас и у мастера Лис' })
+    expect(dialog).toHaveTextContent('Опорные точки')
+    await user.click(within(dialog).getByRole('radio', { name: /Ваша/ }))
+    await user.click(within(dialog).getByRole('button', { name: 'Применить' }))
+    await waitFor(async () => expect((await server.find(id))?.notes).toEqual(['Моя версия']))
+    expect(screen.queryByText(/Правки объединены/)).not.toBeInTheDocument()
   })
 })

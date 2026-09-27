@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { mergeCampaign } from './merge'
+import { applyMine, conflictPlace, conflictValue, mergeCampaign } from './merge'
 
 const base = {
   name: 'Лунный порт', activeTime: 'Полночь',
@@ -39,5 +39,28 @@ describe('mergeCampaign', () => {
   it('treats the same change on both sides as no clash', () => {
     const edit = { ...base, name: 'Одинаково' }
     expect(mergeCampaign(base, edit, { ...edit })).toEqual({ merged: edit, conflicts: [] })
+  })
+
+  it('puts «my» value back at the conflict path, including a deleted or restored list item', () => {
+    const npc = { id: 'e1', type: 'npc', name: 'Смотритель', fields: { motive: 'мстит гильдии' } }
+    const theirs = { ...base, entities: [npc, base.entities[1]] }
+    const edited = applyMine(theirs, { path: 'entities[e1].fields.motive', mine: 'ищет дочь', theirs: 'мстит гильдии' })
+    expect(edited.entities[0]).toEqual({ ...npc, fields: { motive: 'ищет дочь' } })
+    expect(npc.fields.motive).toBe('мстит гильдии')
+    expect(applyMine(theirs, { path: 'entities[e2]', mine: undefined, theirs: base.entities[1] }).entities.map((item) => item.id)).toEqual(['e1'])
+    const restored = applyMine({ ...base, entities: [npc] }, { path: 'entities[e2]', mine: base.entities[1], theirs: undefined })
+    expect(restored.entities.map((item) => item.id)).toEqual(['e1', 'e2'])
+    expect(applyMine(base, { path: 'activeTime', mine: undefined, theirs: 'Полночь' })).not.toHaveProperty('activeTime')
+  })
+
+  it('names the place and the values of a conflict in words', () => {
+    const campaign = { ...base, entities: [{ id: 'e1', type: 'npc', name: 'Старый смотритель', fields: { motive: 'x' } }], sessionRecords: [{ id: 's3', number: 3, title: 'Шторм', inGameTime: '' }] }
+    expect(conflictPlace(campaign, { path: 'entities[e1].fields.motive', mine: 'a', theirs: 'b' })).toBe('Библиотека › Старый смотритель › мотив')
+    expect(conflictPlace(campaign, { path: 'sessionRecords[s3].inGameTime', mine: 'a', theirs: 'b' })).toBe('Сессии › №3 Шторм › игровое время')
+    expect(conflictPlace(campaign, { path: 'clocks[gone]', mine: { id: 'gone', label: 'Облава' }, theirs: undefined })).toBe('Часы › Облава')
+    expect(conflictPlace(campaign, { path: '(документ)', mine: {}, theirs: {} })).toBe('Вся кампания')
+    expect([conflictValue(undefined), conflictValue(''), conflictValue(['порт', 'берег']), conflictValue({ id: 'k', label: 'Облава' }), conflictValue(true)]).toEqual(['удалено', '(пусто)', 'порт · берег', 'Облава', 'да'])
+    expect(conflictValue(['общий', 'мой'], ['общий', 'их'])).toBe('мой')
+    expect(conflictValue(['общий'], ['общий', 'их'])).toBe('без пунктов другой версии')
   })
 })

@@ -5,7 +5,8 @@ import { assertCanDelete, assertCanWrite, memberOf, type CampaignLike } from './
 export const CAMPAIGNS = 'localCampaigns'
 const PATH = /^localCampaigns\/[A-Za-z0-9_-]{1,120}$/
 
-export interface Snapshot { path: string; data: Record<string, unknown>; revision: number }
+/** `updatedBy` — who wrote this revision (the signed-in email). */
+export interface Snapshot { path: string; data: Record<string, unknown>; revision: number; updatedBy?: string }
 
 export class NotFoundError extends Error { constructor(path: string) { super(`Документ ${path} не найден`); this.name = 'NotFoundError' } }
 export class ConflictError extends Error {
@@ -16,20 +17,20 @@ export class ConflictError extends Error {
 }
 export class BadRequestError extends Error { constructor(message: string) { super(message); this.name = 'BadRequestError' } }
 
-type Row = { path: string; data: string; revision: number }
+type Row = { path: string; data: string; revision: number; updated_by?: string }
 
 export function assertPath(path: string): void {
   if (!PATH.test(path)) throw new BadRequestError(`Недопустимый путь: ${path}`)
 }
 
-const toSnapshot = (row: Row): Snapshot => ({ path: row.path, data: JSON.parse(row.data) as Record<string, unknown>, revision: row.revision })
+const toSnapshot = (row: Row): Snapshot => ({ path: row.path, data: JSON.parse(row.data) as Record<string, unknown>, revision: row.revision, ...(row.updated_by ? { updatedBy: row.updated_by } : {}) })
 
 /** D1 implementation of the documents the StorageGateway contract needs, scoped to one signed-in master. */
 export class DocumentStore {
   constructor(private readonly db: D1Like, private readonly email: string, private readonly now: () => string = () => new Date().toISOString()) {}
 
   private async row(path: string): Promise<Snapshot | null> {
-    const row = await this.db.prepare('SELECT path, data, revision FROM documents WHERE path = ?').bind(path).first<Row>()
+    const row = await this.db.prepare('SELECT path, data, revision, updated_by FROM documents WHERE path = ?').bind(path).first<Row>()
     return row ? toSnapshot(row) : null
   }
 
@@ -45,11 +46,24 @@ export class DocumentStore {
     return snapshot
   }
 
+  /**
+   * The current revision only, for open screens that poll for other masters'
+   * edits: no document body is read or sent. Null when the document is missing
+   * or the master is not on the campaign.
+   */
+  async revision(path: string): Promise<number | null> {
+    assertPath(path)
+    const row = await this.db.prepare(
+      'SELECT d.revision FROM documents d JOIN campaign_members m ON m.campaign_path = d.path WHERE d.path = ? AND m.email = ?',
+    ).bind(path, this.email.toLocaleLowerCase()).first<{ revision: number }>()
+    return row?.revision ?? null
+  }
+
   /** Campaigns the signed-in master belongs to. */
   async list(collection: string): Promise<Snapshot[]> {
     if (collection !== CAMPAIGNS) throw new BadRequestError(`Недопустимая коллекция: ${collection}`)
     const { results } = await this.db.prepare(
-      'SELECT d.path, d.data, d.revision FROM documents d JOIN campaign_members m ON m.campaign_path = d.path WHERE d.collection = ? AND m.email = ? ORDER BY d.path',
+      'SELECT d.path, d.data, d.revision, d.updated_by FROM documents d JOIN campaign_members m ON m.campaign_path = d.path WHERE d.collection = ? AND m.email = ? ORDER BY d.path',
     ).bind(collection, this.email.toLocaleLowerCase()).all<Row>()
     return results.map(toSnapshot)
   }

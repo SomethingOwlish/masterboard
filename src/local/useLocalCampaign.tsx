@@ -1,7 +1,8 @@
 import { createContext, useCallback, useContext, useEffect, useRef, useState, type ReactNode } from 'react'
 import { IdbStorageGateway } from '../adapters/idbStorageGateway'
 import { createLocalCampaignCatalog, type LocalCampaignCatalog } from './catalog'
-import type { CampaignCatalog } from './remote'
+import { applyMine, type MergeConflict } from './merge'
+import { SERVER_POLL_MS, SharedConflictError, type CampaignCatalog } from './remote'
 import type { LocalCampaignRecord } from './types'
 
 let defaultCatalog: LocalCampaignCatalog | null = null
@@ -32,9 +33,13 @@ export type LocalCampaignState =
     retry: () => void
     /** The unsaved edits are kept in this browser and survive a reload. */
     savedInBrowser: boolean
-    notice: string | null
-    dismissNotice: () => void
+    /** Places both masters changed; the other master's version is on screen until the master picks «моя». */
+    conflicts: CampaignConflicts | null
+    /** Keeps «my» value at the given conflict paths (the rest stay as the other master left them). */
+    resolveConflicts: (mine: string[]) => void
   }
+
+export interface CampaignConflicts { items: MergeConflict[]; by?: string }
 
 /**
  * Loads one campaign and saves edits. The screen updates immediately; writes
@@ -45,13 +50,17 @@ export type LocalCampaignState =
  * lose it, it is sent when the connection returns or on «Синхронизировать».
  * A failed write keeps the edit on screen and exposes `saveError` + `retry`.
  * A shared campaign may come back merged with another master's edits; the
- * merged version replaces the screen unless newer edits are already queued.
+ * merged version replaces the screen unless newer edits are already queued,
+ * and the places both masters changed wait in `conflicts` for a choice.
+ * While the tab is visible and nothing is waiting to be written, an open
+ * shared campaign asks the server every `pollMs` whether another master
+ * saved, and shows their version.
  */
 export function useLocalCampaign(id: string): LocalCampaignState {
   const catalog = useLocalCatalog()
   const [campaign, setCampaign] = useState<LocalCampaignRecord | null | undefined>(undefined)
   const [saveError, setSaveError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [conflicts, setConflicts] = useState<CampaignConflicts | null>(null)
   const [savedInBrowser, setSavedInBrowser] = useState(false)
   const pending = useRef<LocalCampaignRecord | null>(null)
   const writing = useRef(false)
@@ -72,12 +81,14 @@ export function useLocalCampaign(id: string): LocalCampaignState {
           const saved = await catalog.update(next)
           if (!pending.current && shared?.isShared(saved.id)) setCampaign(saved)
           setSaveError(null)
-          setNotice(null)
         } catch (error) {
           const saved = (error as { saved?: LocalCampaignRecord }).saved
           if (saved) {
             if (!pending.current) setCampaign(saved)
-            setNotice(error instanceof Error ? error.message : null)
+            if (error instanceof SharedConflictError) {
+              const fresh = error.conflicts
+              setConflicts((prev) => ({ by: error.by ?? prev?.by, items: [...(prev?.items ?? []).filter((item) => !fresh.some((next) => next.path === item.path)), ...fresh] }))
+            }
             continue
           }
           pending.current ??= next
@@ -133,6 +144,38 @@ export function useLocalCampaign(id: string): LocalCampaignState {
     }
   }, [flush])
 
+  // Other masters' edits: poll the revision while the tab is visible and nothing is waiting to be written.
+  const poll = shared?.poll
+  const pollMs = shared?.pollMs ?? SERVER_POLL_MS
+  useEffect(() => {
+    if (!poll || !shared) return
+    let stopped = false
+    let asking = false
+    const idle = () => !pending.current && !writing.current && timer.current === null
+    const tick = async () => {
+      if (asking || stopped || document.visibilityState !== 'visible' || !shared.isShared(id) || !idle()) return
+      asking = true
+      try {
+        const fresh = await poll(id)
+        if (!fresh || stopped || !idle()) return
+        shared.rebase?.(id, fresh.revision, fresh.data)
+        setCampaign(fresh.data)
+      } catch {
+        // A missed poll is not an error the master needs to see; the next one or the next save catches up.
+      } finally {
+        asking = false
+      }
+    }
+    const every = window.setInterval(() => { void tick() }, pollMs)
+    const visible = () => { if (document.visibilityState === 'visible') void tick() }
+    document.addEventListener('visibilitychange', visible)
+    return () => {
+      stopped = true
+      window.clearInterval(every)
+      document.removeEventListener('visibilitychange', visible)
+    }
+  }, [poll, pollMs, shared, id])
+
   const persist = useCallback((next: LocalCampaignRecord) => {
     setCampaign(next)
     pending.current = next
@@ -147,7 +190,14 @@ export function useLocalCampaign(id: string): LocalCampaignState {
 
   const retry = useCallback(() => { void flush() }, [flush])
 
+  const resolveConflicts = useCallback((mine: string[]) => {
+    const chosen = (conflicts?.items ?? []).filter((item) => mine.includes(item.path))
+    setConflicts(null)
+    if (!chosen.length || !campaign) return
+    persist(chosen.reduce((next, item) => applyMine(next as unknown as Record<string, unknown>, item) as unknown as LocalCampaignRecord, campaign))
+  }, [conflicts, campaign, persist])
+
   if (campaign === undefined) return { status: 'loading' }
   if (campaign === null) return { status: 'missing' }
-  return { status: 'ready', campaign, persist, saveError, retry, savedInBrowser, notice, dismissNotice: () => setNotice(null) }
+  return { status: 'ready', campaign, persist, saveError, retry, savedInBrowser, conflicts, resolveConflicts }
 }

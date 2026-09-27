@@ -44,6 +44,16 @@ describe('worker API', () => {
     expect(stale).toMatchObject({ status: 409, body: { expected: 1, actual: 2, current: { revision: 2, data: { name: 'Новое имя' } } } })
   })
 
+  it('tells an open screen the current revision without the document, only to masters of the campaign', async () => {
+    await call(OWNER, 'PUT', 'docs/localCampaigns/c1', { data: campaign() })
+    await call(CO, 'PUT', 'docs/localCampaigns/c1', { data: campaign({ name: 'Новое имя' }), expectedRevision: 1 })
+    expect(await call(OWNER, 'GET', 'revisions/localCampaigns/c1')).toEqual({ status: 200, body: { revision: 2 } })
+    expect((await call(STRANGER, 'GET', 'revisions/localCampaigns/c1')).status).toBe(404)
+    expect((await call(OWNER, 'GET', 'revisions/localCampaigns/missing')).status).toBe(404)
+    expect((await call(OWNER, 'GET', 'revisions/elsewhere/c1')).status).toBe(400)
+    expect((await call(OWNER, 'GET', 'docs/localCampaigns/c1')).body).toMatchObject({ revision: 2, updatedBy: CO })
+  })
+
   it('enforces owner-only and responsible-master rules on the server', async () => {
     await call(OWNER, 'PUT', 'docs/localCampaigns/c1', { data: campaign() })
     const base = campaign()

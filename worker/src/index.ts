@@ -17,6 +17,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
  *   GET    /api/me                       → { email }
  *   GET    /api/collections/localCampaigns → Snapshot[] the master belongs to
  *   GET    /api/docs/<path>              → Snapshot | 404
+ *   GET    /api/revisions/<path>         → { revision } | 404 (polled by open screens)
  *   PUT    /api/docs/<path>  { data, expectedRevision? } → Snapshot | 409 { current }
  *   DELETE /api/docs/<path>?expectedRevision=n
  *   GET    /api/ext/connections | passport | entities | state, POST /api/ext/publish | session → lorebridge /mb/* (bridge.ts)
@@ -33,6 +34,10 @@ export async function handleApi(request: Request, env: Env, fetcher: typeof fetc
       if (forwarded) return forwarded
     }
     if (route.startsWith('collections/') && request.method === 'GET') return json(await store.list(decodeURIComponent(route.slice('collections/'.length))))
+    if (route.startsWith('revisions/') && request.method === 'GET') {
+      const revision = await store.revision(decodeURIComponent(route.slice('revisions/'.length)))
+      return revision === null ? json({ error: 'Не найдено' }, 404) : json({ revision })
+    }
     if (route.startsWith('docs/')) {
       const path = decodeURIComponent(route.slice('docs/'.length))
       if (request.method === 'GET') {
