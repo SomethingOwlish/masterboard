@@ -64,7 +64,7 @@ export const TARGET_TYPE: Record<'lorebook' | 'lovegame', Record<LocalCampaignEn
  * curator, companion, daemon), chosen in the queue; the table only picks the
  * default. A character goes as a light NPC, a creature as a companion.
  */
-const KK9_TARGET: Partial<Record<LocalCampaignEntityType, string>> = { npc: 'npc-light', character: 'npc-light', creature: 'companion', item: 'item' }
+const KK9_TARGET: Partial<Record<LocalCampaignEntityType, string>> = { npc: 'npc-light', character: 'npc-light', creature: 'companion', item: 'item', location: 'place', map: 'place' }
 
 /** Masterboard type for a record read from another system. */
 const IMPORT_TYPE: Record<ExternalSystem, Record<string, LocalCampaignEntityType>> = {

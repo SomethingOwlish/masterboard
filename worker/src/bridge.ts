@@ -15,7 +15,8 @@ export class BridgeUnavailableError extends Error {
   constructor() { super('Связь с внешними системами (Лорбук, ЛавГеймс, КК9) не настроена'); this.name = 'BridgeUnavailableError' }
 }
 
-const ROUTES: Record<string, 'GET' | 'POST'> = { connections: 'GET', passport: 'GET', entities: 'GET', publish: 'POST' }
+// state и session — живое состояние стола КК9 и итоги сессии (этап М4).
+const ROUTES: Record<string, 'GET' | 'POST'> = { connections: 'GET', passport: 'GET', entities: 'GET', publish: 'POST', state: 'GET', session: 'POST' }
 
 /** Forwards `route` (after /api/ext/) to lorebridge; null when the route is unknown. */
 export async function forwardToBridge(request: Request, route: string, email: string, env: BridgeEnv): Promise<Response | null> {

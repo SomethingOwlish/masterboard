@@ -141,4 +141,14 @@ describe('door to lorebridge', () => {
     expect(anonymous.status).toBe(401)
     expect((await handleApi(new Request('https://mb.test/api/ext/secrets'), { ...env, DEV_USER_EMAIL: OWNER })).status).toBe(404)
   })
+
+  it('forwards the КК9 table state (GET) and session results (POST), and nothing else by those names', async () => {
+    const seen: Request[] = []
+    const LOREBRIDGE = { fetch: async (request: Request) => { seen.push(request); return new Response('{}', { headers: { 'content-type': 'application/json' } }) } }
+    const withBridge = { ...env, DEV_USER_EMAIL: OWNER, LOREBRIDGE, MASTERBOARD_BRIDGE_SECRET: 's' }
+    expect((await handleApi(new Request('https://mb.test/api/ext/state?system=kk9&externalId=k1'), withBridge)).status).toBe(200)
+    expect((await handleApi(new Request('https://mb.test/api/ext/session', { method: 'POST', body: '{"system":"kk9"}' }), withBridge)).status).toBe(200)
+    expect(seen.map((request) => `${request.method} ${request.url}`)).toEqual(['GET https://lorebridge/mb/state?system=kk9&externalId=k1', 'POST https://lorebridge/mb/session'])
+    expect((await handleApi(new Request('https://mb.test/api/ext/session'), withBridge)).status).toBe(404)
+  })
 })

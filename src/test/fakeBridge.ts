@@ -2,6 +2,7 @@ import type { CapabilityPassport, ExternalConnection, PublicationQueueItem } fro
 import { ExternalError } from '../local/external'
 import { connectionKey, parseConnectionKey, type ExternalItem, type ExternalPatch } from '../local/integration'
 import type { ExternalPort } from '../local/useExternal'
+import type { Kk9SessionBody, Kk9SessionResult, Kk9State, Kk9Stream } from '../local/kk9'
 
 const passport = (entities: CapabilityPassport['entities']): Omit<CapabilityPassport, 'connectionId'> => ({ fetchedAt: '2026-09-26T00:00:00.000Z', entities })
 
@@ -65,6 +66,37 @@ export class FakeBridge implements ExternalPort {
   async listing(connectionId: string, type?: string) {
     const items = await this.entities(connectionId, type)
     return { items, ids: [...items.map((item) => item.id), ...(this.hidden.get(connectionId) ?? [])] }
+  }
+
+  /** КК9 (М4): состояние стола по id кампании и страницы журнала по ключу повтора. */
+  readonly kk9 = new Map<string, Kk9State>()
+  readonly kk9Pages = new Map<string, { stream: Kk9Stream; title: string; body: string }>()
+  readonly kk9Sessions: Array<{ externalId: string; sessionId: string; body: Kk9SessionBody }> = []
+  async kk9State(externalId: string): Promise<Kk9State> {
+    const found = this.kk9.get(externalId)
+    if (!found) throw new ExternalError('КК9: такой кампании нет', 404)
+    return found
+  }
+  async sendKk9Session(externalId: string, sessionId: string, body: Kk9SessionBody): Promise<Kk9SessionResult> {
+    this.kk9Sessions.push({ externalId, sessionId, body })
+    const out: Kk9SessionResult = {}
+    if (body.journal) {
+      const print = (page: { title: string; body: string }) => page.title.length * 31 + page.body.length
+      const was = this.kk9Pages.get(sessionId)
+      if (was && !body.journal.force && body.journal.expectedFingerprint !== undefined && print(was) !== body.journal.expectedFingerprint) {
+        out.journal = { ok: false, status: 409, error: 'Страницу поправили в КК9 после прошлой отправки', current: { title: was.title, body: was.body } }
+      } else {
+        const page = { stream: body.journal.stream, title: body.journal.title, body: body.journal.body }
+        this.kk9Pages.set(sessionId, page)
+        out.journal = { ok: true, id: `page-${sessionId}`, stream: page.stream, fingerprint: print(page) }
+      }
+    }
+    if (body.nextSession !== undefined) {
+      const state = this.kk9.get(externalId)
+      if (state) state.campaign.nextSession = body.nextSession
+      out.nextSession = { ok: true, value: body.nextSession }
+    }
+    return out
   }
 
   async publish(item: PublicationQueueItem): Promise<PublicationQueueItem> {

@@ -3,11 +3,14 @@ import type { ExternalGateway } from '../adapters/fakeExternal'
 import type { CapabilityPassport, ExternalConnection } from '../model/external'
 import { ExternalError, HttpExternalGateway } from './external'
 import type { ExternalItem, ExternalListing } from './integration'
+import type { Kk9SessionBody, Kk9SessionResult, Kk9State } from './kk9'
 
 /** What the screens need from lorebook / lovegame / systemsetup. */
 export interface ExternalPort extends ExternalGateway {
   entities(connectionId: string, type?: string): Promise<ExternalItem[]>
   listing(connectionId: string, type?: string): Promise<ExternalListing>
+  kk9State(externalId: string): Promise<Kk9State>
+  sendKk9Session(externalId: string, sessionId: string, body: Kk9SessionBody): Promise<Kk9SessionResult>
 }
 
 let defaultPort: ExternalPort | null = null

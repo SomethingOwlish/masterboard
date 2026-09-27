@@ -19,7 +19,7 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
  *   GET    /api/docs/<path>              → Snapshot | 404
  *   PUT    /api/docs/<path>  { data, expectedRevision? } → Snapshot | 409 { current }
  *   DELETE /api/docs/<path>?expectedRevision=n
- *   GET    /api/ext/connections | passport | entities, POST /api/ext/publish → lorebridge /mb/* (bridge.ts)
+ *   GET    /api/ext/connections | passport | entities | state, POST /api/ext/publish | session → lorebridge /mb/* (bridge.ts)
  */
 export async function handleApi(request: Request, env: Env, fetcher: typeof fetch = fetch): Promise<Response> {
   const url = new URL(request.url)
