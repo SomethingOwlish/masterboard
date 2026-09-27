@@ -32,13 +32,14 @@ const replace = (campaign: LocalCampaignRecord, next: LocalSessionRecord, active
 
 /**
  * Copies a session's plan into a new draft: fresh plan item ids with scenes, arrows
- * and graph positions remapped; play history (log, review, date, statuses) cleared.
+ * and graph positions remapped; play history (log, review, date, statuses, next game,
+ * КК9 send) cleared.
  */
 export function duplicateSession(campaign: LocalCampaignRecord, id: string, now: string): LocalCampaignRecord {
   const source = find(campaign, id)
   const ids = new Map(source.planItems.map((item) => [item.id, `plan-${crypto.randomUUID()}`]))
   const remap = (itemId: string) => ids.get(itemId) ?? itemId
-  const planItems = source.planItems.map(({ carriedFromSessionId: _carried, ...item }) => ({ ...item, id: remap(item.id), sceneId: item.sceneId && remap(item.sceneId), status: 'prepared' as const }))
+  const planItems = source.planItems.map(({ carriedFromSessionId: _carried, carriedFromItemId: _carriedItem, ...item }) => ({ ...item, id: remap(item.id), sceneId: item.sceneId && remap(item.sceneId), status: 'prepared' as const }))
   const flows = source.flows.map((flow): LocalSessionFlow => ({ ...flow, id: `flow-${crypto.randomUUID()}`, fromItemId: remap(flow.fromItemId), toItemId: remap(flow.toItemId) }))
   const planLayout = Object.fromEntries(Object.entries(source.planLayout).map(([itemId, position]) => [remap(itemId), { ...position }]))
   const copy: LocalSessionRecord = {
@@ -59,6 +60,8 @@ export function duplicateSession(campaign: LocalCampaignRecord, id: string, now:
     reviewDecisions: {},
     appliedDecisions: {},
     nextSessionId: undefined,
+    nextGame: undefined,
+    kk9Sent: undefined,
     createdAt: now,
   }
   return { ...campaign, sessionRecords: [...campaign.sessionRecords, copy], activeSessionId: copy.id }

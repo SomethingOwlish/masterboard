@@ -1,5 +1,5 @@
 // @vitest-environment jsdom
-import { screen, waitFor, within } from '@testing-library/react'
+import { cleanup, screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import { newEntity } from '../local/domain'
@@ -101,6 +101,69 @@ describe('session lifecycle', () => {
     const start = await screen.findByRole('button', { name: 'Начать' })
     expect(start).toBeDisabled()
     expect(start).toHaveAttribute('title', expect.stringContaining('уже идёт'))
+  })
+
+  it('changes the status only with buttons: no status in the passport, «Готова» by a button, a draft asks before starting', async () => {
+    const user = userEvent.setup()
+    const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Первая ночь')], activeSessionId: 's1' })
+    renderApp(`/local/campaign/${id}/session`, catalog)
+    await user.click(await screen.findByRole('button', { name: 'Паспорт' }))
+    const passport = await screen.findByRole('dialog', { name: 'Паспорт сессии' })
+    expect(within(passport).queryByLabelText('Статус')).not.toBeInTheDocument()
+    await user.click(within(passport).getByRole('button', { name: 'Отмена' }))
+
+    await user.click(screen.getByRole('button', { name: 'Начать' }))
+    const ask = await screen.findByRole('dialog')
+    expect(ask).toHaveTextContent('не отмечена готовой')
+    await user.click(within(ask).getByRole('button', { name: 'Отмена' }))
+    expect((await catalog.find(id))?.sessionRecords[0].status).toBe('draft')
+
+    await user.click(screen.getByRole('button', { name: 'Отметить готовой' }))
+    await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[0].status).toBe('ready'))
+    await user.click(await screen.findByRole('button', { name: 'Начать' }))
+    expect(await screen.findByLabelText('Живая панель')).toBeInTheDocument()
+    await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[0].status).toBe('active'))
+  })
+
+  it('explains why a session with an empty plan cannot start and refuses a zero number', async () => {
+    const user = userEvent.setup()
+    const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Пустая', { planItems: [] }), session('s2', 2, 'Вторая')], activeSessionId: 's1' })
+    renderApp(`/local/campaign/${id}/session`, catalog)
+    const start = await screen.findByRole('button', { name: 'Начать' })
+    expect(start).toBeDisabled()
+    expect(start).toHaveAttribute('title', 'Добавьте в план хотя бы один пункт')
+    await user.click(screen.getByRole('button', { name: 'Паспорт' }))
+    const number = screen.getByLabelText('Номер')
+    await user.clear(number)
+    expect(screen.getByRole('button', { name: 'Сохранить' })).toBeDisabled()
+    await user.type(number, '2')
+    expect(screen.getByText(/Номер 2 уже у сессии «Вторая»/)).toBeInTheDocument()
+  })
+
+  it('tells a closed session that waits for its review from a reviewed one, and «Разобрать» brings the review forward', async () => {
+    const user = userEvent.setup()
+    const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Сыграна', { status: 'completed', reviewStatus: 'completed' }), session('s2', 2, 'Ждёт', { status: 'completed' })], activeSessionId: 's2' })
+    renderApp(`/local/campaign/${id}/session`, catalog)
+    expect(await screen.findByRole('button', { name: /Сыграна.*Разобрана/ })).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: /Ждёт.*Закрыта · нужен разбор/ })).toBeInTheDocument()
+    await user.click(screen.getByRole('button', { name: 'Разобрать' }))
+    await waitFor(() => expect(document.activeElement).toHaveAccessibleName('Разбор сессии'))
+  })
+
+  it('remembers that a live log entry was already sent after a reload', async () => {
+    const user = userEvent.setup()
+    const log = [{ id: 'log-1', text: 'Бран обиделся', kind: 'moment' as const, createdAt: NOW }]
+    const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Идёт', { status: 'active', log })], activeSessionId: 's1' })
+    renderApp(`/local/campaign/${id}/play`, catalog)
+    const panel = await screen.findByLabelText('Живая панель')
+    await user.click(within(panel).getByRole('button', { name: 'В задачу' }))
+    await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[0].log[0].sentTo).toBe('task'))
+    cleanup()
+    renderApp(`/local/campaign/${id}/play`, catalog)
+    const again = await screen.findByLabelText('Живая панель')
+    expect(within(again).getByText('В задачах')).toBeInTheDocument()
+    expect(within(again).queryByRole('button', { name: 'В задачу' })).not.toBeInTheDocument()
+    expect((await catalog.find(id))?.tasks).toHaveLength(1)
   })
 
   it('stores a real play date and refuses an impossible one', async () => {

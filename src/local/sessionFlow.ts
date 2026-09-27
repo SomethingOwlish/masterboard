@@ -44,9 +44,14 @@ export function taskOriginLabel(task: LocalCampaignTask, campaign: LocalCampaign
 
 // ─── Review ─────────────────────────────────────────────────────────────────
 
-/** Required and desired items that were not played and need a GM decision. */
+/**
+ * Required and desired items that were not played and need a GM decision. Items a
+ * decision was already taken on stay in the list after it is applied (a cancelled
+ * item becomes `cancelled`), so a reopened review can still change them.
+ */
 export function reviewItems(session: LocalSessionRecord): LocalSessionPlanItem[] {
-  return session.planItems.filter((item) => (item.priority === 'required' || item.priority === 'desired') && item.status !== 'used' && item.status !== 'cancelled')
+  return session.planItems.filter((item) => (item.priority === 'required' || item.priority === 'desired')
+    && (Boolean(session.reviewDecisions[item.id] || session.appliedDecisions[item.id]) || (item.status !== 'used' && item.status !== 'cancelled')))
 }
 
 export function missingDecisions(session: LocalSessionRecord): LocalSessionPlanItem[] {
@@ -56,14 +61,18 @@ export function missingDecisions(session: LocalSessionRecord): LocalSessionPlanI
 const LIBRARY_TYPE: Partial<Record<LocalSessionPlanKind, LocalCampaignEntityType>> = { npc: 'npc', material: 'handout' }
 
 export interface ApplyReviewOptions {
-  /** Existing session to receive carried items, or `new` to create the next one. */
-  target: string | 'new'
+  /**
+   * Session that receives carried items and the next-game date: an existing one,
+   * `new` to create the next one, or `none` to create nothing (only when nothing is carried).
+   */
+  target: string | 'new' | 'none'
   now: string
 }
 
 /**
  * Applies the review decisions of one session and completes its review.
- * Decisions applied earlier are skipped, so reopening a review is safe.
+ * Decisions applied earlier are skipped, so reopening a review is safe; a carry
+ * that was changed to something else takes its unplayed copy back.
  */
 export function completeReview(campaign: LocalCampaignRecord, sessionId: string, options: ApplyReviewOptions): LocalCampaignRecord {
   const session = campaign.sessionRecords.find((item) => item.id === sessionId)
@@ -71,18 +80,24 @@ export function completeReview(campaign: LocalCampaignRecord, sessionId: string,
   if (missingDecisions(session).length) throw new Error('Не по всем пунктам принято решение')
   const pending = reviewItems(session).filter((item) => session.appliedDecisions[item.id] !== session.reviewDecisions[item.id])
   const carried = pending.filter((item) => session.reviewDecisions[item.id] === 'carry')
+  const uncarried = new Set(pending.filter((item) => session.appliedDecisions[item.id] === 'carry').map((item) => item.id))
+  if (carried.length && options.target === 'none') throw new Error('Выберите, в какую сессию перенести пункты')
 
-  let sessions = campaign.sessionRecords
+  const isCopyToTakeBack = (item: LocalSessionPlanItem) => item.carriedFromSessionId === session.id && Boolean(item.carriedFromItemId && uncarried.has(item.carriedFromItemId)) && item.status === 'prepared'
+  let sessions = uncarried.size
+    ? campaign.sessionRecords.map((item) => item.planItems.some(isCopyToTakeBack) ? { ...item, planItems: item.planItems.filter((planItem) => !isCopyToTakeBack(planItem)) } : item)
+    : campaign.sessionRecords
   let entities = campaign.entities
   let nextSessionId = session.nextSessionId
-  if (carried.length) {
-    let target = options.target === 'new' ? undefined : sessions.find((item) => item.id === options.target)
+  if (options.target !== 'none') {
+    const earlier = options.target === 'new' ? sessions.find((item) => item.id === session.nextSessionId && !item.deletedAt) : undefined
+    let target = earlier ?? (options.target === 'new' ? undefined : sessions.find((item) => item.id === options.target))
     if (!target) {
       const number = Math.max(0, ...sessions.map((item) => item.number)) + 1
       target = { ...blankSession(number, session.masterId, options.now), title: `Сессия ${number}`, date: session.nextGame?.date ?? '', arcId: session.arcId, backgroundArcIds: session.backgroundArcIds, groupId: session.groupId, guestPlayerIds: session.guestPlayerIds, participants: session.participants }
       sessions = [...sessions, target]
     }
-    const copies: LocalSessionPlanItem[] = carried.map((item) => ({ ...item, id: `plan-${crypto.randomUUID()}`, status: 'prepared', origin: 'review', carriedFromSessionId: session.id }))
+    const copies: LocalSessionPlanItem[] = carried.map((item) => ({ ...item, id: `plan-${crypto.randomUUID()}`, status: 'prepared', origin: 'review', carriedFromSessionId: session.id, carriedFromItemId: item.id }))
     const targetId = target.id
     // Дата следующей игры из разбора ложится в сессию-получатель, если своей у неё ещё нет.
     sessions = sessions.map((item) => item.id === targetId ? { ...item, planItems: [...item.planItems, ...copies], date: item.date || session.nextGame?.date || '' } : item)

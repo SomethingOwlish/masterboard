@@ -837,10 +837,12 @@ kbd {
 .sessions-workspace__session-list span, .sessions-workspace__session-list small { color: var(--muted); }
 .sessions-workspace__session-list strong, .sessions-workspace__session-list small { display: block; }
 .session-plan { min-width: 0; padding: var(--space-4); }
-.session-plan__passport { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: var(--space-4); align-items: start; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-strong); }
+/* The title keeps a readable width; the actions wrap under it instead of squeezing it into a column. */
+.session-plan__passport { display: flex; flex-wrap: wrap; justify-content: space-between; gap: var(--space-3) var(--space-4); align-items: start; padding-bottom: var(--space-3); border-bottom: 1px solid var(--border-strong); }
+.session-plan__passport > div:first-child { flex: 1 1 18rem; min-width: 0; }
 .session-plan__passport h1 { margin: 4px 0; font: var(--type-display); }
 .session-plan__passport p { margin: 0; color: var(--muted); }
-.session-plan__actions { display: flex; gap: var(--space-2); }
+.session-plan__actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: var(--space-2); }
 .session-plan__meta { display: grid; grid-template-columns: repeat(4, 1fr); margin: 0; border-bottom: 1px solid var(--border); }
 .session-plan__meta div { min-width: 0; padding: var(--space-3); border-right: 1px solid var(--border); }
 .session-plan__meta div:last-child { border-right: 0; }

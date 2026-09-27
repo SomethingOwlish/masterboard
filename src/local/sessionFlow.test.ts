@@ -50,6 +50,38 @@ describe('review', () => {
     expect(next.sessionRecords).toHaveLength(2)
     expect(next.sessionRecords[1].planItems.map((entry) => entry.text)).toEqual(['carry'])
   })
+
+  it('suggests the next session and moves the next-game date into it even when nothing is carried', () => {
+    const campaign = campaignWith({ planItems: [item('cancel')], reviewDecisions: { cancel: 'cancel' }, nextGame: { date: '2026-10-04', time: '19:00' } })
+    const next = completeReview(campaign, 'session-1', { target: 'new', now: NOW })
+    expect(next.sessionRecords).toHaveLength(2)
+    expect(next.sessionRecords[1]).toMatchObject({ number: 2, date: '2026-10-04', planItems: [] })
+    expect(next.sessionRecords[0].nextSessionId).toBe(next.sessionRecords[1].id)
+    const none = completeReview(campaign, 'session-1', { target: 'none', now: NOW })
+    expect(none.sessionRecords).toHaveLength(1)
+    expect(() => completeReview(campaignWith({ planItems: [item('carry')], reviewDecisions: { carry: 'carry' } }), 'session-1', { target: 'none', now: NOW })).toThrow('перенести')
+  })
+
+  it('keeps cancelled items in a reopened review so the decision can be changed', () => {
+    const campaign = campaignWith({ planItems: [item('cancel')], reviewDecisions: { cancel: 'cancel' } })
+    const once = completeReview(campaign, 'session-1', { target: 'none', now: NOW })
+    const reviewed = once.sessionRecords[0]
+    expect(reviewed.planItems[0].status).toBe('cancelled')
+    expect(missingDecisions({ ...reviewed, reviewDecisions: {} }).map((entry) => entry.id)).toEqual(['cancel'])
+    const changed = { ...once, sessionRecords: [{ ...reviewed, reviewStatus: 'draft' as const, reviewDecisions: { cancel: 'keep' as const } }] }
+    expect(completeReview(changed, 'session-1', { target: 'none', now: NOW }).sessionRecords[0].planItems[0].status).toBe('skipped')
+  })
+
+  it('takes back an unplayed carried copy when the decision changes from carry', () => {
+    const campaign = campaignWith({ planItems: [item('carry')], reviewDecisions: { carry: 'carry' } })
+    const once = completeReview(campaign, 'session-1', { target: 'new', now: NOW })
+    expect(once.sessionRecords[1].planItems).toEqual([expect.objectContaining({ carriedFromItemId: 'carry' })])
+    const reopened = { ...once, sessionRecords: once.sessionRecords.map((session) => session.id === 'session-1' ? { ...session, reviewStatus: 'draft' as const, reviewDecisions: { carry: 'cancel' as const } } : session) }
+    const twice = completeReview(reopened, 'session-1', { target: 'new', now: NOW })
+    expect(twice.sessionRecords).toHaveLength(2)
+    expect(twice.sessionRecords[1].planItems).toEqual([])
+    expect(twice.sessionRecords[0].planItems[0].status).toBe('cancelled')
+  })
 })
 
 describe('relations', () => {

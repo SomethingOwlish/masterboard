@@ -53,8 +53,9 @@ describe('beta acceptance', () => {
     await user.click(screen.getByRole('checkbox', { name: /Старая карта/ }))
     await user.click(screen.getByRole('button', { name: 'Добавить (1)' }))
 
-    // 4. Play: log, clock, reveal, close.
-    await user.click(screen.getByRole('button', { name: 'Начать' }))
+    // 4. Play: mark ready, then log, clock, reveal, close.
+    await user.click(screen.getByRole('button', { name: 'Отметить готовой' }))
+    await user.click(await screen.findByRole('button', { name: 'Начать' }))
     const panel = await screen.findByLabelText('Живая панель')
     await user.type(within(panel).getByLabelText('Запись живого журнала'), 'Герои спустились{Enter}')
     await user.selectOptions(screen.getByLabelText('Статус Спуск в штольню'), 'used')
