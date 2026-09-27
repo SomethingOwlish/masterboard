@@ -1,6 +1,7 @@
 import type { ExternalGateway } from '../adapters/fakeExternal'
 import { isExternalSystem, type CapabilityPassport, type ExternalConnection, type ExternalSystem, type PublicationQueueItem } from '../model/external'
 import { SYSTEM_LABEL, connectionKey, parseConnectionKey, type ExternalItem, type ExternalListing } from './integration'
+import type { BackupStatus } from './backup'
 import type { Kk9SessionBody, Kk9SessionResult, Kk9State } from './kk9'
 
 /** A refusal from the Worker or lorebridge, with the bridge's `side` / `kind` when it gave them. */
@@ -53,6 +54,16 @@ export class HttpExternalGateway implements ExternalGateway {
   /** Живое состояние стола КК9 (М4). Не кешируется: это то, что за столом сейчас. */
   async kk9State(externalId: string): Promise<Kk9State> {
     return this.call<Kk9State>(`state?system=kk9&externalId=${encodeURIComponent(externalId)}`)
+  }
+
+  /** Итог резервной копии (М5). */
+  async backupStatus(): Promise<BackupStatus> {
+    return this.call<BackupStatus>('backup')
+  }
+
+  /** Резервная копия сейчас (М5): мост делает её в этом же запросе и отвечает итогом. */
+  async backupNow(): Promise<BackupStatus> {
+    return this.call<BackupStatus>('backup', { method: 'POST', headers: { 'content-type': 'application/json' }, body: '{}' })
   }
 
   /** Итоги сессии в КК9 (М4): частичный результат по каждой части. Ключ повтора — id сессии. */

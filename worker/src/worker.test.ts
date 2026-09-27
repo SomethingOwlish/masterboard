@@ -162,3 +162,34 @@ describe('door to lorebridge', () => {
     expect((await handleApi(new Request('https://mb.test/api/ext/session'), withBridge)).status).toBe(404)
   })
 })
+
+describe('backup for lorebridge (М5)', () => {
+  const ask = (headers: Record<string, string> = {}, method = 'POST') => handleApi(new Request('https://mb.test/api/internal/backup', { method, headers }), { ...env, MASTERBOARD_BRIDGE_SECRET: 's3cret' })
+
+  it('gives every shared campaign to the bridge by the secret alone — no Access sign-in, no membership', async () => {
+    await call(OWNER, 'PUT', 'docs/localCampaigns/c1', { data: campaign(), expectedRevision: 0 })
+    await call(STRANGER, 'PUT', 'docs/localCampaigns/c2', { data: campaign({ id: 'c2', name: 'Чужая', masters: [{ id: 'm', name: 'Ворон', email: STRANGER, role: 'owner' }] }), expectedRevision: 0 })
+    const response = await ask({ 'x-masterboard-secret': 's3cret' })
+    expect(response.status).toBe(200)
+    const { documents } = await response.json() as { documents: Array<{ path: string; data: { name: string }; revision: number; updatedBy: string }> }
+    expect(documents.map((doc) => doc.path)).toEqual(['localCampaigns/c1', 'localCampaigns/c2'])
+    expect(documents[0]).toMatchObject({ data: { name: 'Лунный порт' }, revision: 1, updatedBy: OWNER })
+  })
+
+  it('refuses without the secret, with a wrong one, by GET, and when the Worker has none', async () => {
+    expect((await ask()).status).toBe(401)
+    expect((await ask({ 'x-masterboard-secret': 'wrong' })).status).toBe(401)
+    expect((await ask({ 'x-masterboard-secret': 's3cret' }, 'GET')).status).toBe(405)
+    const unconfigured = await handleApi(new Request('https://mb.test/api/internal/backup', { method: 'POST', headers: { 'x-masterboard-secret': 'x' } }), env)
+    expect(unconfigured.status).toBe(501)
+  })
+
+  it('forwards the backup status (GET) and «backup now» (POST) to the bridge', async () => {
+    const seen: Request[] = []
+    const LOREBRIDGE = { fetch: async (request: Request) => { seen.push(request); return new Response('{}', { headers: { 'content-type': 'application/json' } }) } }
+    const withBridge = { ...env, DEV_USER_EMAIL: OWNER, LOREBRIDGE, MASTERBOARD_BRIDGE_SECRET: 's' }
+    expect((await handleApi(new Request('https://mb.test/api/ext/backup'), withBridge)).status).toBe(200)
+    expect((await handleApi(new Request('https://mb.test/api/ext/backup', { method: 'POST', body: '{}' }), withBridge)).status).toBe(200)
+    expect(seen.map((request) => `${request.method} ${new URL(request.url).pathname}`)).toEqual(['GET /mb/backup', 'POST /mb/backup'])
+  })
+})
