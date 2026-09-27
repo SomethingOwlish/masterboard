@@ -442,3 +442,4 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 |---|---|---|
 | 0 | SomethingOwlish/masterboard#92 | 27.09.2026 |
 | 2 | SomethingOwlish/masterboard#92 | 27.09.2026 |
+| 3 | SomethingOwlish/masterboard#93 | 27.09.2026 |
