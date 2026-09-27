@@ -48,7 +48,12 @@ export function PrintSection({ campaign, persist }: SectionProps) {
       {!handouts.entities.length && !handouts.secrets.length && !handouts.clocks.length && <p className="muted print-hide">Для игроков пока ничего нет. В лист попадают сущности из плана с видимостью «Для игроков», раскрытые секреты с публичной формулировкой и открытые часы.</p>}
       <div className="print-sheet__cards">
         {handouts.entities.map((entity) => <div key={entity.id} className="print-sheet__card print-sheet__handout"><small>{ENTITY_LABEL[entity.type]}</small><strong>{entity.name}</strong>{entity.description && <p>{entity.description}</p>}</div>)}
-        {handouts.secrets.map((secret) => <div key={secret.id} className="print-sheet__card print-sheet__handout"><small>Вы узнали</small><strong>{secret.title}</strong><p>{secret.text}</p></div>)}
+        {handouts.secrets.map((secret) => (
+          <div key={secret.id} className="print-sheet__card print-sheet__handout">
+            <small>Вы узнали</small>
+            <p>{secret.text}</p>
+          </div>
+        ))}
         {handouts.clocks.map((clock) => <div key={clock.id} className="print-sheet__card print-sheet__handout"><small>Часы</small><strong>{clock.title}</strong><p className="print-sheet__track">{'●'.repeat(clock.value)}{'○'.repeat(clock.segments - clock.value)}</p></div>)}
       </div>
     </article>}

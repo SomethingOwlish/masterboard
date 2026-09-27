@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import { Background, Controls, MarkerType, ReactFlow, type Connection, type Edge, type Node } from '@xyflow/react'
 import '@xyflow/react/dist/style.css'
 import { useColorScheme } from '../../lib/useColorScheme'
+import { relationEntities } from '../../local/sessionFlow'
 import type { LocalCampaignRecord, LocalCampaignRelation, LocalRelationType } from '../../local/types'
 
 const TYPE_COLOR: Record<LocalRelationType, string> = { alliance: 'var(--success)', enmity: 'var(--danger)', debt: 'var(--warning)', kin: 'var(--accent)', belongs: 'var(--text)', other: 'var(--line-strong, var(--border-strong))' }
@@ -23,13 +24,17 @@ interface Props {
 /** Graph view of world relations. Drag a node to place it, drag between nodes to add a relation. */
 export default function RelationsGraph({ campaign, relations, onSelectRelation, onConnect, onMoveNode }: Props) {
   const colorMode = useColorScheme()
-  const entities = useMemo(() => campaign.entities.filter((entity) => entity.status !== 'archived'), [campaign.entities])
-  const nodes: Node[] = useMemo(() => entities.map((entity, index) => ({
-    id: entity.id,
-    position: campaign.relationLayout[entity.id] ?? circle(index, entities.length),
-    data: { label: entity.name },
-    className: 'relation-graph__node',
-  })), [entities, campaign.relationLayout])
+  // An archived entity stays on the graph while a shown relation still ends at it.
+  const entities = useMemo(() => relationEntities(campaign, relations.flatMap((relation) => [relation.fromId, relation.toId])), [campaign, relations])
+  const nodes: Node[] = useMemo(() => entities.map((entity, index) => {
+    const archived = entity.status === 'archived'
+    return {
+      id: entity.id,
+      position: campaign.relationLayout[entity.id] ?? circle(index, entities.length),
+      data: { label: archived ? `${entity.name} · в архиве` : entity.name },
+      className: archived ? 'relation-graph__node relation-graph__node--archived' : 'relation-graph__node',
+    }
+  }), [entities, campaign.relationLayout])
   const edges: Edge[] = useMemo(() => relations.map((relation) => ({
     id: relation.id,
     source: relation.fromId,

@@ -52,6 +52,7 @@ describe('print', () => {
     const sheet = screen.getByRole('article', { name: 'Материалы игроков' })
     expect(within(sheet).getByText('Три причала и маяк')).toBeInTheDocument()
     expect(within(sheet).getByText('Договор требует жертвы')).toBeInTheDocument()
+    expect(within(sheet).queryByText('Цена')).not.toBeInTheDocument()
     expect(within(sheet).getByText('Прилив')).toBeInTheDocument()
     expect(within(sheet).queryByText('Олан')).not.toBeInTheDocument()
     expect(within(sheet).queryByText('Кто-то доносит')).not.toBeInTheDocument()

@@ -1,7 +1,7 @@
 import { newEntity } from './domain'
 import { blankSession } from './normalize'
 import type {
-  LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignRelation, LocalCampaignTask, LocalLogKind, LocalRelationType,
+  LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignRelation, LocalCampaignTask, LocalLogKind, LocalRelationType,
   LocalReviewDecision, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionPlanKind, LocalSessionRecord, LocalTaskOrigin,
 } from './types'
 
@@ -16,6 +16,16 @@ export function filterRelations(relations: LocalCampaignRelation[], filter: Rela
     (filter.visibility === 'all' || relation.visibility === filter.visibility) &&
     (filter.type === 'all' || relation.type === filter.type) &&
     (!filter.entityId || relation.fromId === filter.entityId || relation.toId === filter.entityId))
+}
+
+/**
+ * Entities a relation view can show: every active one, plus archived ones that
+ * `ids` still point at (ends of shown relations, the relation being edited), so
+ * such a relation is never dropped silently.
+ */
+export function relationEntities(campaign: LocalCampaignRecord, ids: Iterable<string>): LocalCampaignEntity[] {
+  const kept = new Set(ids)
+  return campaign.entities.filter((entity) => entity.status !== 'archived' || kept.has(entity.id))
 }
 
 // ─── Live log ───────────────────────────────────────────────────────────────
