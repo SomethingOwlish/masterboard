@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest'
 import { FakeBridge, LOREBOOK, LOVEGAME } from '../test/fakeBridge'
 import { newEntity } from './domain'
 import { normalizeCampaign } from './normalize'
-import { confirmSelected, enqueue, previewDrafts, reasonLabel, retrySelected, sendConfirmed } from './publishing'
+import { UNLINKED_REASON, checkedLink, linkOf, withLink } from './integration'
+import { confirmSelected, enqueue, pickHint, previewDrafts, reasonLabel, removeQueued, retrySelected, sendConfirmed, unconfirm } from './publishing'
 
 const NOW = '2026-09-26T10:00:00.000Z'
 
@@ -62,5 +63,62 @@ describe('batch publishing through lorebridge', () => {
     const stale = await sendConfirmed(ready, bridge, NOW)
     expect(stale.failed).toBe(1)
     expect(bridge.sent.at(-1)).toMatchObject({ operation: 'update', target: { entityId: 'ext-1' } })
+  })
+
+  it('blocks the queue for an unlinked world, keeps it blocked on check, and never sends it', async () => {
+    const bridge = new FakeBridge()
+    const checked = await previewDrafts(campaign(), bridge)
+    const confirmed = confirmSelected(checked, checked.publications.map((item) => item.id), NOW)
+    const unlinked = withLink(confirmed, 'lorebook', null)
+    expect(unlinked.publications.map((item) => [item.state, item.confirmedAt])).toEqual([['blocked', undefined], ['blocked', undefined], ['ready', NOW]])
+    expect(unlinked.publications[0].error).toBe(UNLINKED_REASON)
+    expect(pickHint(unlinked.publications[0])).toContain('Подключение отвязано')
+
+    const rechecked = await previewDrafts(unlinked, bridge)
+    expect(rechecked.publications.slice(0, 2).map((item) => [item.state, item.error])).toEqual([['blocked', UNLINKED_REASON], ['blocked', UNLINKED_REASON]])
+    const sent = await sendConfirmed(unlinked, bridge, NOW)
+    expect(bridge.sent.map((item) => item.connectionId)).toEqual([LOVEGAME])
+    expect(sent.succeeded).toBe(1)
+  })
+
+  it('blocks at send time a confirmed item whose place was unlinked elsewhere (a co-master, an old copy)', async () => {
+    const bridge = new FakeBridge()
+    const checked = await previewDrafts(campaign(), bridge)
+    const confirmed = confirmSelected(checked, [checked.publications[0].id], NOW)
+    const stale = { ...confirmed, integrations: { lovegame: confirmed.integrations.lovegame } }
+    const result = await sendConfirmed(stale, bridge, NOW)
+    expect(bridge.sent).toEqual([])
+    expect(result).toMatchObject({ succeeded: 0, failed: 0, blocked: 1 })
+    expect(result.campaign.publications[0]).toMatchObject({ state: 'blocked', error: UNLINKED_REASON })
+  })
+
+  it('switching the table blocks what waited for the old one', () => {
+    const queued = campaign()
+    const kk9 = withLink(queued, 'kk9', linkOf({ system: 'kk9', externalId: 'k-1', label: 'Стол КК9' }))
+    expect(kk9.integrations.lovegame).toBeUndefined()
+    expect(kk9.publications.map((item) => item.state)).toEqual(['draft', 'draft', 'blocked'])
+  })
+
+  it('lets stuck items out: a failed one can be removed, a confirmed one goes back to «готово»', async () => {
+    const bridge = new FakeBridge()
+    bridge.failing.add(LOREBOOK)
+    const checked = await previewDrafts(campaign(), bridge)
+    const ids = checked.publications.map((item) => item.id)
+    const confirmed = confirmSelected(checked, [ids[0], ids[2]], NOW)
+    expect(unconfirm(confirmed, ids[2]).publications[2]).toMatchObject({ state: 'ready', confirmedAt: undefined })
+    const { campaign: sent } = await sendConfirmed(confirmed, bridge, NOW)
+    expect(sent.publications[0].state).toBe('failed')
+    expect(removeQueued(sent, ids[0]).publications.map((item) => item.id)).toEqual([ids[1], ids[2]])
+    expect(removeQueued(sent, ids[2]).publications).toHaveLength(3)
+    expect(pickHint(checked.publications[1])).toMatch(/^Заблокировано: Это назначение не принимает/)
+    expect(pickHint(campaign().publications[0])).toBe('Сначала проверьте черновики — шаг 1')
+  })
+
+  it('keeps the result of a connection check, failed or passed', () => {
+    const link = checkedLink({ externalId: 'w-port', label: 'Лунный порт' }, NOW, 'Не отвечает')
+    expect(link).toEqual({ externalId: 'w-port', label: 'Лунный порт', checkedAt: NOW, checkError: 'Не отвечает' })
+    expect(checkedLink(link, NOW)).toEqual({ externalId: 'w-port', label: 'Лунный порт', checkedAt: NOW })
+    const stored = normalizeCampaign({ id: 'c', name: 'К', integrations: { lorebook: link } }, NOW)!
+    expect(stored.integrations.lorebook).toMatchObject({ checkedAt: NOW, checkError: 'Не отвечает' })
   })
 })

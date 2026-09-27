@@ -54,6 +54,7 @@ describe('session lifecycle', () => {
     await user.upload(screen.getByLabelText('Файл сессий для импорта'), file)
     const dialog = await screen.findByRole('dialog', { name: 'Импорт сессий' })
     expect(within(dialog).getByText('№2 Прилив')).toBeInTheDocument()
+    expect(within(dialog).getByText('1 сцена · 2 пункта плана · 0 переходов')).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: /Импортировать · 1/ }))
     expect(await screen.findByRole('heading', { name: 'Прилив' })).toBeInTheDocument()
     await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[1].planItems.map((item) => item.text)).toEqual(['Пристань', 'Туман']))

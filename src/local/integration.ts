@@ -64,6 +64,8 @@ export const statusBadge = (status: string | undefined) => status && status !== 
 export const REMOVED_HINT = 'Запись убрали из системы в SystemSetup. В мире она пока есть — удалить её или оставить своей решает автор мира в Лорбуке.'
 
 export const SYSTEM_LABEL: Record<ExternalSystem, string> = { lorebook: 'Лорбук', lovegame: 'ЛавГеймс', systemsetup: 'SystemSetup', kk9: 'КК9' }
+/** «Where» for each system, with its preposition: «в Лорбуке», «в ЛавГеймс». */
+export const SYSTEM_IN: Record<ExternalSystem, string> = { lorebook: 'в Лорбуке', lovegame: 'в ЛавГеймс', systemsetup: 'в SystemSetup', kk9: 'в КК9' }
 /** Systems a campaign links to (decision F4, R1): a world, a table and a game system. */
 export const LINKABLE_SYSTEMS = ['lorebook', 'lovegame', 'kk9', 'systemsetup'] as const
 export type LinkableSystem = typeof LINKABLE_SYSTEMS[number]
@@ -100,12 +102,39 @@ export function linkedRole(campaign: Pick<LocalCampaignRecord, 'integrations'>, 
   return null
 }
 
-/** Links `system` for its role; another system of the same role (the other table) is unlinked. */
+/**
+ * Links `system` for its role; another system of the same role (the other table) is unlinked.
+ * Queued items for a connection the campaign no longer has are blocked, so they are never sent there.
+ */
 export function withLink(campaign: LocalCampaignRecord, system: ExternalSystem, link: CampaignLink | null): LocalCampaignRecord {
   const integrations = { ...campaign.integrations }
   for (const other of ROLE_SYSTEMS[ROLE_OF[system]]) delete integrations[other]
   if (link) integrations[system] = link
-  return { ...campaign, integrations }
+  return blockUnlinked({ ...campaign, integrations })
+}
+
+/** Connections of the campaign's linked world and table: the only places the queue may send to. */
+export const linkedConnections = (campaign: Pick<LocalCampaignRecord, 'integrations'>): Set<string> =>
+  new Set(WRITABLE_ROLES.flatMap((role) => { const linked = linkedRole(campaign, role); return linked ? [roleConnection(linked.system, linked.link)] : [] }))
+
+export const UNLINKED_REASON = 'Подключение отвязано от кампании. Подключите его снова или уберите из очереди.'
+
+/** Unsent queue items for a connection that is no longer linked become blocked, with the reason. */
+export function blockUnlinked(campaign: LocalCampaignRecord): LocalCampaignRecord {
+  const linked = linkedConnections(campaign)
+  const stale = (item: LocalCampaignRecord['publications'][number]) => item.state !== 'succeeded' && !linked.has(item.connectionId) && !(item.state === 'blocked' && item.error === UNLINKED_REASON)
+  if (!campaign.publications.some(stale)) return campaign
+  return { ...campaign, publications: campaign.publications.map((item) => stale(item) ? { ...item, state: 'blocked', error: UNLINKED_REASON, confirmedAt: undefined } : item) }
+}
+
+/** Unsent queue items for a connection: what unlinking it would block. */
+export const queuedFor = (campaign: Pick<LocalCampaignRecord, 'publications'>, connectionId: string) =>
+  campaign.publications.filter((item) => item.state !== 'succeeded' && item.connectionId === connectionId).length
+
+/** The link with the result of a connection check: its time and, when it failed, why. */
+export function checkedLink(link: CampaignLink, at: string, error?: string): CampaignLink {
+  const { checkError: _previous, ...rest } = link
+  return { ...rest, checkedAt: at, ...(error ? { checkError: error } : {}) }
 }
 
 /** Where each type goes by default (R3): lore → world, characters and things → table, the rest stays here. */
@@ -126,7 +155,10 @@ export const roleConnection = (system: ExternalSystem, link: CampaignLink) => co
 
 /** A world, table or system a campaign can be based on (ТЗ-2, R1/R10). */
 export interface BaseOption { system: ExternalSystem; externalId: string; label: string; url?: string; connectionId?: string }
-export const linkOf = (option: BaseOption, checkedAt?: string): CampaignLink => ({ externalId: option.externalId, label: option.label, ...(option.url ? { url: option.url } : {}), ...(option.connectionId ? { connectionId: option.connectionId } : {}), ...(checkedAt ? { checkedAt } : {}) })
+export const linkOf = (option: BaseOption, check?: { at: string; error?: string }): CampaignLink => {
+  const link: CampaignLink = { externalId: option.externalId, label: option.label, ...(option.url ? { url: option.url } : {}), ...(option.connectionId ? { connectionId: option.connectionId } : {}) }
+  return check ? checkedLink(link, check.at, check.error) : link
+}
 
 /** The base chosen when creating a campaign, by role. */
 export type BaseChoice = Partial<Record<CampaignRole, BaseOption>>

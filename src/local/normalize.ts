@@ -179,7 +179,7 @@ function normalizeLinks(value: unknown): LocalCampaignRecord['integrations'] {
   const links: LocalCampaignRecord['integrations'] = {}
   for (const system of EXTERNAL_SYSTEMS) {
     const link = value[system]
-    if (isObject(link) && typeof link.externalId === 'string') links[system] = { externalId: link.externalId, label: text(link.label, link.externalId), url: typeof link.url === 'string' ? link.url : undefined, ...(typeof link.connectionId === 'string' ? { connectionId: link.connectionId } : {}), ...(typeof link.checkedAt === 'string' ? { checkedAt: link.checkedAt } : {}) }
+    if (isObject(link) && typeof link.externalId === 'string') links[system] = { externalId: link.externalId, label: text(link.label, link.externalId), url: typeof link.url === 'string' ? link.url : undefined, ...(typeof link.connectionId === 'string' ? { connectionId: link.connectionId } : {}), ...(typeof link.checkedAt === 'string' ? { checkedAt: link.checkedAt } : {}), ...(typeof link.checkError === 'string' && link.checkError ? { checkError: link.checkError } : {}) }
   }
   return links
 }
