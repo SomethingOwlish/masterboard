@@ -5,7 +5,7 @@ import { mergeCampaign, type MergeConflict } from './merge'
 import { normalizeCampaign } from './normalize'
 import type { LocalCampaignRecord } from './types'
 
-interface Snapshot { path: string; data: Record<string, unknown>; revision: number }
+interface Snapshot { path: string; data: Record<string, unknown>; revision: number; updatedBy?: string }
 
 export class RemoteError extends Error { constructor(message: string, readonly status: number) { super(message); this.name = 'RemoteError' } }
 
@@ -33,12 +33,15 @@ export class MasterboardApi {
 
   list = async () => (await this.call<Snapshot[]>('GET', 'collections/localCampaigns')).body
   get = async (id: string) => { const result = await this.call<Snapshot>('GET', `docs/localCampaigns/${id}`); return result.status === 404 ? null : result.body }
+  /** Only the revision number — what an open screen polls. Null when the campaign is gone or no longer shared with this master. */
+  revision = async (id: string) => { const result = await this.call<{ revision: number }>('GET', `revisions/localCampaigns/${id}`); return result.status === 404 ? null : result.body.revision }
   put = (id: string, data: LocalCampaignRecord, expectedRevision?: number) => this.call<Snapshot & { current?: Snapshot | null }>('PUT', `docs/localCampaigns/${id}`, { data, expectedRevision })
   remove = (id: string) => this.call<null>('DELETE', `docs/localCampaigns/${id}`)
 }
 
 export class SharedConflictError extends Error {
-  constructor(readonly conflicts: MergeConflict[]) {
+  /** `by` — the email of whoever wrote the server version that was kept. */
+  constructor(readonly conflicts: MergeConflict[], readonly by?: string) {
     super(`Другой мастер изменил то же самое: ${conflicts.map((item) => item.path).join(', ')}. Оставлена версия с сервера.`)
     this.name = 'SharedConflictError'
   }
@@ -74,10 +77,21 @@ export interface SharedAccess {
   baseline?(id: string): { revision: number; data: LocalCampaignRecord } | null
   /** Restores the base of an edit made before a reload, so a clash with newer server edits is merged, not overwritten. */
   rebase?(id: string, revision: number, data: LocalCampaignRecord): void
+  /**
+   * A newer server version than the one last seen, or null. Asks only for the
+   * revision first; the document is fetched when it changed. Does not replace
+   * the base of unsynced edits — the caller takes the result with `rebase`
+   * only when nothing is waiting to be written.
+   */
+  poll?(id: string): Promise<{ revision: number; data: LocalCampaignRecord } | null>
+  /** How often an open campaign asks for other masters' edits while the tab is visible. */
+  pollMs?: number
 }
 
 /** Delay between the last edit and the server write (see `SharedAccess.saveDelayMs`). */
 export const SERVER_SAVE_DELAY_MS = 2000
+/** See `SharedAccess.pollMs`. */
+export const SERVER_POLL_MS = 10_000
 
 export type CampaignCatalog = LocalCampaignCatalog & { shared?: SharedAccess }
 
@@ -116,7 +130,7 @@ export function createSharedCatalog(browser: LocalCampaignCatalog, api: Masterbo
     const retried = await api.put(campaign.id, merged as unknown as LocalCampaignRecord, current.revision)
     if (retried.status === 409) throw new SharedConflictError([{ path: '(документ)', mine: merged, theirs: retried.body.current?.data }])
     const saved = remember(retried.body) ?? (merged as unknown as LocalCampaignRecord)
-    if (conflicts.length) throw Object.assign(new SharedConflictError(conflicts), { saved })
+    if (conflicts.length) throw Object.assign(new SharedConflictError(conflicts, current.updatedBy), { saved })
     return saved
   }
 
@@ -148,6 +162,17 @@ export function createSharedCatalog(browser: LocalCampaignCatalog, api: Masterbo
     drafts: browser.drafts,
     baseline: (id: string) => known.get(id) ?? null,
     rebase: (id: string, revision: number, data: LocalCampaignRecord) => { known.set(id, { revision, data }) },
+    async poll(id: string) {
+      const seen = known.get(id)
+      if (!seen) return null
+      const revision = await api.revision(id)
+      if (revision === null || revision <= seen.revision) return null
+      const snapshot = await api.get(id)
+      if (!snapshot || snapshot.revision <= seen.revision) return null
+      const data = normalizeCampaign(snapshot.data, new Date().toISOString())
+      return data ? { revision: snapshot.revision, data } : null
+    },
+    pollMs: SERVER_POLL_MS,
   }
 
   const catalog = {

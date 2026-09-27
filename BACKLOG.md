@@ -1,40 +1,37 @@
-# Backlog
+# Бэклог
 
-> The GitHub sync layer and the site importer referenced below were removed with the
-> legacy pages (decision D7). Current work is tracked in `docs/roadmap.md`.
+Собственное ТЗ (`docs/spec.md`) выполнено; сверка с кодом — 27.09.2026. Здесь — то, что
+найдено при сверке и ждёт решения. Пункт берётся в работу только по решению.
 
-Deferred work, roughly by priority. Pull an item into a batch when it's ready.
+## Сборка
 
-## High
+### 1. `package-lock.json` не совпадает с `package.json`
+`npm ci` падает (`Missing: esbuild@0.28.2 from lock file` — esbuild внутри vitest).
+Если сборка на Cloudflare ставит зависимости через `npm ci`, деплой сломан. Лечится
+`npm install` и коммитом lock-файла.
 
-### 1. Fix save/sync errors
-Saving is flaky and the failures cascade — when a write errors, roughly everything
-downstream breaks. Root-cause the storage/sync path (`src/storage/repository.ts` +
-`src/storage/data.ts` + the GitHub adapter): surface a clear error state, retry or
-queue failed writes instead of dropping them, and make sure one failed module write
-can't corrupt or block the others. This is the most disruptive current bug.
+### 2. Предупреждения линтера
+9 предупреждений `react-refresh/only-export-components` в пяти файлах
+(`EntityDetails.tsx`, `useConfirm.tsx`, `useToast.tsx`, `useExternal.tsx`,
+`useLocalCampaign.tsx`): вместе с компонентами оттуда экспортируются функции.
+Ошибок нет.
 
-## Medium
+## Код
 
-### 2. Improve connected-site import
-The site importer (`ImportDialog` + `httpImport` + `importEntities`, B8) only handles
-a flat JSON array mapped to one entity kind, and we only really use two GitHub-Pages
-sites. Extend it toward what the template importer already does: accept a hosted
-combined template (`masterboard-import/v1`) so a GHP site can carry a whole campaign,
-and/or let one fetch map several arrays to several kinds in one pass. Needs concrete
-detail on what's failing with the two live sites before starting.
+### 3. Модули `src/storage/*`, которые продукт не использует
+`campaignContentRepository`, `campaignDocuments`, `campaignRepository`, `entityLibrary`,
+`publicationManager`, `sessionDocuments`, `sessionLifecycle`, а также
+`adapters/memoryStorageGateway` — их импортируют только тесты. Это остатки первой
+модели хранения; удалить или оставить — решение команды.
 
-## Done
+## Интеграции
 
-### ~~2a. Document import parser → template import~~ ✓
-First attempt heuristically parsed Markdown/HTML/SVG into routed blocks, but real
-generated docs (e.g. a `<details>`/`<summary>` session doc) parsed badly — it can't
-infer structure it wasn't given. Replaced with a deterministic **template import**:
-`src/lib/importTemplate.ts` defines a combined `masterboard-import/v1` JSON covering
-every module, with a downloadable blank template and an LLM-fill prompt to convert a
-prose/HTML doc into it. `TemplateImportDialog` (button "Import template" in the
-Connected sites panel) validates the filled file, shows a per-section summary, and
-`commitTemplate` (`src/store/importing.ts`) files each section — resolving/creating
-timeline columns and linking relations by name — deduping by name per kind so
-re-import is safe. The heuristic parser (`docParse.ts`, `DocumentImportDialog`,
-`guessRoute`/`commitRoutedEntities`) was removed.
+### 4. Усиление входа моста (Р11)
+Сейчас Worker Мастерборда ходит в lorebridge с общим секретом и почтой из Access.
+По плану systemsetup (`isolated-migration-2026-09-27.md`, Р11) мост должен сам
+проверять пропуск Access. Отдельный этап, затрагивает masterboard и lorebridge.
+
+## Исключено
+
+- **Открытие без сети** (решение 27.09.2026): правки при обрыве связи не теряются,
+  запуск без сети упирается во вход через Access.

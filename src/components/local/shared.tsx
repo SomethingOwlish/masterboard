@@ -4,6 +4,8 @@ import { Badge, Button, Icon } from '../../ds'
 import { LocalThemeControl } from '../LocalThemeControl'
 import { ActingMasterSelect } from './ActingMasterSelect'
 import { useLocalCatalog } from '../../local/useLocalCampaign'
+import type { CampaignConflicts } from '../../local/useLocalCampaign'
+import { conflictPlace, conflictValue } from '../../local/merge'
 import type { LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
 
 export type Persist = (next: LocalCampaignRecord) => void
@@ -52,10 +54,38 @@ export function SaveErrorBanner({ message, retry, savedInBrowser = false }: { me
     : <div className="campaign-workspace__recovery local-save-error" role="alert"><Icon name="triangle-alert" size={18} /><span><strong>Изменения не сохранены.</strong> {message}. Они остаются на экране — попробуйте ещё раз.</span><Button size="sm" onClick={retry}>Повторить</Button></div>
 }
 
-/** Another master changed the same thing in a shared campaign; their version was kept (decision I4). */
-export function MergeNotice({ message, dismiss }: { message: string | null; dismiss: () => void }) {
-  if (!message) return null
-  return <div className="campaign-workspace__recovery" role="status"><Icon name="git-merge" size={18} /><span><strong>Правки объединены.</strong> {message}</span><Button size="sm" onClick={dismiss}>Понятно</Button></div>
+/** Who wrote the kept version, by name when they are on the campaign. */
+const otherMaster = (campaign: LocalCampaignRecord, email?: string) => {
+  const name = (email && campaign.masters.find((master) => master.email?.toLocaleLowerCase() === email.toLocaleLowerCase())?.name) || email
+  return name ? { who: `мастер ${name}`, whose: `мастера ${name}`, label: name } : { who: 'другой мастер', whose: 'другого мастера', label: 'Другой мастер' }
+}
+
+/**
+ * Both masters changed the same thing in a shared campaign (decision I4): the
+ * other master's version is on screen, and the master picks «моя» or «их» per place.
+ */
+export function ConflictNotice({ campaign, conflicts, resolve }: { campaign: LocalCampaignRecord; conflicts: CampaignConflicts | null; resolve: (mine: string[]) => void }) {
+  const [open, setOpen] = useState(false)
+  if (!conflicts?.items.length) return null
+  const them = otherMaster(campaign, conflicts.by)
+  const count = conflicts.items.length
+  return <>
+    <div className="campaign-workspace__recovery" role="status"><Icon name="git-merge" size={18} /><span><strong>Правки объединены.</strong> Вы и {them.who} изменили одно и то же — {count} {count === 1 ? 'место' : count < 5 ? 'места' : 'мест'}. Сейчас на экране версия {them.whose}.</span><Button size="sm" onClick={() => setOpen(true)}>Разобрать</Button></div>
+    {open && <ConflictDialog campaign={campaign} conflicts={conflicts} them={them} resolve={(mine) => { setOpen(false); resolve(mine) }} close={() => setOpen(false)} />}
+  </>
+}
+
+function ConflictDialog({ campaign, conflicts, them, resolve, close }: { campaign: LocalCampaignRecord; conflicts: CampaignConflicts; them: ReturnType<typeof otherMaster>; resolve: (mine: string[]) => void; close: () => void }) {
+  const [mine, setMine] = useState<string[]>([])
+  const pick = (path: string, value: boolean) => setMine(value ? [...mine.filter((item) => item !== path), path] : mine.filter((item) => item !== path))
+  return <Editor kicker="Общая кампания" title={`Изменено у вас и у ${them.whose}`} close={close}>
+    <p className="muted">Эти места вы и {them.who} поменяли одновременно. Выберите, что оставить; остальные правки уже объединены.</p>
+    {conflicts.items.map((item) => <fieldset key={item.path} className="source-clash"><legend>{conflictPlace(campaign as unknown as Record<string, unknown>, item)}</legend>
+      <label><input type="radio" name={item.path} checked={mine.includes(item.path)} onChange={() => pick(item.path, true)} /><span><small>Ваша</small>{conflictValue(item.mine, item.theirs)}</span></label>
+      <label><input type="radio" name={item.path} checked={!mine.includes(item.path)} onChange={() => pick(item.path, false)} /><span><small>{them.label}</small>{conflictValue(item.theirs, item.mine)}</span></label>
+    </fieldset>)}
+    <footer><Button onClick={() => resolve([])}>Оставить версию {them.whose}</Button><Button variant="primary" icon="check" onClick={() => resolve(mine)}>Применить</Button></footer>
+  </Editor>
 }
 
 export function Editor({ title, close, children, kicker = 'Локальные параметры' }: { title: string; close: () => void; children: ReactNode; kicker?: string }) {

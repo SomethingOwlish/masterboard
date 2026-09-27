@@ -10,8 +10,9 @@ a live session desk, a guided review, and printable director sheets.
 
 ## Status
 
-The app shell and campaign modules run as a static SPA. Production hosting is moving
-to Cloudflare; deployment credentials and project binding are configured separately.
+The spec in `docs/spec.md` is implemented (checked against the code on 27.09.2026, see
+`docs/spec-coverage.md`). The app runs on Cloudflare: one Worker serves the SPA and `/api`;
+the one-time Cloudflare setup is in [docs/deploy-cloudflare.md](./docs/deploy-cloudflare.md).
 
 ## Stack
 
