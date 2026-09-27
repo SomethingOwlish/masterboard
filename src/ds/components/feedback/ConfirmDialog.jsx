@@ -29,14 +29,14 @@ export function ConfirmDialog({
       title={title}
       footer={
         <>
-          <Button variant="ghost" onClick={onClose}>{cancelLabel}</Button>
+          <Button variant="ghost" data-autofocus onClick={onClose}>{cancelLabel}</Button>
           <Button variant="primary" tone={tone === 'danger' ? 'danger' : 'accent'} onClick={onConfirm} disabled={busy}>
             {confirmLabel}
           </Button>
         </>
       }
     >
-      {message && <p style={{ margin: 0, color: 'var(--muted)', fontSize: 'var(--text-sm)', lineHeight: 1.55 }}>{message}</p>}
+      {message && <p className="mb-modal__message">{message}</p>}
     </Modal>
   )
 }

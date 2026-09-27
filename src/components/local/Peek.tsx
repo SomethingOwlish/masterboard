@@ -39,15 +39,32 @@ export function PeekList({ items, empty = '—' }: { items: Array<{ target: Peek
 export function PeekProvider({ campaign, persist, children }: { campaign: LocalCampaignRecord; persist: Persist; children: ReactNode }) {
   const [stack, setStack] = useState<PeekTarget[]>([])
   const [searching, setSearching] = useState(false)
-  const open = useCallback((target: PeekTarget) => { setSearching(false); setStack((current) => [...current.filter((item) => item.kind !== target.kind || item.id !== target.id), target].slice(-8)) }, [])
-  const api = useMemo<PeekApi>(() => ({ open, search: () => setSearching(true) }), [open])
+  const current = stack[stack.length - 1]
+  // Focus goes back where it was before the panel or the search opened, once both are closed.
+  const anyOpen = Boolean(current) || searching
+  const openRef = useRef(anyOpen)
+  openRef.current = anyOpen
+  const returnTo = useRef<HTMLElement | null>(null)
+  const remember = useCallback(() => {
+    if (openRef.current) return
+    const active = document.activeElement
+    returnTo.current = active instanceof HTMLElement && active !== document.body ? active : null
+  }, [])
+  useEffect(() => {
+    if (anyOpen) return
+    const target = returnTo.current
+    returnTo.current = null
+    if (target?.isConnected) target.focus({ preventScroll: true })
+  }, [anyOpen])
+  const search = useCallback(() => { remember(); setSearching(true) }, [remember])
+  const open = useCallback((target: PeekTarget) => { remember(); setSearching(false); setStack((items) => [...items.filter((item) => item.kind !== target.kind || item.id !== target.id), target].slice(-8)) }, [remember])
+  const api = useMemo<PeekApi>(() => ({ open, search }), [open, search])
   useEffect(() => {
     // `code`, not `key`: on a Russian layout the same key gives «л».
-    const onKey = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') { event.preventDefault(); setSearching(true) } }
+    const onKey = (event: KeyboardEvent) => { if ((event.ctrlKey || event.metaKey) && event.code === 'KeyK') { event.preventDefault(); search() } }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [])
-  const current = stack[stack.length - 1]
+  }, [search])
   return <PeekContext.Provider value={api}>
     {children}
     {current && <PeekDrawer campaign={campaign} persist={persist} target={current} back={stack.length > 1 ? () => setStack(stack.slice(0, -1)) : undefined} close={() => setStack([])} />}
@@ -58,7 +75,19 @@ export function PeekProvider({ campaign, persist, children }: { campaign: LocalC
 function PeekDrawer({ campaign, persist, target, back, close }: { campaign: LocalCampaignRecord; persist: Persist; target: PeekTarget; back?: () => void; close: () => void }) {
   const navigate = useNavigate()
   const [editing, setEditing] = useState(false)
-  useEffect(() => { const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape' && !editing) close() }; window.addEventListener('keydown', onKey); return () => window.removeEventListener('keydown', onKey) }, [close, editing])
+  const heading = useRef<HTMLHeadingElement>(null)
+  const closeButton = useRef<HTMLButtonElement>(null)
+  // Escape closes the panel unless a dialog above it (editor, search, confirm) takes it.
+  useEffect(() => {
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape' || event.defaultPrevented || document.querySelector('[aria-modal="true"]')) return
+      close()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [close])
+  // Each record the panel shows starts with focus on its title.
+  useEffect(() => { (heading.current ?? closeButton.current)?.focus({ preventScroll: true }) }, [target.kind, target.id])
   const go = (path: string) => { close(); navigate(`/local/campaign/${campaign.id}/${path}`) }
   const entityName = (id: string) => campaign.entities.find((item) => item.id === id)?.name
   const entities = (ids: string[]) => ids.flatMap((id) => { const name = entityName(id); return name ? [{ target: { kind: 'entity' as const, id }, name }] : [] })
@@ -155,10 +184,23 @@ function PeekDrawer({ campaign, persist, target, back, close }: { campaign: Loca
       <header className="peek-drawer__head">
         {back ? <button type="button" className="peek-drawer__icon" onClick={back} aria-label="Назад"><Icon name="arrow-left" size={16} /></button> : <span />}
         <span className="panel-kicker">{found?.kicker ?? 'Запись'}</span>
-        <button type="button" className="peek-drawer__icon" onClick={close} aria-label="Закрыть панель"><Icon name="x" size={16} /></button>
+        <button
+          ref={closeButton}
+          type="button"
+          className="peek-drawer__icon"
+          onClick={close}
+          aria-label="Закрыть панель"
+        >
+          <Icon name="x" size={16} />
+        </button>
       </header>
       {found ? <>
-        <h2>{found.title}</h2>
+        <h2
+          ref={heading}
+          tabIndex={-1}
+        >
+          {found.title}
+        </h2>
         {found.badges.length > 0 && <div className="row peek-drawer__badges">{found.badges.map((badge) => <Badge size="sm" key={badge}>{badge}</Badge>)}</div>}
         <div className="peek-drawer__body">{found.body}</div>
         <footer className="peek-drawer__actions">{found.actions}</footer>
@@ -182,20 +224,55 @@ function SearchPalette({ campaign, close }: { campaign: LocalCampaignRecord; clo
   const hits = searchCampaign(campaign, query)
   const choose = (hit: SearchHit | undefined) => { if (hit) peek.open(hit.target) }
   const onKey = (event: React.KeyboardEvent) => {
-    if (event.key === 'Escape') { event.stopPropagation(); close() }
+    if (event.key === 'Escape') { event.stopPropagation(); event.preventDefault(); close() }
+    // Focus stays in the field; the list is walked with the arrows (aria-activedescendant).
+    if (event.key === 'Tab') event.preventDefault()
     if (event.key === 'ArrowDown') { event.preventDefault(); setActive(Math.min(active + 1, hits.length - 1)) }
     if (event.key === 'ArrowUp') { event.preventDefault(); setActive(Math.max(active - 1, 0)) }
     if (event.key === 'Enter') choose(hits[active])
   }
+  const listed = Boolean(query.trim()) && hits.length > 0
+  const optionId = (index: number) => `search-palette-hit-${index}`
   let group = ''
-  return <div className="campaign-workspace__scrim search-palette__scrim" onMouseDown={(event) => { if (event.currentTarget === event.target) close() }}>
+  return <div className="search-palette__scrim" onMouseDown={(event) => { if (event.currentTarget === event.target) close() }}>
     <section className="search-palette" role="dialog" aria-modal="true" aria-label="Поиск по кампании" onKeyDown={onKey}>
-      <div className="search-palette__field"><Icon name="search" size={18} /><input ref={input} value={query} aria-label="Что ищем" placeholder="Имя, место, секрет, сцена…" onChange={(event) => { setQuery(event.target.value); setActive(0) }} /><kbd>Esc</kbd></div>
-      {query.trim() ? hits.length ? <ul className="search-palette__list" role="listbox" aria-label="Найдено">{hits.map((hit, index) => {
+      <div className="search-palette__field">
+        <Icon name="search" size={18} />
+        <input
+          ref={input}
+          role="combobox"
+          aria-expanded={listed}
+          aria-controls="search-palette-list"
+          aria-autocomplete="list"
+          aria-activedescendant={listed ? optionId(active) : undefined}
+          value={query}
+          aria-label="Что ищем"
+          placeholder="Имя, место, секрет, сцена…"
+          onChange={(event) => { setQuery(event.target.value); setActive(0) }}
+        />
+        <kbd>Esc</kbd>
+      </div>
+      {listed ? <ul id="search-palette-list" className="search-palette__list" role="listbox" aria-label="Найдено">{hits.map((hit, index) => {
         const heading = hit.kind !== group ? SEARCH_GROUP[hit.kind] : null
         group = hit.kind
-        return <li key={`${hit.kind}:${hit.id}`} role="presentation">{heading && <span className="search-palette__group">{heading}</span>}<button type="button" role="option" aria-selected={index === active} className={index === active ? 'active' : ''} onMouseEnter={() => setActive(index)} onClick={() => choose(hit)}><strong>{hit.title}</strong>{hit.detail && <small>{hit.detail}</small>}</button></li>
-      })}</ul> : <p className="muted search-palette__empty">Ничего не нашли.</p> : <p className="muted search-palette__empty">Ищет по библиотеке, секретам, часам, линиям, сессиям, пунктам планов и игрокам. ↑↓ — выбрать, Enter — открыть.</p>}
+        return <li key={`${hit.kind}:${hit.id}`} role="presentation">
+          {heading && <span className="search-palette__group" aria-hidden="true">{heading}</span>}
+          <button
+            type="button"
+            id={optionId(index)}
+            role="option"
+            tabIndex={-1}
+            aria-selected={index === active}
+            className={index === active ? 'active' : ''}
+            onMouseDown={(event) => event.preventDefault()}
+            onMouseEnter={() => setActive(index)}
+            onClick={() => choose(hit)}
+          >
+            <strong>{hit.title}</strong>
+            {hit.detail && <small>{hit.detail}</small>}
+          </button>
+        </li>
+      })}</ul> : query.trim() ? <p className="muted search-palette__empty">Ничего не нашли.</p> : <p className="muted search-palette__empty">Ищет по библиотеке, секретам, часам, линиям, сессиям, пунктам планов и игрокам. ↑↓ — выбрать, Enter — открыть.</p>}
     </section>
   </div>
 }

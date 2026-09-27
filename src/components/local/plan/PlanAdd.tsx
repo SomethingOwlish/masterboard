@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Button, Icon, Select } from '../../../ds'
 import type { LocalSessionPlanItem, LocalSessionPlanKind } from '../../../local/types'
-import { ENTITY_LABEL, SessionModal as Modal } from '../shared'
+import { ENTITY_LABEL, SessionModal } from '../shared'
 import { DRAG_SOURCE, PLAN_KINDS, PRIORITIES, type LinkedSource, type PlanApi, type PlanTarget } from './planApi'
 
 type Priority = LocalSessionPlanItem['priority']
@@ -84,7 +84,7 @@ export function LibraryPicker({ api, target, close }: { api: PlanApi; target: Pl
     <div><span className="panel-kicker">{kicker}</span><strong>{title}</strong>{hint && <small>{hint}</small>}</div>
   </label>
 
-  return <Modal title="Добавить из библиотеки" close={close}>
+  return <SessionModal title="Добавить из библиотеки" close={close}>
     <div className="library-picker">
       <div className="library-picker__target"><label>Куда<TargetSelect api={api} label="Куда добавить" value={where} onChange={setWhere} /></label><label>Приоритет<Select aria-label="Приоритет добавляемых" value={priority} onChange={(event) => setPriority(event.target.value as Priority)}>{PRIORITIES.map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></label></div>
       <div className="library-picker__search"><Icon name="search" size={16} /><input autoFocus value={query} placeholder="Название, тег или тип…" aria-label="Поиск в библиотеке для сессии" onChange={(event) => setQuery(event.target.value)} /></div>
@@ -95,5 +95,5 @@ export function LibraryPicker({ api, target, close }: { api: PlanApi; target: Pl
       </div>
     </div>
     <footer><Button onClick={close}>Отмена</Button><Button variant="primary" icon="plus" disabled={!chosen.length} onClick={add}>{chosen.length ? `Добавить (${chosen.length})` : 'Добавить'}</Button></footer>
-  </Modal>
+  </SessionModal>
 }

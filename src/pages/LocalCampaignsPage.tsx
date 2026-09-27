@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Badge, Button, Icon } from '../ds'
+import { Badge, Button, Icon, Modal } from '../ds'
 import type { QuarantinedRecord } from '../local/catalog'
 import { mastersLabel } from '../local/team'
 import type { LocalCampaignRecord } from '../local/types'
@@ -44,7 +44,6 @@ export function LocalCampaignsPage() {
   }
   useEffect(() => { void reload() }, [catalog]) // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { if (shared) void shared.browserCampaigns().then(setWaiting) }, [shared])
-  useEffect(() => { if (!creating) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setCreating(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [creating])
 
   const title = name.trim() || baseName(base)
   const create = async () => {
@@ -124,6 +123,24 @@ export function LocalCampaignsPage() {
     {(campaigns ?? []).some((campaign) => campaign.archived) && <section className="campaign-workspace__archive" aria-label="Архив кампаний"><h2>Архив</h2><ul>{(campaigns ?? []).filter((campaign) => campaign.archived).map((campaign) => <li key={campaign.id}><Link to={`/local/campaign/${campaign.id}/team`}>{campaign.name}</Link><span>{campaign.sessionRecords.length} сесс. · {mastersLabel(campaign)}</span></li>)}</ul></section>}
     {shared ? <p className="campaign-workspace__boundary"><Icon name="cloud" size={15} /> Кампании хранятся на сервере и видны всем их мастерам. Со-мастера добавляются по почте в разделе «Команда».</p> : <p className="campaign-workspace__boundary"><Icon name="hard-drive" size={15} /> Всё хранится в браузере (IndexedDB). Для переноса используйте экспорт и импорт. Интеграции пока отключены.</p>}
     <p className="campaign-workspace__version" aria-label="Версия сборки">Версия <code>{__BUILD_HASH__}</code> · собрана {new Date(__BUILD_TIME__).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
-    {creating && <div className="campaign-workspace__scrim"><section className="campaign-workspace__modal" role="dialog" aria-modal="true" aria-labelledby="new-campaign-title"><span className="panel-kicker">Новая кампания</span><h2 id="new-campaign-title">С чего начинается история?</h2><label htmlFor="campaign-name">Название<input autoFocus id="campaign-name" name="campaign-name" value={name} placeholder={baseName(base) || 'Например, Город под стеклом'} onChange={(event) => setName(event.target.value)} /></label><label htmlFor="campaign-idea">Короткая идея<textarea id="campaign-idea" name="campaign-idea" rows={3} value={idea} placeholder="О чём эта кампания?" onChange={(event) => setIdea(event.target.value)} /></label><BaseChooser value={base} onChange={setBase} />{shared ? <p><Icon name="cloud" size={15} /> Кампания сохранится на сервере, вы — её владелец.</p> : <p><Icon name="hard-drive" size={15} /> Кампания сохранится только в этом браузере.</p>}<footer><Button onClick={() => setCreating(false)}>Отмена</Button><Button variant="primary" icon="plus" disabled={!title} onClick={() => void create()}>{Object.keys(baseIntegrations(base)).length ? 'Создать и выбрать записи' : 'Создать'}</Button></footer></section></div>}
+    {creating && (
+      <Modal
+        kicker="Новая кампания"
+        title="С чего начинается история?"
+        size="lg"
+        className="dialog-form"
+        dirty={Boolean(name.trim() || idea.trim() || Object.values(base).some(Boolean))}
+        onClose={() => setCreating(false)}
+      >
+        <label htmlFor="campaign-name">Название<input autoFocus id="campaign-name" name="campaign-name" value={name} placeholder={baseName(base) || 'Например, Город под стеклом'} onChange={(event) => setName(event.target.value)} /></label>
+        <label htmlFor="campaign-idea">Короткая идея<textarea id="campaign-idea" name="campaign-idea" rows={3} value={idea} placeholder="О чём эта кампания?" onChange={(event) => setIdea(event.target.value)} /></label>
+        <BaseChooser value={base} onChange={setBase} />
+        {shared ? <p><Icon name="cloud" size={15} /> Кампания сохранится на сервере, вы — её владелец.</p> : <p><Icon name="hard-drive" size={15} /> Кампания сохранится только в этом браузере.</p>}
+        <footer>
+          <Button onClick={() => setCreating(false)}>Отмена</Button>
+          <Button variant="primary" icon="plus" disabled={!title} onClick={() => void create()}>{Object.keys(baseIntegrations(base)).length ? 'Создать и выбрать записи' : 'Создать'}</Button>
+        </footer>
+      </Modal>
+    )}
   </main>
 }
