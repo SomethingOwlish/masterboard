@@ -479,3 +479,4 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 | 2 | SomethingOwlish/masterboard#92 | 27.09.2026 |
 | 3 | SomethingOwlish/masterboard#93 | 27.09.2026 |
 | 4 | SomethingOwlish/masterboard#94 | 27.09.2026 |
+| 5 | SomethingOwlish/masterboard#96 | 27.09.2026 |
