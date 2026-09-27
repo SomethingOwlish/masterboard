@@ -15,13 +15,15 @@ export class BridgeUnavailableError extends Error {
   constructor() { super('Связь с внешними системами (Лорбук, ЛавГеймс, КК9) не настроена'); this.name = 'BridgeUnavailableError' }
 }
 
-// state и session — живое состояние стола КК9 и итоги сессии (этап М4).
-const ROUTES: Record<string, 'GET' | 'POST'> = { connections: 'GET', passport: 'GET', entities: 'GET', publish: 'POST', state: 'GET', session: 'POST' }
+// state и session — живое состояние стола КК9 и итоги сессии (этап М4);
+// backup — итог резервной копии (GET) и копия сейчас (POST), этап М5.
+const ROUTES: Record<string, Array<'GET' | 'POST'>> = { connections: ['GET'], passport: ['GET'], entities: ['GET'], publish: ['POST'], state: ['GET'], session: ['POST'], backup: ['GET', 'POST'] }
 
 /** Forwards `route` (after /api/ext/) to lorebridge; null when the route is unknown. */
 export async function forwardToBridge(request: Request, route: string, email: string, env: BridgeEnv): Promise<Response | null> {
-  const method = ROUTES[route]
-  if (!method || request.method !== method) return null
+  const methods = ROUTES[route]
+  if (!methods || !(methods as string[]).includes(request.method)) return null
+  const method = request.method as 'GET' | 'POST'
   if (!env.LOREBRIDGE || !env.MASTERBOARD_BRIDGE_SECRET) throw new BridgeUnavailableError()
   const target = new URL(`https://lorebridge/mb/${route}`)
   target.search = new URL(request.url).search

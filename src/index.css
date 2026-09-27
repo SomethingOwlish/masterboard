@@ -1297,3 +1297,15 @@ kbd {
 
 .campaign-workspace__version { width: min(1280px, 100%); margin: var(--space-2) auto 0; color: var(--muted); font: var(--type-meta); text-align: center; }
 .campaign-workspace__version code { font-family: var(--font-mono); }
+
+/* Резервные копии (М5): страница рядом со списком кампаний. */
+.campaign-workspace__backups { display: inline-flex; align-items: center; gap: 6px; padding: 0 var(--space-2); color: var(--text); font: var(--type-meta); text-decoration: none; }
+.campaign-workspace__backups:hover { color: var(--accent); }
+.backups { width: min(1280px, 100%); margin-inline: auto; }
+.backups__back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: var(--space-2); color: var(--muted); font: var(--type-meta); text-decoration: none; }
+.backups__back:hover { color: var(--accent); }
+.backups__line { color: var(--muted); }
+.backups__facts { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(240px, 100%), 1fr)); gap: var(--space-3); margin: 0; }
+.backups__facts > div { padding: var(--space-3); border: 1px solid var(--border); border-radius: var(--radius-lg); background: var(--surface); }
+.backups__facts dt { color: var(--muted); font: var(--type-meta); }
+.backups__facts dd { margin: 4px 0 0; overflow-wrap: anywhere; }

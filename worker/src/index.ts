@@ -1,4 +1,5 @@
 import { AuthError, requestEmail, type AuthEnv } from './auth'
+import { internalBackup } from './backup'
 import { BridgeUnavailableError, forwardToBridge, type BridgeEnv } from './bridge'
 import type { D1Like } from './d1'
 import { PermissionError } from './permissions'
@@ -20,10 +21,16 @@ const json = (body: unknown, status = 200) => new Response(JSON.stringify(body),
  *   GET    /api/revisions/<path>         → { revision } | 404 (polled by open screens)
  *   PUT    /api/docs/<path>  { data, expectedRevision? } → Snapshot | 409 { current }
  *   DELETE /api/docs/<path>?expectedRevision=n
- *   GET    /api/ext/connections | passport | entities | state, POST /api/ext/publish | session → lorebridge /mb/* (bridge.ts)
+ *   GET    /api/ext/connections | passport | entities | state | backup, POST /api/ext/publish | session | backup → lorebridge /mb/* (bridge.ts)
+ *   POST   /api/internal/backup         → все общие кампании для бэкапа моста; только по общему секрету, без входа (backup.ts)
  */
 export async function handleApi(request: Request, env: Env, fetcher: typeof fetch = fetch): Promise<Response> {
   const url = new URL(request.url)
+  // Служебный вход моста — до проверки Access: привязка сервиса Access не
+  // проходит, и почты у неё нет. Право держит общий секрет (backup.ts).
+  if (url.pathname === '/api/internal/backup') {
+    try { return await internalBackup(request, env) } catch { return json({ error: 'Внутренняя ошибка' }, 500) }
+  }
   try {
     const email = await requestEmail(request, env, fetcher)
     const store = new DocumentStore(env.DB, email)

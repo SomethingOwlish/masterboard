@@ -1,4 +1,5 @@
 import type { CapabilityPassport, ExternalConnection, PublicationQueueItem } from '../model/external'
+import type { BackupStatus } from '../local/backup'
 import { ExternalError } from '../local/external'
 import { connectionKey, parseConnectionKey, type ExternalItem, type ExternalPatch } from '../local/integration'
 import type { ExternalPort } from '../local/useExternal'
@@ -72,6 +73,22 @@ export class FakeBridge implements ExternalPort {
   readonly kk9 = new Map<string, Kk9State>()
   readonly kk9Pages = new Map<string, { stream: Kk9Stream; title: string; body: string }>()
   readonly kk9Sessions: Array<{ externalId: string; sessionId: string; body: Kk9SessionBody }> = []
+  backup: BackupStatus = { configured: true, folder: 'https://github.com/owl/lorebookbackup/tree/main/мастерборд', schedule: 'каждую ночь после 00:40 по Москве', last: null }
+  backupRuns = 0
+  backupFails = false
+
+  async backupStatus(): Promise<BackupStatus> {
+    return structuredClone(this.backup)
+  }
+
+  async backupNow(): Promise<BackupStatus> {
+    this.backupRuns += 1
+    this.backup = { ...this.backup, last: this.backupFails
+      ? { at: '2026-09-27T12:00:00.000Z', state: 'ошибка', campaigns: 0, files: 0, error: 'Masterboard отказал (401)', повод: 'owl@example.com' }
+      : { at: '2026-09-27T12:00:00.000Z', state: 'записано', campaigns: 2, files: 3, повод: 'owl@example.com' } }
+    return structuredClone(this.backup)
+  }
+
   async kk9State(externalId: string): Promise<Kk9State> {
     const found = this.kk9.get(externalId)
     if (!found) throw new ExternalError('КК9: такой кампании нет', 404)
