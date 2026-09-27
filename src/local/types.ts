@@ -2,7 +2,7 @@
 
 import type { ExternalSystem, PublicationQueueItem } from '../model/external'
 
-export type LocalCampaignEntityType = 'character' | 'npc' | 'creature' | 'location' | 'faction' | 'rumor' | 'item' | 'audience' | 'note' | 'letter' | 'handout' | 'map' | 'home-rule'
+export type LocalCampaignEntityType = 'character' | 'npc' | 'creature' | 'location' | 'faction' | 'rumor' | 'item' | 'audience' | 'note' | 'letter' | 'handout' | 'map' | 'home-rule' | 'event' | 'lore'
 
 export interface LocalCampaignEntity {
   id: string
@@ -19,6 +19,11 @@ export interface LocalCampaignEntity {
   origin: LocalEntityOrigin
   /** Records in lorebook / lovegame / systemsetup this entity was imported from or published to. */
   sources: EntitySource[]
+  /**
+   * Where this entity also lives (ТЗ-2, R3): `world` / `table` of the campaign.
+   * Unset — by the type's rule (`publishRules`, else `DEFAULT_RULES`); `[]` — only here.
+   */
+  destinations?: Array<'world' | 'table'>
 }
 
 /** The part of an entity that travels between Masterboard and another system. */
@@ -54,6 +59,10 @@ export interface CampaignLink {
   externalId: string
   label: string
   url?: string
+  /** Connection the record lives in when it differs from `externalId` (a SystemSetup system inside `packs`). */
+  connectionId?: string
+  /** When the link was checked against the passport in the connection wizard. */
+  checkedAt?: string
 }
 
 export interface LocalEntityOrigin {
@@ -271,6 +280,8 @@ export interface LocalCampaignRecord {
   publications: PublicationQueueItem[]
   /** Where this campaign reads from and publishes to, per system. */
   integrations: Partial<Record<ExternalSystem, CampaignLink>>
+  /** Where each type goes by default (ТЗ-2, R3/R10); missing types use `DEFAULT_RULES`. */
+  publishRules?: Partial<Record<LocalCampaignEntityType, Array<'world' | 'table'>>>
   notes: string[]
   sessionRecords: LocalSessionRecord[]
   activeSessionId?: string

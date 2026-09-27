@@ -4,7 +4,7 @@
 import type { CapabilityPassport, ExternalSystem, PublicationOperation } from '../model/external'
 import { fieldValueEqual } from '../storage/fieldMerge'
 import { ENTITY_FIELDS, newEntity } from './domain'
-import type { EntitySnapshot, EntitySource, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord } from './types'
+import type { CampaignLink, EntitySnapshot, EntitySource, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord } from './types'
 
 /** A record as lorebridge returns it from GET /mb/entities. */
 export interface ExternalItem {
@@ -37,8 +37,8 @@ export interface ExternalPatch {
 }
 
 export const SYSTEM_LABEL: Record<ExternalSystem, string> = { lorebook: 'Лорбук', lovegame: 'ЛавГеймс', systemsetup: 'SystemSetup', kk9: 'КК9' }
-/** Systems a campaign links to one world / campaign of (decision F4). systemsetup has no container to link. */
-export const LINKABLE_SYSTEMS = ['lorebook', 'lovegame', 'kk9'] as const
+/** Systems a campaign links to (decision F4, R1): a world, a table and a game system. */
+export const LINKABLE_SYSTEMS = ['lorebook', 'lovegame', 'kk9', 'systemsetup'] as const
 export type LinkableSystem = typeof LINKABLE_SYSTEMS[number]
 /**
  * Systems a campaign can publish to; systemsetup is read-only (decision E4).
@@ -46,6 +46,67 @@ export type LinkableSystem = typeof LINKABLE_SYSTEMS[number]
  * passport says so, and the queue offers nothing else there.
  */
 export const WRITABLE_SYSTEMS: ExternalSystem[] = ['lorebook', 'lovegame', 'kk9']
+
+// ─── Roles (ТЗ-2, R3): world, table, system ─────────────────────────────────
+
+/**
+ * What a system is for a campaign. Lorebook is the **world** (lore lives there),
+ * ЛавГеймс and КК9 are kinds of **table** (characters and their stats live
+ * there; one table per campaign), SystemSetup is the **system** (rules, read-only).
+ */
+export type CampaignRole = 'world' | 'table' | 'system'
+export const ROLE_OF: Record<ExternalSystem, CampaignRole> = { lorebook: 'world', lovegame: 'table', kk9: 'table', systemsetup: 'system' }
+export const ROLE_SYSTEMS: Record<CampaignRole, ExternalSystem[]> = { world: ['lorebook'], table: ['lovegame', 'kk9'], system: ['systemsetup'] }
+export const ROLE_LABEL: Record<CampaignRole, string> = { world: 'Мир', table: 'Стол', system: 'Система' }
+export const ROLE_HINT: Record<CampaignRole, string> = {
+  world: 'Лор: локации, фракции, события, статьи',
+  table: 'Персонажи, НПС, предметы и их статы',
+  system: 'Правила и поля карточек',
+}
+/** Roles a campaign can send entities to; the system is read-only (decision E4). */
+export type WritableRole = 'world' | 'table'
+export const WRITABLE_ROLES: WritableRole[] = ['world', 'table']
+
+/** The system linked for a role, with its link; the first one wins if an old campaign has two tables. */
+export function linkedRole(campaign: Pick<LocalCampaignRecord, 'integrations'>, role: CampaignRole): { system: ExternalSystem; link: CampaignLink } | null {
+  for (const system of ROLE_SYSTEMS[role]) { const link = campaign.integrations[system]; if (link) return { system, link } }
+  return null
+}
+
+/** Links `system` for its role; another system of the same role (the other table) is unlinked. */
+export function withLink(campaign: LocalCampaignRecord, system: ExternalSystem, link: CampaignLink | null): LocalCampaignRecord {
+  const integrations = { ...campaign.integrations }
+  for (const other of ROLE_SYSTEMS[ROLE_OF[system]]) delete integrations[other]
+  if (link) integrations[system] = link
+  return { ...campaign, integrations }
+}
+
+/** Where each type goes by default (R3): lore → world, characters and things → table, the rest stays here. */
+export const DEFAULT_RULES: Record<LocalCampaignEntityType, WritableRole[]> = {
+  location: ['world'], faction: ['world'], event: ['world'], lore: ['world'], rumor: ['world'], map: ['world'],
+  character: ['table'], npc: ['table'], creature: ['table'], item: ['table'], handout: ['table'], letter: ['table'],
+  note: [], audience: [], 'home-rule': [],
+}
+export const rulesFor = (campaign: Pick<LocalCampaignRecord, 'publishRules'>, type: LocalCampaignEntityType): WritableRole[] => campaign.publishRules?.[type] ?? DEFAULT_RULES[type]
+
+/** Roles this entity goes to: its own choice, or the type's rule; only roles the campaign has linked. */
+export function entityRoles(campaign: Pick<LocalCampaignRecord, 'integrations' | 'publishRules'>, entity: Pick<LocalCampaignEntity, 'type' | 'destinations'>): WritableRole[] {
+  return (entity.destinations ?? rulesFor(campaign, entity.type)).filter((role) => WRITABLE_ROLES.includes(role) && linkedRole(campaign, role))
+}
+
+/** Connection key for a role's link. SystemSetup links a system inside the single `packs` connection. */
+export const roleConnection = (system: ExternalSystem, link: CampaignLink) => connectionKey(system, link.connectionId ?? link.externalId)
+
+/** A world, table or system a campaign can be based on (ТЗ-2, R1/R10). */
+export interface BaseOption { system: ExternalSystem; externalId: string; label: string; url?: string; connectionId?: string }
+export const linkOf = (option: BaseOption, checkedAt?: string): CampaignLink => ({ externalId: option.externalId, label: option.label, ...(option.url ? { url: option.url } : {}), ...(option.connectionId ? { connectionId: option.connectionId } : {}), ...(checkedAt ? { checkedAt } : {}) })
+
+/** The base chosen when creating a campaign, by role. */
+export type BaseChoice = Partial<Record<CampaignRole, BaseOption>>
+export const baseIntegrations = (choice: BaseChoice): LocalCampaignRecord['integrations'] =>
+  Object.fromEntries(Object.values(choice).filter((option): option is BaseOption => Boolean(option)).map((option) => [option.system, linkOf(option)]))
+/** First chosen base, for a campaign created without a name. */
+export const baseName = (choice: BaseChoice) => (choice.table ?? choice.world ?? choice.system)?.label ?? ''
 
 export const connectionKey = (system: ExternalSystem, externalId: string) => `${system}:${externalId}`
 export function parseConnectionKey(key: string): { system: ExternalSystem; externalId: string } {
@@ -55,8 +116,8 @@ export function parseConnectionKey(key: string): { system: ExternalSystem; exter
 
 /** Default type on the other side for each Masterboard type (decision F3). */
 export const TARGET_TYPE: Record<'lorebook' | 'lovegame', Record<LocalCampaignEntityType, string>> = {
-  lorebook: { character: 'character', npc: 'character', creature: 'character', location: 'location', faction: 'faction', rumor: 'lore', item: 'item', audience: 'note', note: 'note', letter: 'lore', handout: 'lore', map: 'location', 'home-rule': 'note' },
-  lovegame: { character: 'npc', npc: 'npc', creature: 'codex', location: 'codex', faction: 'codex', rumor: 'codex', item: 'codex', audience: 'codex', note: 'codex', letter: 'handout', handout: 'handout', map: 'handout', 'home-rule': 'codex' },
+  lorebook: { character: 'character', npc: 'character', creature: 'character', location: 'location', faction: 'faction', rumor: 'lore', item: 'item', audience: 'note', note: 'note', letter: 'lore', handout: 'lore', map: 'location', 'home-rule': 'note', event: 'event', lore: 'lore' },
+  lovegame: { character: 'npc', npc: 'npc', creature: 'codex', location: 'codex', faction: 'codex', rumor: 'codex', item: 'codex', audience: 'codex', note: 'codex', letter: 'handout', handout: 'handout', map: 'handout', 'home-rule': 'codex', event: 'codex', lore: 'codex' },
 }
 
 /**
@@ -68,7 +129,7 @@ const KK9_TARGET: Partial<Record<LocalCampaignEntityType, string>> = { npc: 'npc
 
 /** Masterboard type for a record read from another system. */
 const IMPORT_TYPE: Record<ExternalSystem, Record<string, LocalCampaignEntityType>> = {
-  lorebook: { character: 'npc', location: 'location', faction: 'faction', item: 'item', event: 'note', lore: 'note', note: 'note' },
+  lorebook: { character: 'npc', location: 'location', faction: 'faction', item: 'item', event: 'event', lore: 'lore', note: 'note' },
   lovegame: { npc: 'npc', handout: 'handout', codex: 'note' },
   systemsetup: { system: 'home-rule' },
   // КК9: сцена — место (аудит М0, решение Р-А).

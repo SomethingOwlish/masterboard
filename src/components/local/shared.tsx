@@ -22,6 +22,7 @@ export const CAMPAIGN_SECTIONS = [
   { id: 'improv', label: 'Заготовки', icon: 'dices' },
   { id: 'team', label: 'Команда', icon: 'users' },
   { id: 'print', label: 'Печать', icon: 'printer' },
+  { id: 'integrations', label: 'Интеграции', icon: 'plug' },
   { id: 'publish', label: 'Публикация', icon: 'upload' },
 ] as const
 
@@ -116,7 +117,7 @@ export function Capture({ value, setValue, add, label = 'Добавить' }: { 
 }
 
 export const ENTITY_TYPES: Array<{ value: LocalCampaignEntityType; label: string }> = [
-  ['character', 'Персонаж'], ['npc', 'Персонаж ведущего'], ['creature', 'Существо'], ['location', 'Локация'], ['faction', 'Фракция'], ['rumor', 'Слух'], ['item', 'Предмет'], ['audience', 'Аудитория'], ['note', 'Заметка'], ['letter', 'Письмо'], ['handout', 'Раздаточный материал'], ['map', 'Карта'], ['home-rule', 'Домашнее правило'],
+  ['character', 'Персонаж'], ['npc', 'Персонаж ведущего'], ['creature', 'Существо'], ['location', 'Локация'], ['faction', 'Фракция'], ['rumor', 'Слух'], ['item', 'Предмет'], ['audience', 'Аудитория'], ['note', 'Заметка'], ['letter', 'Письмо'], ['handout', 'Раздаточный материал'], ['map', 'Карта'], ['event', 'Событие'], ['lore', 'Лор / статья'], ['home-rule', 'Домашнее правило'],
 ].map(([value, label]) => ({ value: value as LocalCampaignEntityType, label }))
 export const ENTITY_LABEL = Object.fromEntries(ENTITY_TYPES.map((item) => [item.value, item.label])) as Record<LocalCampaignEntityType, string>
 

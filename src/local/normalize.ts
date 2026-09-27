@@ -135,13 +135,14 @@ function normalizeEntity(raw: Raw): LocalCampaignEntity {
   const origin = isObject(raw.origin) ? { kind: oneOf(raw.origin.kind, ['manual', 'plan', 'live', 'inbox', 'import', 'improv'] as const, 'manual'), sessionId: typeof raw.origin.sessionId === 'string' ? raw.origin.sessionId : undefined } : { kind: tags.includes('из сессии') ? 'plan' as const : 'manual' as const }
   return newEntity({
     id: raw.id as string,
-    type: oneOf(raw.type, ['character', 'npc', 'creature', 'location', 'faction', 'rumor', 'item', 'audience', 'note', 'letter', 'handout', 'map', 'home-rule'] as const, 'note'),
+    type: oneOf(raw.type, ['character', 'npc', 'creature', 'location', 'faction', 'rumor', 'item', 'audience', 'note', 'letter', 'handout', 'map', 'home-rule', 'event', 'lore'] as const, 'note'),
     name: text(raw.name), description: text(raw.description), tags,
     visibility: raw.visibility === 'public' ? 'public' : 'master',
     status: oneOf(raw.status, ['active', 'inactive', 'archived'] as const, 'active'),
     ...(raw.dead === true && raw.type === 'npc' ? { dead: true } : {}),
     fields: stringMap(raw.fields),
     origin,
+    ...(Array.isArray(raw.destinations) ? { destinations: raw.destinations.filter((role): role is 'world' | 'table' => role === 'world' || role === 'table') } : {}),
     sources: list<Raw>(raw.sources).filter((source) => isObject(source) && isExternalSystem(source.system) && typeof source.id === 'string' && typeof source.containerId === 'string').map(normalizeSource),
   })
 }
@@ -174,9 +175,15 @@ function normalizeLinks(value: unknown): LocalCampaignRecord['integrations'] {
   const links: LocalCampaignRecord['integrations'] = {}
   for (const system of EXTERNAL_SYSTEMS) {
     const link = value[system]
-    if (isObject(link) && typeof link.externalId === 'string') links[system] = { externalId: link.externalId, label: text(link.label, link.externalId), url: typeof link.url === 'string' ? link.url : undefined }
+    if (isObject(link) && typeof link.externalId === 'string') links[system] = { externalId: link.externalId, label: text(link.label, link.externalId), url: typeof link.url === 'string' ? link.url : undefined, ...(typeof link.connectionId === 'string' ? { connectionId: link.connectionId } : {}), ...(typeof link.checkedAt === 'string' ? { checkedAt: link.checkedAt } : {}) }
   }
   return links
+}
+
+function normalizeRules(value: Raw): NonNullable<LocalCampaignRecord['publishRules']> {
+  const rules: NonNullable<LocalCampaignRecord['publishRules']> = {}
+  for (const [type, roles] of Object.entries(value)) if (Array.isArray(roles)) rules[type as LocalCampaignEntity['type']] = roles.filter((role): role is 'world' | 'table' => role === 'world' || role === 'table')
+  return rules
 }
 
 /**
@@ -214,6 +221,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
       entityId: typeof item.entityId === 'string' ? item.entityId : undefined,
     })),
     integrations: normalizeLinks(value.integrations),
+    ...(isObject(value.publishRules) ? { publishRules: normalizeRules(value.publishRules) } : {}),
     publications: list<Raw>(value.publications).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.entityId === 'string') as unknown as LocalCampaignRecord['publications'],
     dashboardLayouts: isObject(value.dashboardLayouts) ? Object.fromEntries(Object.entries(value.dashboardLayouts).filter(([, layout]) => isObject(layout)).map(([id, layout]) => [id, normalizeLayout(layout as Raw)])) : {},
     notes: list<unknown>(value.notes).filter((note): note is string => typeof note === 'string'),

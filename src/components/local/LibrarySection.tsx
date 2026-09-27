@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Badge, Button, EmptyState, Icon, Select } from '../../ds'
 import { ENTITY_STATUS_LABEL, entityUsages, filterEntities, originLabel, usageCount, type EntityFilter } from '../../local/domain'
 import type { LocalCampaignEntity, LocalCampaignRecord } from '../../local/types'
@@ -13,7 +13,9 @@ const STATUS_LABEL = ENTITY_STATUS_LABEL
 export function LibrarySection({ campaign, persist }: SectionProps) {
   const [editor, setEditor] = useState<LocalCampaignEntity | 'new' | null>(null)
   const [filter, setFilter] = useState<EntityFilter>({ query: '', type: 'all', showArchived: false, fate: 'all' })
-  const [importing, setImporting] = useState(false)
+  const [params, setParams] = useSearchParams()
+  const [importing, setImportingState] = useState(params.get('import') === '1')
+  const setImporting = (value: boolean) => { setImportingState(value); if (!value && params.has('import')) setParams({}) }
   const openEditor = (entity: LocalCampaignEntity | 'new') => setEditor(entity)
   const visible = filterEntities(campaign.entities, filter)
   const archivedCount = campaign.entities.filter((entity) => entity.status === 'archived').length

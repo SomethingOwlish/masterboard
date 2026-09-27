@@ -9,6 +9,7 @@ import { PrintSection } from '../components/local/PrintSection'
 import { TeamSection } from '../components/local/TeamSection'
 import { ImprovSection } from '../components/local/ImprovSection'
 import { PublishSection } from '../components/local/PublishSection'
+import { IntegrationsSection } from '../components/local/IntegrationsSection'
 import { ActingProvider } from '../local/ActingProvider'
 import { RelationsSection } from '../components/local/RelationsSection'
 import { WorldSection } from '../components/local/WorldSection'
@@ -27,6 +28,7 @@ const SECTIONS: Record<string, (props: SectionProps) => JSX.Element> = {
   team: TeamSection,
   improv: ImprovSection,
   publish: PublishSection,
+  integrations: IntegrationsSection,
 }
 
 export function LocalNewCampaignPage() {

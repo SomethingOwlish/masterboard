@@ -187,9 +187,9 @@ export function createSharedCatalog(browser: LocalCampaignCatalog, api: Masterbo
       const snapshot = await api.get(id)
       return snapshot ? remember(snapshot) : null
     },
-    async create(name: string, idea: string) {
+    async create(name: string, idea: string, integrations: LocalCampaignRecord['integrations'] = {}) {
       const stamp = new Date().toISOString()
-      return upload({ ...blankCampaign(name, idea, stamp), masters: [{ ...newMaster('Ведущий', 'owner'), email }] })
+      return upload({ ...blankCampaign(name, idea, stamp), integrations, masters: [{ ...newMaster('Ведущий', 'owner'), email }] })
     },
     update: (campaign: LocalCampaignRecord) => writeShared(campaign),
     async remove(id: string) {

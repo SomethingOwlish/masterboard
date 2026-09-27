@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Icon } from '../ds'
 import type { QuarantinedRecord } from '../local/catalog'
 import { mastersLabel } from '../local/team'
@@ -9,6 +9,8 @@ import { useLocalCatalog } from '../local/useLocalCampaign'
 import { LocalThemeControl } from '../components/LocalThemeControl'
 import { useConfirm } from '../components/useConfirm'
 import { liveSessions } from '../local/sessions'
+import { BaseChooser } from '../components/local/BaseChooser'
+import { baseIntegrations, baseName, type BaseChoice } from '../local/integration'
 
 const sessionsLabel = (count: number) => {
   if (!count) return 'Без сессий'
@@ -28,6 +30,8 @@ export function LocalCampaignsPage() {
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
   const [idea, setIdea] = useState('')
+  const [base, setBase] = useState<BaseChoice>({})
+  const navigate = useNavigate()
   const fileInput = useRef<HTMLInputElement>(null)
   const confirm = useConfirm()
 
@@ -45,11 +49,15 @@ export function LocalCampaignsPage() {
   useEffect(() => { if (shared) void shared.browserCampaigns().then(setWaiting) }, [shared])
   useEffect(() => { if (!creating) return; const close = (event: KeyboardEvent) => { if (event.key === 'Escape') setCreating(false) }; window.addEventListener('keydown', close); return () => window.removeEventListener('keydown', close) }, [creating])
 
+  const title = name.trim() || baseName(base)
   const create = async () => {
-    if (!name.trim()) return
-    const campaign = await catalog.create(name, idea)
+    if (!title) return
+    const integrations = baseIntegrations(base)
+    const campaign = await catalog.create(title, idea, integrations)
+    setCreating(false); setName(''); setIdea(''); setBase({})
+    // With a base, the campaign opens straight on «what to take from it» (R1).
+    if (Object.keys(integrations).length) { navigate(`/local/campaign/${campaign.id}/overview?import=base`); return }
     await reload()
-    setCreating(false); setName(''); setIdea('')
     window.setTimeout(() => document.getElementById(`campaign-${campaign.id}`)?.focus(), 0)
   }
   const importFile = async (file: File | undefined) => {
@@ -130,6 +138,6 @@ export function LocalCampaignsPage() {
     {(campaigns ?? []).some((campaign) => campaign.archived) && <section className="campaign-workspace__archive" aria-label="Архив кампаний"><h2>Архив</h2><ul>{(campaigns ?? []).filter((campaign) => campaign.archived).map((campaign) => <li key={campaign.id}><Link to={`/local/campaign/${campaign.id}/team`}>{campaign.name}</Link><span>{campaign.sessionRecords.length} сесс. · {mastersLabel(campaign)}</span></li>)}</ul></section>}
     {shared ? <p className="campaign-workspace__boundary"><Icon name="cloud" size={15} /> Кампании хранятся на сервере и видны всем их мастерам. Со-мастера добавляются по почте в разделе «Команда».</p> : <p className="campaign-workspace__boundary"><Icon name="hard-drive" size={15} /> Всё хранится в браузере (IndexedDB). Для переноса используйте экспорт и импорт. Интеграции пока отключены.</p>}
     <p className="campaign-workspace__version" aria-label="Версия сборки">Версия <code>{__BUILD_HASH__}</code> · собрана {new Date(__BUILD_TIME__).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
-    {creating && <div className="campaign-workspace__scrim"><section className="campaign-workspace__modal" role="dialog" aria-modal="true" aria-labelledby="new-campaign-title"><span className="panel-kicker">Новая кампания</span><h2 id="new-campaign-title">С чего начинается история?</h2><label htmlFor="campaign-name">Название<input autoFocus id="campaign-name" name="campaign-name" value={name} placeholder="Например, Город под стеклом" onChange={(event) => setName(event.target.value)} /></label><label htmlFor="campaign-idea">Короткая идея<textarea id="campaign-idea" name="campaign-idea" rows={4} value={idea} placeholder="О чём эта кампания?" onChange={(event) => setIdea(event.target.value)} /></label>{shared ? <p><Icon name="cloud" size={15} /> Кампания сохранится на сервере, вы — её владелец.</p> : <p><Icon name="hard-drive" size={15} /> Кампания сохранится только в этом браузере.</p>}<footer><Button onClick={() => setCreating(false)}>Отмена</Button><Button variant="primary" icon="plus" disabled={!name.trim()} onClick={() => void create()}>Создать</Button></footer></section></div>}
+    {creating && <div className="campaign-workspace__scrim"><section className="campaign-workspace__modal" role="dialog" aria-modal="true" aria-labelledby="new-campaign-title"><span className="panel-kicker">Новая кампания</span><h2 id="new-campaign-title">С чего начинается история?</h2><label htmlFor="campaign-name">Название<input autoFocus id="campaign-name" name="campaign-name" value={name} placeholder={baseName(base) || 'Например, Город под стеклом'} onChange={(event) => setName(event.target.value)} /></label><label htmlFor="campaign-idea">Короткая идея<textarea id="campaign-idea" name="campaign-idea" rows={3} value={idea} placeholder="О чём эта кампания?" onChange={(event) => setIdea(event.target.value)} /></label><BaseChooser value={base} onChange={setBase} />{shared ? <p><Icon name="cloud" size={15} /> Кампания сохранится на сервере, вы — её владелец.</p> : <p><Icon name="hard-drive" size={15} /> Кампания сохранится только в этом браузере.</p>}<footer><Button onClick={() => setCreating(false)}>Отмена</Button><Button variant="primary" icon="plus" disabled={!title} onClick={() => void create()}>{Object.keys(baseIntegrations(base)).length ? 'Создать и выбрать записи' : 'Создать'}</Button></footer></section></div>}
   </main>
 }

@@ -1,7 +1,7 @@
 import type { ExternalGateway } from '../adapters/fakeExternal'
 import { confirmReady, executeBatch, previewBatch, retryFailed } from '../lib/publicationQueue'
 import type { CapabilityPassport, PublicationOperation, PublicationQueueItem } from '../model/external'
-import { effectiveOperation, parseConnectionKey, patchFor, recordPublished, sourceFor } from './integration'
+import { effectiveOperation, entityRoles, linkedRole, parseConnectionKey, patchFor, recordPublished, roleConnection, snapshotOf, sourceFor, targetTypes } from './integration'
 import type { LocalCampaignRecord } from './types'
 
 // ─── Queue operations on the campaign ───────────────────────────────────────
@@ -75,4 +75,40 @@ export function reasonLabel(error?: string): string {
   if (error.startsWith('Operation ')) return 'Назначение не поддерживает эту операцию'
   if (error.includes('changed field')) return 'Нечего отправлять: нет изменённых полей'
   return error
+}
+
+/**
+ * Puts the entity into the queue for every place it lives (ТЗ-2, R3): its own
+ * choice or the type's rule, among the campaign's linked world and table.
+ * An unsent draft for the same place is replaced, so saving twice queues once.
+ * A place that takes no records of this type (КК9 and a letter) is skipped.
+ */
+export function enqueueByRoles(campaign: LocalCampaignRecord, entityId: string, now: string): LocalCampaignRecord {
+  const entity = campaign.entities.find((item) => item.id === entityId)
+  if (!entity) return campaign
+  let next = campaign
+  for (const role of entityRoles(campaign, entity)) {
+    const linked = linkedRole(campaign, role)
+    if (!linked) continue
+    const connectionId = roleConnection(linked.system, linked.link)
+    const known = sourceFor(entity, linked.system, parseConnectionKey(connectionId).externalId)
+    const type = targetTypes(undefined, linked.system, entity.type)[0]?.id
+    if (!known && !type) continue
+    next = { ...next, publications: next.publications.filter((item) => !(item.entityId === entityId && item.connectionId === connectionId && (item.state === 'draft' || item.state === 'blocked'))) }
+    next = enqueue(next, entityId, connectionId, 'update', now, type)
+  }
+  return next
+}
+
+/** Entities that differ from what their places last got, or were never sent there: the batch «по правилам». */
+export function pendingByRoles(campaign: LocalCampaignRecord): string[] {
+  const queued = new Set(campaign.publications.filter((item) => item.state !== 'succeeded').map((item) => `${item.entityId}|${item.connectionId}`))
+  return campaign.entities.filter((entity) => entity.status !== 'archived' && entityRoles(campaign, entity).some((role) => {
+    const linked = linkedRole(campaign, role)!
+    const connectionId = roleConnection(linked.system, linked.link)
+    if (queued.has(`${entity.id}|${connectionId}`)) return false
+    const source = sourceFor(entity, linked.system, parseConnectionKey(connectionId).externalId)
+    if (!source) return Boolean(targetTypes(undefined, linked.system, entity.type)[0])
+    return JSON.stringify(source.snapshot) !== JSON.stringify(snapshotOf(entity))
+  })).map((entity) => entity.id)
 }

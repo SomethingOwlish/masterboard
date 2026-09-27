@@ -21,7 +21,7 @@ describe('import from lorebook / lovegame (F2)', () => {
     const [keeper, siege] = campaign.entities
     expect(keeper).toMatchObject({ type: 'npc', name: 'Смотритель маяка', description: 'Следит за огнём.', tags: ['порт'], visibility: 'public', origin: { kind: 'import' }, fields: { role: 'свидетель', 'Где живёт': 'маяк' } })
     expect(keeper.sources[0]).toMatchObject({ system: 'lorebook', containerId: 'w-port', id: 'e1', type: 'character' })
-    expect(siege).toMatchObject({ type: 'note', status: 'archived' })
+    expect(siege).toMatchObject({ type: 'event', status: 'archived' })
   })
 
   it('does not import the same record twice and sends unknown fields back under their own label', async () => {

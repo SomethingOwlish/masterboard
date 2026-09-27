@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, type ReactNode } from '
 import type { ExternalGateway } from '../adapters/fakeExternal'
 import type { CapabilityPassport, ExternalConnection } from '../model/external'
 import { ExternalError, HttpExternalGateway } from './external'
-import type { ExternalItem, ExternalListing } from './integration'
+import { ROLE_OF, type BaseOption, type CampaignRole, type ExternalItem, type ExternalListing } from './integration'
 import type { BackupStatus } from './backup'
 import type { Kk9SessionBody, Kk9SessionResult, Kk9State } from './kk9'
 
@@ -66,4 +66,31 @@ export function usePassports(connectionIds: string[]): Record<string, Capability
     }
   }, [port, wanted])
   return passports
+}
+
+export type BaseOptionsState =
+  | { status: 'loading' }
+  | { status: 'ready'; options: Record<CampaignRole, BaseOption[]> }
+  | { status: 'unconfigured' | 'error'; message: string }
+
+/**
+ * Everything the master can base a campaign on, by role. Worlds and tables are
+ * connections; SystemSetup systems are records inside its `packs` connection.
+ */
+export function useBaseOptions(): BaseOptionsState {
+  const port = useExternal()
+  const connections = useConnections()
+  const [systems, setSystems] = useState<BaseOption[] | null>(null)
+  useEffect(() => {
+    if (connections.status !== 'ready') return
+    let alive = true
+    const packs = connections.connections.filter((item) => item.system === 'systemsetup')
+    Promise.all(packs.map((pack) => port.entities(pack.id).then((items) => items.filter((item) => !item.archived).map((item): BaseOption => ({ system: 'systemsetup', externalId: item.id, label: item.name, url: item.url, connectionId: pack.externalId })), () => [] as BaseOption[])))
+      .then((lists) => { if (alive) setSystems(lists.flat()) })
+    return () => { alive = false }
+  }, [port, connections])
+  if (connections.status !== 'ready') return connections
+  if (!systems) return { status: 'loading' }
+  const of = (role: CampaignRole) => connections.connections.filter((item) => ROLE_OF[item.system] === role && item.system !== 'systemsetup').map((item): BaseOption => ({ system: item.system, externalId: item.externalId, label: item.label, url: item.url }))
+  return { status: 'ready', options: { world: of('world'), table: of('table'), system: systems } }
 }

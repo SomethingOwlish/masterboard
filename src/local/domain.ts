@@ -20,6 +20,8 @@ export const ENTITY_FIELDS: Record<LocalCampaignEntityType, Array<{ id: string; 
   handout: [{ id: 'for', label: 'Для кого' }],
   map: [{ id: 'scale', label: 'Масштаб' }],
   'home-rule': [{ id: 'when', label: 'Когда применяется' }],
+  event: [{ id: 'when', label: 'Когда в мире' }, { id: 'where', label: 'Где' }, { id: 'who', label: 'Участники' }, { id: 'consequences', label: 'Последствия' }],
+  lore: [{ id: 'section', label: 'Раздел' }, { id: 'text', label: 'Текст' }],
 }
 
 export function newEntity(input: Partial<LocalCampaignEntity> & Pick<LocalCampaignEntity, 'type' | 'name'>): LocalCampaignEntity {
