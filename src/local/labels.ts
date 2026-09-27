@@ -13,3 +13,13 @@ export const sessionStatusText = (session: Pick<LocalSessionRecord, 'status' | '
 
 export const withSession = (campaign: LocalCampaignRecord, session: LocalSessionRecord): LocalCampaignRecord =>
   ({ ...campaign, sessionRecords: campaign.sessionRecords.map((item) => item.id === session.id ? session : item) })
+
+/** Russian noun form for a count: plural(1, 'операция', 'операции', 'операций') → «операция»; 2 → «операции»; 5, 11, 12 → «операций». */
+export function plural(count: number, one: string, few: string, many: string): string {
+  const mod10 = Math.abs(count) % 10
+  const mod100 = Math.abs(count) % 100
+  if (mod100 >= 11 && mod100 <= 14) return many
+  if (mod10 === 1) return one
+  if (mod10 >= 2 && mod10 <= 4) return few
+  return many
+}

@@ -1,7 +1,7 @@
 import type { ExternalGateway } from '../adapters/fakeExternal'
 import { confirmReady, executeBatch, previewBatch, retryFailed } from '../lib/publicationQueue'
 import type { CapabilityPassport, PublicationOperation, PublicationQueueItem } from '../model/external'
-import { effectiveOperation, entityRoles, linkedRole, parseConnectionKey, patchFor, recordPublished, roleConnection, snapshotOf, sourceFor, targetTypes } from './integration'
+import { blockUnlinked, effectiveOperation, entityRoles, linkedConnections, linkedRole, parseConnectionKey, patchFor, recordPublished, roleConnection, snapshotOf, sourceFor, targetTypes } from './integration'
 import type { LocalCampaignRecord } from './types'
 
 // ─── Queue operations on the campaign ───────────────────────────────────────
@@ -38,8 +38,10 @@ const merge = (campaign: LocalCampaignRecord, changed: PublicationQueueItem[]): 
 }
 
 /** Checks every draft against its destination's capability passport (by the type on the other side). */
-export async function previewDrafts(campaign: LocalCampaignRecord, gateway: ExternalGateway): Promise<LocalCampaignRecord> {
-  const drafts = campaign.publications.filter((item) => item.state === 'draft' || item.state === 'blocked').map((item) => ({ ...item, state: 'draft' as const, error: undefined }))
+export async function previewDrafts(original: LocalCampaignRecord, gateway: ExternalGateway): Promise<LocalCampaignRecord> {
+  const campaign = blockUnlinked(original)
+  const linked = linkedConnections(campaign)
+  const drafts = campaign.publications.filter((item) => (item.state === 'draft' || item.state === 'blocked') && linked.has(item.connectionId)).map((item) => ({ ...item, state: 'draft' as const, error: undefined }))
   const passports: CapabilityPassport[] = []
   for (const connectionId of new Set(drafts.map((item) => item.connectionId))) {
     try { passports.push(await gateway.getPassport(connectionId)) } catch { /* marked unavailable by previewBatch */ }
@@ -55,11 +57,36 @@ export function confirmSelected(campaign: LocalCampaignRecord, ids: string[], no
   return merge(campaign, confirmReady(campaign.publications.filter((item) => selected.has(item.id) && item.state === 'ready'), now))
 }
 
-export async function sendConfirmed(campaign: LocalCampaignRecord, gateway: ExternalGateway, now: string): Promise<{ campaign: LocalCampaignRecord; succeeded: number; failed: number }> {
-  const confirmed = campaign.publications.filter((item) => item.state === 'ready' && item.confirmedAt)
-  if (!confirmed.length) throw new Error('Нет подтверждённых операций')
+/** Sends confirmed items; an item whose connection was unlinked after it was confirmed is blocked, not sent. */
+export async function sendConfirmed(original: LocalCampaignRecord, gateway: ExternalGateway, now: string): Promise<{ campaign: LocalCampaignRecord; succeeded: number; failed: number; blocked: number }> {
+  const campaign = blockUnlinked(original)
+  const isConfirmed = (item: PublicationQueueItem) => item.state === 'ready' && Boolean(item.confirmedAt)
+  const confirmed = campaign.publications.filter(isConfirmed)
+  const blocked = original.publications.filter(isConfirmed).length - confirmed.length
+  if (!confirmed.length) {
+    if (blocked) return { campaign, succeeded: 0, failed: 0, blocked }
+    throw new Error('Нет подтверждённых операций')
+  }
   const result = await executeBatch(withTargets(campaign, confirmed), gateway, now)
-  return { campaign: recordPublished(merge(campaign, result.items), result.items, now), succeeded: result.succeeded, failed: result.failed }
+  return { campaign: recordPublished(merge(campaign, result.items), result.items, now), succeeded: result.succeeded, failed: result.failed, blocked }
+}
+
+/** A confirmed item goes back to «готово к отправке» without being sent. */
+export function unconfirm(campaign: LocalCampaignRecord, id: string): LocalCampaignRecord {
+  return { ...campaign, publications: campaign.publications.map((item) => item.id === id && item.state === 'ready' ? { ...item, confirmedAt: undefined } : item) }
+}
+
+/** Unsent items can be taken out of the queue, failed ones included; the history of sent ones stays. */
+export const canRemove = (item: PublicationQueueItem) => item.state !== 'succeeded'
+export function removeQueued(campaign: LocalCampaignRecord, id: string): LocalCampaignRecord {
+  return { ...campaign, publications: campaign.publications.filter((item) => !(item.id === id && canRemove(item))) }
+}
+
+/** Why an item cannot be picked for confirmation or retry yet. */
+export function pickHint(item: PublicationQueueItem): string | undefined {
+  if (item.state === 'draft') return 'Сначала проверьте черновики — шаг 1'
+  if (item.state === 'blocked') return `Заблокировано: ${reasonLabel(item.error) || 'назначение не приняло'}. Исправьте и проверьте снова или уберите из очереди`
+  return undefined
 }
 
 export function retrySelected(campaign: LocalCampaignRecord, ids: string[], now: string): LocalCampaignRecord {

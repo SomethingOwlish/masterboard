@@ -23,9 +23,12 @@ describe('publishing to lorebook and lovegame', () => {
     await user.click(pick)
     await user.click(screen.getByRole('button', { name: '2. Подтвердить выбранные' }))
     await user.click(screen.getByRole('button', { name: '3. Отправить подтверждённые (1)' }))
-    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Отправить' }))
+    const sendDialog = await screen.findByRole('dialog')
+    expect(sendDialog).toHaveTextContent('Отправить 1 операцию?')
+    await user.click(within(sendDialog).getByRole('button', { name: 'Отправить' }))
     expect(await screen.findByText('Отправлено: 0. Ошибок: 1.')).toBeInTheDocument()
     expect(within(queue).getByText('Лорбук: база не ответила')).toBeInTheDocument()
+    expect(within(queue).getByRole('button', { name: 'Убрать из очереди: Олан' })).toBeInTheDocument()
 
     bridge.failing.clear()
     await user.click(within(queue).getByLabelText('Выбрать: Олан → Мир · Лорбук · Лунный порт'))
@@ -36,6 +39,33 @@ describe('publishing to lorebook and lovegame', () => {
     expect(screen.getByText('История отправок · 1')).toBeInTheDocument()
     expect(bridge.records.get(LOREBOOK)?.[0]).toMatchObject({ name: 'Олан', type: 'character', fields: { 'Мотив': 'Искупление' }, visibility: 'master' })
     await waitFor(async () => expect((await catalog.find(id))?.entities[0].sources[0]).toMatchObject({ system: 'lorebook', containerId: 'w-port', id: 'ext-1' }))
+  })
+
+  it('takes a confirmed item back to «готово» and reports a failed check', async () => {
+    const user = userEvent.setup()
+    const bridge = new FakeBridge()
+    const { catalog, id } = await readyCampaign({ entities: [newEntity({ id: 'npc', type: 'npc', name: 'Олан' })], integrations: { lorebook: { externalId: 'w-port', label: 'Лунный порт' } } })
+    renderApp(`/local/campaign/${id}/publish`, catalog, bridge)
+    await user.selectOptions(await screen.findByLabelText('Что публикуем'), 'npc')
+    await user.click(screen.getByRole('button', { name: 'В очередь' }))
+    const queue = await screen.findByRole('list', { name: 'Очередь публикации' })
+    expect(within(queue).getByRole('checkbox')).toHaveAttribute('title', 'Сначала проверьте черновики — шаг 1')
+    await user.click(screen.getByRole('button', { name: '1. Проверить черновики' }))
+    await waitFor(() => expect(within(queue).getByRole('checkbox')).toBeEnabled())
+    await user.click(within(queue).getByRole('checkbox'))
+    await user.click(screen.getByRole('button', { name: '2. Подтвердить выбранные' }))
+    expect(await within(queue).findByText('Подтверждено')).toBeInTheDocument()
+    await user.click(within(queue).getByRole('button', { name: 'Снять подтверждение: Олан' }))
+    expect(await within(queue).findByText('Готово к отправке')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '3. Отправить подтверждённые (0)' })).toBeDisabled()
+
+    await user.click(within(queue).getByRole('button', { name: 'Убрать из очереди: Олан' }))
+    await user.click(screen.getByRole('button', { name: 'В очередь' }))
+    // A passport the check cannot read: the error is said, the button comes back.
+    bridge.getPassport = async (connectionId) => ({ connectionId }) as unknown as Awaited<ReturnType<FakeBridge['getPassport']>>
+    await user.click(screen.getByRole('button', { name: '1. Проверить черновики' }))
+    expect(await screen.findByText(/^Проверка не удалась: .*Попробуйте ещё раз\.$/)).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: '1. Проверить черновики' })).toBeEnabled()
   })
 
   it('says when the door to lorebridge is not configured', async () => {
@@ -93,11 +123,11 @@ describe('import and refresh in the library', () => {
     renderApp(`/local/campaign/${id}/library`, catalog, bridge)
     await user.click(await screen.findByRole('button', { name: 'Из источника' }))
     const list = await screen.findByRole('list', { name: 'Записи источника' })
-    expect(within(list).getByText('Из Системсетапа')).toBeInTheDocument()
+    expect(within(list).getByText('Из SystemSetup')).toBeInTheDocument()
     await user.click(within(list).getByRole('checkbox', { name: /Старый обычай/ }))
     await user.click(screen.getByRole('button', { name: 'Добавить 1 в библиотеку' }))
     const card = (await screen.findByRole('heading', { name: 'Старый обычай' })).closest('article')!
-    expect(within(card).getByText('Из Системсетапа')).toBeInTheDocument()
+    expect(within(card).getByText('Из SystemSetup')).toBeInTheDocument()
     expect(within(card).queryByText('К удалению')).not.toBeInTheDocument()
 
     bridge.editThere(LOREBOOK, 'e7', { status: 'removed' })

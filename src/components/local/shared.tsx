@@ -8,6 +8,7 @@ import type { CampaignConflicts } from '../../local/useLocalCampaign'
 import { conflictPlace, conflictValue } from '../../local/merge'
 import type { LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
 import { searchShortcut, usePeek } from '../../local/peekContext'
+import { plural } from '../../local/labels'
 
 export type Persist = (next: LocalCampaignRecord) => void
 export interface SectionProps { campaign: LocalCampaignRecord; persist: Persist }
@@ -113,7 +114,7 @@ export function ConflictNotice({ campaign, conflicts, resolve }: { campaign: Loc
   const them = otherMaster(campaign, conflicts.by)
   const count = conflicts.items.length
   return <>
-    <div className="campaign-workspace__recovery" role="status"><Icon name="git-merge" size={18} /><span><strong>Правки объединены.</strong> Вы и {them.who} изменили одно и то же — {count} {count === 1 ? 'место' : count < 5 ? 'места' : 'мест'}. Сейчас на экране версия {them.whose}.</span><Button size="sm" onClick={() => setOpen(true)}>Разобрать</Button></div>
+    <div className="campaign-workspace__recovery" role="status"><Icon name="git-merge" size={18} /><span><strong>Правки объединены.</strong> Вы и {them.who} изменили одно и то же — {count} {plural(count, 'место', 'места', 'мест')}. Сейчас на экране версия {them.whose}.</span><Button size="sm" onClick={() => setOpen(true)}>Разобрать</Button></div>
     {open && <ConflictDialog campaign={campaign} conflicts={conflicts} them={them} resolve={(mine) => { setOpen(false); resolve(mine) }} close={() => setOpen(false)} />}
   </>
 }

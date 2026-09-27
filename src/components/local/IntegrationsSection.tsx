@@ -3,14 +3,18 @@ import { Link } from 'react-router-dom'
 import { Badge, Button, Icon } from '../../ds'
 import type { CapabilityPassport, ExternalSystem } from '../../model/external'
 import { useActing } from '../../local/actingContext'
-import { ROLE_HINT, ROLE_LABEL, ROLE_SYSTEMS, SYSTEM_LABEL, WRITABLE_ROLES, linkedRole, roleConnection, rulesFor, withLink, linkOf, type BaseOption, type CampaignRole, type WritableRole } from '../../local/integration'
-import type { LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
+import { ROLE_HINT, ROLE_LABEL, ROLE_SYSTEMS, SYSTEM_IN, SYSTEM_LABEL, WRITABLE_ROLES, checkedLink, linkedRole, queuedFor, roleConnection, rulesFor, withLink, linkOf, type BaseOption, type CampaignRole, type WritableRole } from '../../local/integration'
+import { plural } from '../../local/labels'
+import type { CampaignLink, LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
 import { useBaseOptions, useExternal } from '../../local/useExternal'
 import { useConfirm } from '../useConfirm'
 import { ENTITY_TYPES, Editor, type Persist, type SectionProps } from './shared'
 
 const ROLES: CampaignRole[] = ['world', 'table', 'system']
 const date = (value?: string) => value ? new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
+const errorText = (error: unknown) => error instanceof Error ? error.message : 'Не отвечает'
+/** «2 элемента очереди туда будут заблокированы», or nothing when the queue has none for that place. */
+const blockedNote = (count: number) => count ? ` ${count} ${plural(count, 'элемент', 'элемента', 'элементов')} очереди туда ${plural(count, 'будет заблокирован', 'будут заблокированы', 'будут заблокированы')}.` : ''
 
 /**
  * Интеграции (ТЗ-2, R10): the campaign's world, table and system. Linked ones
@@ -20,13 +24,24 @@ const date = (value?: string) => value ? new Date(value).toLocaleString('ru-RU',
 export function IntegrationsSection({ campaign, persist }: SectionProps) {
   const acting = useActing(campaign)
   const confirm = useConfirm()
+  const port = useExternal()
   const [wizard, setWizard] = useState<CampaignRole | null>(null)
+  const [checking, setChecking] = useState<CampaignRole | null>(null)
+  const recheck = async (role: CampaignRole) => {
+    const linked = linkedRole(campaign, role)
+    if (!linked) return
+    setChecking(role)
+    let error: string | undefined
+    try { await port.getPassport(roleConnection(linked.system, linked.link)) } catch (reason) { error = errorText(reason) }
+    setChecking(null)
+    persist({ ...campaign, integrations: { ...campaign.integrations, [linked.system]: checkedLink(linked.link, new Date().toISOString(), error) } })
+  }
   const unlink = (role: CampaignRole) => {
     const linked = linkedRole(campaign, role)
     if (!linked) return
     confirm({
       title: `Отвязать ${SYSTEM_LABEL[linked.system]} «${linked.link.label}»?`,
-      message: 'Сущности останутся в библиотеке со ссылками на записи там. Новые отправки туда прекратятся, пока вы не подключите снова.',
+      message: `Сущности останутся в библиотеке со ссылками на записи там. Новые отправки туда прекратятся, пока вы не подключите снова.${blockedNote(queuedFor(campaign, roleConnection(linked.system, linked.link)))}`,
       confirmLabel: 'Отвязать', cancelLabel: 'Отмена', tone: 'danger',
       onConfirm: () => persist(withLink(campaign, linked.system, null)),
     })
@@ -39,8 +54,14 @@ export function IntegrationsSection({ campaign, persist }: SectionProps) {
         <header><strong>{ROLE_LABEL[role]}</strong><small>{ROLE_SYSTEMS[role].map((system) => SYSTEM_LABEL[system]).join(' · ')}</small></header>
         {linked ? <>
           <p className="integration-card__state"><Icon name="check" size={16} /> {SYSTEM_LABEL[linked.system]} · {linked.link.url ? <a href={linked.link.url} target="_blank" rel="noreferrer">{linked.link.label}</a> : linked.link.label}</p>
-          <small className="muted">{linked.link.checkedAt ? `Связь проверена ${date(linked.link.checkedAt)}` : 'Связь ещё не проверялась'}</small>
-          {acting.canManage && <footer><Button size="sm" icon="refresh-cw" onClick={() => setWizard(role)}>Сменить</Button><Button size="sm" tone="danger" icon="unlink" onClick={() => unlink(role)}>Отвязать</Button></footer>}
+          <CheckState link={linked.link} checking={checking === role} />
+          {acting.canManage && (
+            <footer>
+              <Button size="sm" icon="check" disabled={checking !== null} onClick={() => void recheck(role)}>Проверить</Button>
+              <Button size="sm" icon="refresh-cw" onClick={() => setWizard(role)}>Сменить</Button>
+              <Button size="sm" tone="danger" icon="unlink" onClick={() => unlink(role)}>Отвязать</Button>
+            </footer>
+          )}
         </> : <>
           <p className="muted">{ROLE_HINT[role]}</p>
           {acting.canManage ? <footer><Button size="sm" variant="primary" icon="plug" onClick={() => setWizard(role)}>Подключить</Button></footer> : <small className="muted">Не подключено</small>}
@@ -51,6 +72,19 @@ export function IntegrationsSection({ campaign, persist }: SectionProps) {
     <p className="muted integrations-section__next">Отправка — в разделе <Link to={`/local/campaign/${campaign.id}/publish`}>«Публикация»</Link>; забрать записи — в <Link to={`/local/campaign/${campaign.id}/library?import=1`}>«Библиотеке» → «Из источника»</Link>.</p>
     {wizard && <ConnectWizard campaign={campaign} persist={persist} role={wizard} close={() => setWizard(null)} />}
   </section>
+}
+
+/** The last connection check of a link: passed, failed with the reason, or never made. */
+function CheckState({ link, checking }: { link: CampaignLink; checking: boolean }) {
+  if (checking) return <small className="muted" role="status">Проверяем связь…</small>
+  if (link.checkError) {
+    return (
+      <small className="local-session-error">
+        Проверка не прошла{link.checkedAt ? ` ${date(link.checkedAt)}` : ''}: {link.checkError}
+      </small>
+    )
+  }
+  return <small className="muted">{link.checkedAt ? `Связь проверена ${date(link.checkedAt)}` : 'Связь ещё не проверялась'}</small>
 }
 
 /** Where each type goes by default (R3). A role the campaign has not linked is shown but inactive. */
@@ -93,15 +127,19 @@ function ConnectWizard({ campaign, persist, role, close }: { campaign: LocalCamp
     if (step !== 3 || !connectionId) return
     let alive = true
     setCheck({ status: 'checking' })
-    port.getPassport(connectionId).then((passport) => { if (alive) setCheck({ status: 'ok', passport }) }, (error: unknown) => { if (alive) setCheck({ status: 'failed', message: error instanceof Error ? error.message : 'Не отвечает' }) })
+    port.getPassport(connectionId).then((passport) => { if (alive) setCheck({ status: 'ok', passport }) }, (error: unknown) => { if (alive) setCheck({ status: 'failed', message: errorText(error) }) })
     return () => { alive = false }
   }, [port, step, connectionId])
   const finish = () => {
     if (!choice) return
-    const linked = withLink({ ...campaign, publishRules: draft.publishRules }, choice.system, linkOf(choice, check.status === 'ok' ? new Date().toISOString() : undefined))
+    const at = new Date().toISOString()
+    const result = check.status === 'ok' ? { at } : check.status === 'failed' ? { at, error: check.message } : undefined
+    const linked = withLink({ ...campaign, publishRules: draft.publishRules }, choice.system, linkOf(choice, result))
     persist(linked)
     close()
   }
+  // Linking another table, or another record of the same system, unlinks the current one.
+  const replacing = current && (system !== current.system || (choice !== null && choice.externalId !== current.link.externalId)) ? current : null
   const steps = ROLE_SYSTEMS[role].length > 1 ? ['Система', 'Запись', 'Проверка', 'Правила'] : ['', 'Запись', 'Проверка', 'Правила']
   const last = role === 'system' ? 3 : 4
   return <Editor kicker={`Подключение · ${ROLE_LABEL[role]}`} title={role === 'table' ? 'Стол кампании' : role === 'world' ? 'Мир кампании' : 'Игровая система'} close={close}>
@@ -110,14 +148,20 @@ function ConnectWizard({ campaign, persist, role, close }: { campaign: LocalCamp
     {step === 2 && <>
       {base.status === 'loading' && <p className="muted" role="status">Узнаём, что вам доступно…</p>}
       {(base.status === 'unconfigured' || base.status === 'error') && <p className="local-session-error" role="alert">{base.status === 'unconfigured' ? 'Связь с внешними системами ещё не настроена на сервере Мастерборда.' : base.message}</p>}
-      {base.status === 'ready' && (options.length ? <fieldset className="wizard-choice"><legend>{role === 'world' ? 'Мир Лорбука' : role === 'table' ? `Кампания ${SYSTEM_LABEL[system]}` : 'Система SystemSetup'}</legend>{options.map((item) => <label key={item.externalId}><input type="radio" name="wizard-record" checked={choice?.externalId === item.externalId} onChange={() => setChoice(item)} /><span><strong>{item.label}</strong>{current?.link.externalId === item.externalId && <Badge size="sm" tone="accent">сейчас</Badge>}</span></label>)}</fieldset> : <p className="muted">В {SYSTEM_LABEL[system]} вам пока ничего не доступно. Нужна запись, где вы мастер или автор.</p>)}
+      {base.status === 'ready' && (options.length ? <fieldset className="wizard-choice"><legend>{role === 'world' ? 'Мир Лорбука' : role === 'table' ? `Кампания ${SYSTEM_LABEL[system]}` : 'Система SystemSetup'}</legend>{options.map((item) => <label key={item.externalId}><input type="radio" name="wizard-record" checked={choice?.externalId === item.externalId} onChange={() => setChoice(item)} /><span><strong>{item.label}</strong>{current?.link.externalId === item.externalId && <Badge size="sm" tone="accent">сейчас</Badge>}</span></label>)}</fieldset> : <p className="muted">Вам пока ничего не доступно {SYSTEM_IN[system]}. Нужна запись, где вы мастер или автор.</p>)}
     </>}
     {step === 3 && <div className="wizard-check" role="status">
-      {check.status === 'checking' && <p className="muted">Проверяем связь с {SYSTEM_LABEL[system]}…</p>}
+      {check.status === 'checking' && <p className="muted">Проверяем, отвечает ли {SYSTEM_LABEL[system]}…</p>}
       {check.status === 'ok' && <><p className="integration-card__state"><Icon name="check" size={16} /> {SYSTEM_LABEL[system]} отвечает, «{choice?.label}» доступен.</p><p className="muted">Принимает: {check.passport.entities.filter((item) => item.enabled).map((item) => `${item.label}${item.operations.some((op) => op !== 'read') ? '' : ' (только чтение)'}`).join(', ') || 'ничего'}.</p></>}
       {check.status === 'failed' && <p className="local-session-error">Связь не проверена: {check.message}. Подключить можно, отправка заработает, когда система ответит.</p>}
     </div>}
     {step === 4 && <RulesTable campaign={draft} persist={setDraft} editable only={role} />}
+    {replacing && (
+      <p className="local-session-error" role="note">
+        {SYSTEM_LABEL[replacing.system]} «{replacing.link.label}» будет отвязан.
+        {blockedNote(queuedFor(campaign, roleConnection(replacing.system, replacing.link)))}
+      </p>
+    )}
     <footer>
       {step > (ROLE_SYSTEMS[role].length > 1 ? 1 : 2) && <Button onClick={() => setStep(step - 1)}>Назад</Button>}
       <Button onClick={close}>Отмена</Button>

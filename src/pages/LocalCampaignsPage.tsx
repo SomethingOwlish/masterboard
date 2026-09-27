@@ -11,13 +11,9 @@ import { useConfirm } from '../components/useConfirm'
 import { liveSessions } from '../local/sessions'
 import { BaseChooser } from '../components/local/BaseChooser'
 import { baseIntegrations, baseName, type BaseChoice } from '../local/integration'
+import { plural } from '../local/labels'
 
-const sessionsLabel = (count: number) => {
-  if (!count) return 'Без сессий'
-  const mod10 = count % 10, mod100 = count % 100
-  const word = mod10 === 1 && mod100 !== 11 ? 'сессия' : mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14) ? 'сессии' : 'сессий'
-  return `${count} ${word}`
-}
+const sessionsLabel = (count: number) => count ? `${count} ${plural(count, 'сессия', 'сессии', 'сессий')}` : 'Без сессий'
 
 export function LocalCampaignsPage() {
   const catalog = useLocalCatalog()

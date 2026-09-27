@@ -65,8 +65,10 @@ export interface CampaignLink {
   url?: string
   /** Connection the record lives in when it differs from `externalId` (a SystemSetup system inside `packs`). */
   connectionId?: string
-  /** When the link was checked against the passport in the connection wizard. */
+  /** When the link was last checked against the passport (in the wizard or on the card). */
   checkedAt?: string
+  /** Why that check failed; absent when it passed. */
+  checkError?: string
 }
 
 export interface LocalEntityOrigin {

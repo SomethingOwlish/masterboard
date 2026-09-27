@@ -3,7 +3,20 @@ import { Button } from '../../ds'
 import { applySessionImport, type SessionImportResult } from '../../local/sessionImport'
 import type { LocalCampaignRecord } from '../../local/types'
 import { logImport } from '../../local/imports'
+import { plural } from '../../local/labels'
 import { SessionModal, type Persist } from './shared'
+
+/** «2 сцены · 5 пунктов плана · 1 переход» for a session about to be imported. */
+function importCounts(session: { planItems: Array<{ kind: string }>; flows: unknown[] }): string {
+  const scenes = session.planItems.filter((item) => item.kind === 'scene').length
+  const items = session.planItems.length
+  const flows = session.flows.length
+  return [
+    `${scenes} ${plural(scenes, 'сцена', 'сцены', 'сцен')}`,
+    `${items} ${plural(items, 'пункт', 'пункта', 'пунктов')} плана`,
+    `${flows} ${plural(flows, 'переход', 'перехода', 'переходов')}`,
+  ].join(' · ')
+}
 
 const RECORD_LABEL = { npc: 'NPC', material: 'Материал', secret: 'Секрет' } as const
 
@@ -15,5 +28,5 @@ export function SessionImportDialog({ campaign, persist, pending, close }: { cam
     persist(logImport(applySessionImport(campaign, pending, createRecords), 'Файл сессий', 'sessions', pending.sessions.length, new Date().toISOString()))
     close(pending.sessions[0].id)
   }
-  return <SessionModal title="Импорт сессий" close={() => close()}>{'error' in pending ? <p className="session-plan__notice" role="alert">{pending.error}</p> : <div className="sessions-import-preview"><p>Будут созданы черновики:</p><ul>{pending.sessions.map((session) => <li key={session.id}><strong>№{session.number} {session.title}</strong> <small>{session.planItems.filter((item) => item.kind === 'scene').length} сцен · {session.planItems.length} пунктов плана · {session.flows.length} переходов</small></li>)}</ul>{pending.newRecords.length > 0 && <fieldset className="sessions-import-preview__records"><legend>Новые записи · {pending.newRecords.length}</legend><label><input type="checkbox" checked={createRecords} onChange={(event) => setCreateRecords(event.target.checked)} /> Создать в библиотеке и секретах</label><ul>{pending.newRecords.map((record) => <li key={`${record.kind}-${record.name}`}><small>{RECORD_LABEL[record.kind]}</small> {record.name}</li>)}</ul>{!createRecords && <p className="muted">Останутся текстом в плане — перенести можно потом кнопкой «В библиотеку».</p>}</fieldset>}{pending.warnings.length > 0 && <details open><summary>Замечания · {pending.warnings.length}</summary><ul>{pending.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>}</div>}<footer><Button onClick={() => close()}>{'error' in pending ? 'Закрыть' : 'Отмена'}</Button>{!('error' in pending) && <Button variant="primary" icon="upload" onClick={confirmImport}>Импортировать · {pending.sessions.length}</Button>}</footer></SessionModal>
+  return <SessionModal title="Импорт сессий" close={() => close()}>{'error' in pending ? <p className="session-plan__notice" role="alert">{pending.error}</p> : <div className="sessions-import-preview"><p>Будут созданы черновики:</p><ul>{pending.sessions.map((session) => <li key={session.id}><strong>№{session.number} {session.title}</strong> <small>{importCounts(session)}</small></li>)}</ul>{pending.newRecords.length > 0 && <fieldset className="sessions-import-preview__records"><legend>Новые записи · {pending.newRecords.length}</legend><label><input type="checkbox" checked={createRecords} onChange={(event) => setCreateRecords(event.target.checked)} /> Создать в библиотеке и секретах</label><ul>{pending.newRecords.map((record) => <li key={`${record.kind}-${record.name}`}><small>{RECORD_LABEL[record.kind]}</small> {record.name}</li>)}</ul>{!createRecords && <p className="muted">Останутся текстом в плане — перенести можно потом кнопкой «В библиотеку».</p>}</fieldset>}{pending.warnings.length > 0 && <details open><summary>Замечания · {pending.warnings.length}</summary><ul>{pending.warnings.map((warning, index) => <li key={index}>{warning}</li>)}</ul></details>}</div>}<footer><Button onClick={() => close()}>{'error' in pending ? 'Закрыть' : 'Отмена'}</Button>{!('error' in pending) && <Button variant="primary" icon="upload" onClick={confirmImport}>Импортировать · {pending.sessions.length}</Button>}</footer></SessionModal>
 }

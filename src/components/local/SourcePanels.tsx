@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Badge, Button, Icon, Select } from '../../ds'
-import { REMOVED_HINT, ROLE_LABEL, SYSTEM_LABEL, connectionKey, linkedRole, parseConnectionKey, roleConnection, statusBadge, type CampaignRole, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
+import { REMOVED_HINT, ROLE_LABEL, SYSTEM_IN, SYSTEM_LABEL, connectionKey, linkedRole, parseConnectionKey, roleConnection, statusBadge, type CampaignRole, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord } from '../../local/types'
 import { useConnections, useExternal } from '../../local/useExternal'
 import { logImport } from '../../local/imports'
@@ -10,11 +10,11 @@ const ROLES: CampaignRole[] = ['world', 'table', 'system']
 const date = (value: string) => value ? new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
 const show = (value: unknown) => Array.isArray(value) ? value.map((tag) => `#${tag}`).join(' ') || '—' : value === 'public' ? 'Для игроков' : value === 'master' ? 'Только ведущим' : String(value ?? '') || '—'
 
-/** «Из Системсетапа» and a status worth a glance («К удалению» loudest), for a record or a link to it. */
+/** «Из SystemSetup» and a status worth a glance («К удалению» loudest), for a record or a link to it. */
 function SourceMarks({ status, fromSystemsetup }: { status?: string; fromSystemsetup: boolean }) {
   const badge = statusBadge(status)
   return <>
-    {fromSystemsetup && <Badge size="sm" tone="neutral" icon="book-open">Из Системсетапа</Badge>}
+    {fromSystemsetup && <Badge size="sm" tone="neutral" icon="book-open">Из SystemSetup</Badge>}
     {badge && <Badge size="sm" tone={badge.tone} title={status === 'removed' ? REMOVED_HINT : undefined}>{badge.label}</Badge>}
   </>
 }
@@ -79,12 +79,12 @@ function ClashDialog({ plan, source, apply, close }: { plan: RefreshPlan; source
   const [choices, setChoices] = useState<Record<string, 'mine' | 'theirs'>>({})
   const there = SYSTEM_LABEL[source.system]
   return <Editor kicker="Обновление из источника" title="Изменено с обеих сторон" close={close}>
-    <p className="muted">Эти поля поменяли и здесь, и в {there === 'Лорбук' ? 'Лорбуке' : there}. Выберите, что оставить. {plan.changed.length ? `Остальное (${plan.changed.join(', ').toLocaleLowerCase()}) обновится из источника.` : ''}</p>
+    <p className="muted">Эти поля поменяли и здесь, и {SYSTEM_IN[source.system]}. Выберите, что оставить. {plan.changed.length ? `Остальное (${plan.changed.join(', ').toLocaleLowerCase()}) обновится из источника.` : ''}</p>
     {plan.clashes.map((clash) => <fieldset key={clash.key} className="source-clash"><legend>{clash.label}</legend>
       <label><input type="radio" name={clash.key} checked={choices[clash.key] === 'mine'} onChange={() => setChoices({ ...choices, [clash.key]: 'mine' })} /><span><small>Мастерборд</small>{show(clash.mine)}</span></label>
       <label><input type="radio" name={clash.key} checked={(choices[clash.key] ?? 'theirs') === 'theirs'} onChange={() => setChoices({ ...choices, [clash.key]: 'theirs' })} /><span><small>{there}</small>{show(clash.theirs)}</span></label>
     </fieldset>)}
-    <p className="muted source-clash__note">Выбранное «Мастерборд» уйдёт в {there === 'Лорбук' ? 'Лорбук' : there} со следующей публикацией.</p>
+    <p className="muted source-clash__note">Выбранное «Мастерборд» уйдёт в {there} со следующей публикацией.</p>
     <footer><Button onClick={close}>Отмена</Button><Button variant="primary" icon="check" onClick={() => { apply(resolveRefresh(plan, choices)); close() }}>Применить</Button></footer>
   </Editor>
 }
@@ -104,8 +104,8 @@ export function SourceLinks({ campaign, entity, persist }: { campaign: LocalCamp
       const item = items.find((candidate) => candidate.id === source.id)
       if (!item) {
         setNote(ids.includes(source.id)
-          ? `В ${SYSTEM_LABEL[source.system]} запись есть, но прочитать её вам сейчас нельзя.`
-          : `В ${SYSTEM_LABEL[source.system]} этой записи больше нет.`)
+          ? `Запись есть ${SYSTEM_IN[source.system]}, но прочитать её вам сейчас нельзя.`
+          : `Этой записи больше нет ${SYSTEM_IN[source.system]}.`)
         return
       }
       const plan = planRefresh(entity, source, item, new Date().toISOString())
