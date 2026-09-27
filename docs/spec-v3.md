@@ -447,9 +447,10 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
   (раньше редактор, открытый из Peek, частично оказывался под панелью). Поиск Ctrl+K остался своей раскладкой
   (палитра, не форма), но с `role="combobox"`, ловушкой Tab и возвратом фокуса. Фокус в окнах подтверждения — на
   безопасной кнопке («Отмена», «Продолжить правку»).
-- **Этап 0 → dev:** `npm run build` (`tsc -b` по `tsconfig.node.json`) пишет `vite.config.js` рядом с `vite.config.ts`;
-  Vite берёт `.js` первым, и после правки `.ts` работает устаревший конфиг (так в этом worktree пропал прокси `/api` и
-  `__BUILD_HASH__`). Нужен `outDir`/`emitDeclarationOnly` в `tsconfig.node.json` или удаление `.js` в скрипте.
+- ✅ **Этап 0 → dev:** `npm run build` (`tsc -b` по `tsconfig.node.json`) писал `vite.config.js` рядом с `vite.config.ts`;
+  Vite берёт `.js` первым, и после правки `.ts` работал устаревший конфиг (пропадали прокси `/api` и
+  `__BUILD_HASH__`). Исправлено: в `tsconfig.node.json` — `emitDeclarationOnly` и `outDir`/`tsBuildInfoFile` в
+  `node_modules/.tmp/tsconfig.node`. В старых worktree один раз удалить `vite.config.js` и `vite.config.d.ts` руками.
 
 ## Журнал
 
