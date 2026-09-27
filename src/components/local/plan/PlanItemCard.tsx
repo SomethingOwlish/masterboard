@@ -23,7 +23,7 @@ export function PlanItemCard({ api, item, onDropBefore }: { api: PlanApi; item: 
     </div>
     <div className="session-plan__item-controls">
       <Select aria-label={`Статус ${title}`} value={item.status} onChange={(event) => api.setStatus(item.id, event.target.value as LocalSessionPlanItem['status'])}>{USE_STATUS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select>
-      <div className="row"><Button size="sm" aria-label={`Выше: ${title}`} onClick={() => api.shift(item.id, -1)}>↑</Button><Button size="sm" aria-label={`Ниже: ${title}`} onClick={() => api.shift(item.id, 1)}>↓</Button>{item.source === 'text' && !item.secretId && <Button size="sm" icon={item.kind === 'secret' ? 'shield' : 'library'} onClick={() => api.saveToLibrary(item)}>{item.kind === 'secret' ? 'В секреты' : 'В библиотеку'}</Button>}<Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать ${title} из сессии`} onClick={() => api.remove(item.id)} /></div>
+      <div className="row"><Button size="sm" icon="pencil" aria-label={`Редактировать: ${title}`} title="Редактировать" onClick={() => api.editItem(item.id)} /><Button size="sm" aria-label={`Выше: ${title}`} onClick={() => api.shift(item.id, -1)}>↑</Button><Button size="sm" aria-label={`Ниже: ${title}`} onClick={() => api.shift(item.id, 1)}>↓</Button>{item.source === 'text' && !item.secretId && <Button size="sm" icon={item.kind === 'secret' ? 'shield' : 'library'} onClick={() => api.saveToLibrary(item)}>{item.kind === 'secret' ? 'В секреты' : 'В библиотеку'}</Button>}<Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать ${title} из сессии`} onClick={() => api.remove(item.id)} /></div>
     </div>
   </article>
 }

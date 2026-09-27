@@ -32,6 +32,7 @@ export default function PlanGraph({ api }: { api: PlanApi }) {
       fitView
       onConnect={(connection: Connection) => { if (connection.source && connection.target) api.update(addFlow(session, connection.source, connection.target, '')) }}
       onEdgesDelete={(deleted) => api.update({ ...session, flows: session.flows.filter((flow) => !deleted.some((edge) => edge.id === flow.id)) })}
+      onNodeDoubleClick={(_, node) => api.editItem(node.id)}
       onNodeDragStop={(_, node) => api.update({ ...session, planLayout: { ...session.planLayout, [node.id]: { x: Math.round(node.position.x), y: Math.round(node.position.y) } } })}
       proOptions={{ hideAttribution: true }}
     >

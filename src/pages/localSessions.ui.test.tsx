@@ -46,6 +46,39 @@ describe('session lifecycle', () => {
     await waitFor(async () => expect((await catalog.find(id))?.sessionRecords[1].planItems.map((item) => item.text)).toEqual(['Пристань', 'Туман']))
   })
 
+  it('files new NPCs from an import into the library and lets scenes and items be edited', async () => {
+    const user = userEvent.setup()
+    const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Первая ночь')], activeSessionId: 's1' })
+    renderApp(`/local/campaign/${id}/session`, catalog)
+    const json = JSON.stringify({ sessions: [{ title: 'Прилив', scenes: [{ title: 'Пристань', items: [{ kind: 'npc', text: 'Мирта' }, 'Туман'] }] }] })
+    const file = Object.assign(new File([json], 'sessions.json', { type: 'application/json' }), { text: async () => json })
+    await user.upload(await screen.findByLabelText('Файл сессий для импорта'), file)
+    const dialog = await screen.findByRole('dialog', { name: 'Импорт сессий' })
+    expect(within(dialog).getByRole('checkbox', { name: 'Создать в библиотеке и секретах' })).toBeChecked()
+    expect(within(dialog).getByText('Мирта')).toBeInTheDocument()
+    await user.click(within(dialog).getByRole('button', { name: /Импортировать · 1/ }))
+    await waitFor(async () => expect((await catalog.find(id))?.entities.map((entity) => entity.name)).toContain('Мирта'))
+    expect(within(await screen.findByRole('article', { name: 'Пункт плана: Мирта' })).getByText('Библиотека')).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Редактировать: Пристань' }))
+    const editor = await screen.findByRole('dialog', { name: 'Сцена' })
+    await user.clear(within(editor).getByLabelText('Название'))
+    await user.type(within(editor).getByLabelText('Название'), 'Причал')
+    await user.type(within(editor).getByLabelText('Комментарий к сцене'), 'Туман густеет')
+    await user.click(within(editor).getByRole('button', { name: 'Сохранить' }))
+    expect(await screen.findByRole('region', { name: 'Сцена: Причал' })).toBeInTheDocument()
+
+    await user.click(screen.getByRole('button', { name: 'Редактировать: Туман' }))
+    const item = await screen.findByRole('dialog', { name: 'Пункт плана' })
+    await user.selectOptions(within(item).getByLabelText('Сцена'), '')
+    await user.click(within(item).getByRole('button', { name: 'Сохранить' }))
+    await waitFor(async () => {
+      const saved = (await catalog.find(id))?.sessionRecords[1].planItems
+      expect(saved?.find((entry) => entry.kind === 'scene')).toMatchObject({ text: 'Причал', note: 'Туман густеет' })
+      expect(saved?.find((entry) => entry.text === 'Туман')?.sceneId).toBeUndefined()
+    })
+  })
+
   it('blocks starting a second game and trashing a running one', async () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Идёт', { status: 'active' }), session('s2', 2, 'Следующая', { status: 'ready' })], activeSessionId: 's1' })

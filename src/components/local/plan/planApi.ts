@@ -36,4 +36,6 @@ export interface PlanApi {
   openPicker: (target: PlanTarget) => void
   /** Opens the library editor for a record used in the plan. */
   editEntity: (entityId: string) => void
+  /** Opens the editor of a plan item or scene: title, type, priority, notes, links. */
+  editItem: (itemId: string) => void
 }

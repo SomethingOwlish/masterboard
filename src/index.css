@@ -1654,6 +1654,14 @@ kbd {
 .sessions-import-preview ul { display: grid; gap: var(--space-2); margin: var(--space-2) 0; padding-left: var(--space-4); }
 .sessions-import-preview small, .sessions-import-preview details { color: var(--muted); font-size: .88rem; }
 .sessions-import-preview summary { cursor: pointer; }
+.sessions-import-preview__records { border: 1px solid var(--border); border-radius: var(--radius); padding: var(--space-2) var(--space-3); margin: var(--space-3) 0; }
+.sessions-import-preview__records legend { font-weight: 700; padding: 0 var(--space-1); }
+.sessions-import-preview__records label { display: flex; gap: var(--space-2); align-items: center; font-weight: 600; }
+.sessions-import-preview__records small { display: inline-block; min-width: 5.5em; }
+.plan-item-editor__linked { display: grid; gap: var(--space-1); }
+.plan-item-editor__linked small { color: var(--muted); font-weight: 400; }
+.plan-item-editor > .btn, .plan-item-editor > button { justify-self: start; }
+.lazy-boundary p { margin: 0 0 var(--space-2); }
 .campaign-local-library__usages { font-size: .85rem; color: var(--muted); }
 .campaign-local-library__usages summary { cursor: pointer; }
 .campaign-local-library__usages ul { display: grid; gap: 4px; margin: var(--space-2) 0 0; padding-left: var(--space-4); }
