@@ -163,7 +163,11 @@ export interface LocalSessionLogEntry {
   clockId?: string
   secretId?: string
   entityId?: string
+  /** Where the master already sent this entry from the live panel. */
+  sentTo?: LocalLogTarget
 }
+
+export type LocalLogTarget = 'task' | 'inbox' | 'library'
 
 export interface LocalSessionFlow {
   id: string
@@ -189,6 +193,8 @@ export interface LocalSessionPlanItem {
   origin: 'prepared' | 'live' | 'review'
   /** Session the item was carried over from during a review. */
   carriedFromSessionId?: string
+  /** The plan item it was copied from, so a changed review decision can take the copy back. */
+  carriedFromItemId?: string
   /** Scene (another plan item of kind `scene`) this item belongs to on the scene board. */
   sceneId?: string
 }

@@ -34,7 +34,7 @@ export interface Kk9SessionBody {
   nextSession?: string
 }
 
-export type Kk9Part = { ok: true; id?: string; stream?: Kk9Stream; fingerprint?: number; value?: string } | { ok: false; status: number; error: string; current?: { title: string; body: string } }
+export type Kk9Part = { ok: true; id?: string; stream?: Kk9Stream; fingerprint?: number; value?: string } | { ok: false; status: number; error: string; current?: { title: string; body: string; fingerprint?: number } }
 export interface Kk9SessionResult { journal?: Kk9Part; nextSession?: Kk9Part }
 
 export const TENSION_ZONE: Record<string, string> = { green: 'спокойно', yellow: 'нарастает', red: 'на пределе', exhausted: 'истощение' }

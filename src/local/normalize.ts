@@ -40,6 +40,7 @@ function normalizePlanItem(raw: unknown): LocalSessionPlanItem | null {
     note: text(raw.note),
     origin: oneOf(raw.origin, ['prepared', 'live', 'review'] as const, 'prepared'),
     carriedFromSessionId: typeof raw.carriedFromSessionId === 'string' ? raw.carriedFromSessionId : undefined,
+    carriedFromItemId: typeof raw.carriedFromItemId === 'string' ? raw.carriedFromItemId : undefined,
     sceneId: typeof raw.sceneId === 'string' ? raw.sceneId : undefined,
   }
 }
@@ -127,7 +128,8 @@ function legacySessions(raw: Raw, fallbackDate: string, team: TeamContext): Loca
 }
 
 function normalizeLogEntry(entry: LocalSessionLogEntry): LocalSessionLogEntry {
-  return { ...entry, kind: oneOf(entry.kind, ['moment', 'decision', 'reveal', 'roll', 'clock', 'entity'] as const, 'moment') }
+  const { sentTo, ...rest } = entry
+  return { ...rest, kind: oneOf(entry.kind, ['moment', 'decision', 'reveal', 'roll', 'clock', 'entity'] as const, 'moment'), ...(sentTo === 'task' || sentTo === 'inbox' || sentTo === 'library' ? { sentTo } : {}) }
 }
 
 function normalizeEntity(raw: Raw): LocalCampaignEntity {

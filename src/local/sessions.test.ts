@@ -31,8 +31,10 @@ describe('duplicating a session', () => {
   it('remaps scenes, arrows and graph positions while clearing play history', () => {
     const original = session('a', 1, {
       status: 'completed', date: '2026-10-01', reviewStatus: 'completed', reviewNotes: 'Итоги', reviewDecisions: { x: 'carry' },
+      nextGame: { date: '2026-10-08', time: '19:00' },
+      kk9Sent: { stream: 'campaign', pageId: 'p1', fingerprint: 42, sentAt: NOW },
       log: [{ id: 'log', text: 'Сыграно', kind: 'moment', createdAt: NOW }],
-      planItems: [item('scene-1'), item('npc', { kind: 'npc', sceneId: 'scene-1', status: 'used', carriedFromSessionId: 'old' }), item('scene-2')],
+      planItems: [item('scene-1'), item('npc', { kind: 'npc', sceneId: 'scene-1', status: 'used', carriedFromSessionId: 'old', carriedFromItemId: 'old-npc' }), item('scene-2')],
       flows: [{ id: 'f', fromItemId: 'scene-1', toItemId: 'scene-2', condition: 'если сбегут' }],
       planLayout: { 'scene-1': { x: 7, y: 9 } },
     })
@@ -44,6 +46,10 @@ describe('duplicating a session', () => {
     expect(scene1.id).not.toBe('scene-1')
     expect(npc).toMatchObject({ sceneId: scene1.id, status: 'prepared' })
     expect(npc.carriedFromSessionId).toBeUndefined()
+    expect(npc.carriedFromItemId).toBeUndefined()
+    // The copy has not been played: no next game of its own and nothing sent to КК9.
+    expect(copy.nextGame).toBeUndefined()
+    expect(copy.kk9Sent).toBeUndefined()
     expect(copy.flows).toEqual([expect.objectContaining({ fromItemId: scene1.id, toItemId: scene2.id, condition: 'если сбегут' })])
     expect(copy.flows[0].id).not.toBe('f')
     expect(copy.planLayout).toEqual({ [scene1.id]: { x: 7, y: 9 } })

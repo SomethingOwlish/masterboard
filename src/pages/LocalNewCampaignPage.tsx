@@ -50,7 +50,7 @@ export function LocalNewCampaignPage() {
   const Section = SECTIONS[section]
   return <ActingProvider key={campaign.id} campaign={campaign}><PeekProvider campaign={campaign} persist={persist}>
     {section === 'session' || section === 'play' || section === 'review'
-      ? <>{banner}<LocalSessionsWorkspace campaign={campaign} persist={persist} mode={section === 'play' ? 'play' : section === 'review' ? 'review' : 'plan'} /></>
+      ? <>{banner}<LocalSessionsWorkspace key={section} campaign={campaign} persist={persist} mode={section === 'play' ? 'play' : section === 'review' ? 'review' : 'plan'} /></>
       : <main className="target-dashboard created-dashboard">
         <CampaignHeader campaign={campaign} section={section} />
         {banner}

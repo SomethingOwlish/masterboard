@@ -78,7 +78,7 @@ export function Kk9SendPanel({ campaign, session, persist, itemTitle, canSend, h
   const [stream, setStream] = useState<Kk9Stream>(session.kk9Sent?.stream ?? 'campaign')
   const [busy, setBusy] = useState(false)
   const [note, setNote] = useState<string | null>(null)
-  const [clash, setClash] = useState<{ title: string; body: string } | null>(null)
+  const [clash, setClash] = useState<{ title: string; body: string; fingerprint?: number } | null>(null)
   if (!link) return null
   const page = kk9JournalPage(session, itemTitle)
   const next = session.nextGame ? nextSessionText(session.nextGame.date, session.nextGame.time) : ''
@@ -115,8 +115,15 @@ export function Kk9SendPanel({ campaign, session, persist, itemTitle, canSend, h
   }
   const keepTheirs = () => {
     // Оставить как в КК9: запомнить нынешнюю страницу своей, чтобы следующая отправка не спорила с ней.
+    // Отпечаток приходит в 409, только если мост его отдаёт (контракт, `current.fingerprint`).
+    const fingerprint = clash?.fingerprint
+    if (fingerprint !== undefined && session.kk9Sent) {
+      persist(withSession(campaign, { ...session, kk9Sent: { ...session.kk9Sent, stream, fingerprint } }))
+      setNote('Страница в КК9 оставлена как есть. Следующая отправка перепишет её без вопроса.')
+    } else {
+      setNote('Страница в КК9 оставлена как есть. Следующая отправка снова спросит, что оставить.')
+    }
     setClash(null)
-    setNote('Страница в КК9 оставлена как есть.')
   }
 
   return <section className="kk9-send" aria-label="Отправить в КК9">

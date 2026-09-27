@@ -25,18 +25,20 @@ interface Props {
 export function ReviewWizard({ campaign, session, persist, itemTitle, openSession, canComplete = true, completeHint }: Props) {
   const [step, setStep] = useState(0)
   const [reasons, setReasons] = useState<Record<string, string>>({})
-  const [target, setTarget] = useState<string>('new')
+  const drafts = liveSessions(campaign).filter((item) => item.id !== session.id && (item.status === 'draft' || item.status === 'ready'))
+  const [target, setTarget] = useState<string>(() => drafts.some((item) => item.id === session.nextSessionId) ? session.nextSessionId! : 'new')
   const [error, setError] = useState<string | null>(null)
   const update = (next: LocalSessionRecord) => persist(withSession(campaign, next))
   const items = reviewItems(session)
   const missing = missingDecisions(session)
   const carried = items.filter((item) => session.reviewDecisions[item.id] === 'carry' && session.appliedDecisions[item.id] !== 'carry')
-  const drafts = liveSessions(campaign).filter((item) => item.id !== session.id && (item.status === 'draft' || item.status === 'ready'))
+  // «Не создавать» нельзя, пока есть что переносить.
+  const chosenTarget = carried.length && target === 'none' ? 'new' : target
   const nextSession = campaign.sessionRecords.find((item) => item.id === session.nextSessionId)
   const defaultReason = `Итоги сессии №${session.number}`
 
   if (session.reviewStatus === 'completed') {
-    return <section className="session-review-panel" aria-label="Разбор сессии"><header><div><span className="panel-kicker">Разбор завершён</span><h2>Итоги сессии №{session.number}</h2></div><Button disabled={!canComplete} title={canComplete ? undefined : completeHint} onClick={() => { update({ ...session, reviewStatus: 'draft' }); setStep(0) }}>Открыть разбор заново</Button></header>
+    return <section className="session-review-panel" aria-label="Разбор сессии" tabIndex={-1}><header><div><span className="panel-kicker">Разбор завершён</span><h2>Итоги сессии №{session.number}</h2></div><Button disabled={!canComplete} title={canComplete ? undefined : completeHint} onClick={() => { update({ ...session, reviewStatus: 'draft' }); setStep(0) }}>Открыть разбор заново</Button></header>
       {session.reviewNotes && <p>{session.reviewNotes}</p>}
       <ul className="session-review-panel__summary">{items.map((item) => <li key={item.id}><strong>{itemTitle(item)}</strong> — {DECISION[session.reviewDecisions[item.id]]}</li>)}</ul>
       {nextSession && <Button variant="primary" onClick={() => openSession(nextSession.id)}>Открыть сессию №{nextSession.number}: {nextSession.title}</Button>}
@@ -47,7 +49,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
   const finish = () => {
     try {
       setError(null)
-      const next = completeReview(campaign, session.id, { target, now: new Date().toISOString() })
+      const next = completeReview(campaign, session.id, { target: chosenTarget, now: new Date().toISOString() })
       persist(next)
     } catch (failure) {
       setError(failure instanceof Error ? failure.message : 'Не удалось завершить разбор')
@@ -60,7 +62,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
   }
   const canNext = step !== 1 || missing.length === 0
 
-  return <section className="session-review-panel session-review-wizard" aria-label="Разбор сессии">
+  return <section className="session-review-panel session-review-wizard" aria-label="Разбор сессии" tabIndex={-1}>
     <header><div><span className="panel-kicker">Разбор сессии №{session.number} · шаг {step + 1} из {STEPS.length}</span><h2>{STEPS[step]}</h2></div></header>
     <ol className="session-review-wizard__steps">{STEPS.map((label, index) => <li key={label} className={index === step ? 'active' : index < step ? 'done' : ''}><button onClick={() => setStep(index)} disabled={index > 1 && missing.length > 0} aria-current={index === step ? 'step' : undefined}>{index + 1}. {label}</button></li>)}</ol>
 
@@ -89,12 +91,20 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
     {step === 4 && <div className="session-review-wizard__body">
       <fieldset className="session-review-wizard__next-game"><legend>Когда следующая игра</legend>
         <div className="row"><input type="date" aria-label="Дата следующей игры" value={session.nextGame?.date ?? ''} onChange={(e) => update({ ...session, nextGame: { date: e.target.value, time: session.nextGame?.time ?? '' } })} /><input aria-label="Время следующей игры" value={session.nextGame?.time ?? ''} placeholder="19:00" onChange={(e) => update({ ...session, nextGame: { date: session.nextGame?.date ?? '', time: e.target.value } })} /></div>
-        <small className="muted">Дата ляжет в следующую сессию{campaign.integrations.kk9 ? ' и уйдёт в КК9 вместе с итогами' : ''}.</small>
+        <small className="muted">
+          Дата ляжет в выбранную ниже сессию, если у неё ещё нет своей.
+          {campaign.integrations.kk9 ? ' Итоги и дату в КК9 можно отправить после завершения разбора.' : ''}
+        </small>
       </fieldset>
-      {carried.length ? <>
-        <p>Переносятся пункты: {carried.map(itemTitle).join(', ')}.</p>
-        <label htmlFor="review-target">Куда перенести<select id="review-target" value={target} onChange={(e) => setTarget(e.target.value)}><option value="new">Новая сессия №{nextSessionNumber(campaign)}</option>{drafts.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}</select></label>
-      </> : <p className="muted">Переносить нечего.</p>}
+      {carried.length > 0 && <p>Переносятся пункты: {carried.map(itemTitle).join(', ')}.</p>}
+      <label htmlFor="review-target">
+        {carried.length ? 'Куда перенести' : 'Следующая сессия'}
+        <select id="review-target" value={chosenTarget} onChange={(e) => setTarget(e.target.value)}>
+          <option value="new">Новая сессия №{nextSessionNumber(campaign)}</option>
+          {drafts.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}
+          {!carried.length && <option value="none">Пока не создавать</option>}
+        </select>
+      </label>
       {error && <p className="local-session-error">{error}</p>}
       <Button variant="primary" icon="check" disabled={missing.length > 0 || !canComplete} onClick={finish}>Завершить разбор</Button>{!canComplete && <p className="muted" role="note">{completeHint}</p>}
     </div>}
