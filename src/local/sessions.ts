@@ -78,6 +78,22 @@ export function restoreSession(campaign: LocalCampaignRecord, id: string): Local
   return replace(campaign, session, id)
 }
 
+/**
+ * Deletes trashed sessions for good. Secrets stop listing them; other records
+ * that mention a session (origins, history) keep the id as a plain reference.
+ */
+export function purgeSessions(campaign: LocalCampaignRecord, ids: string[]): LocalCampaignRecord {
+  const gone = new Set(ids.filter((id) => find(campaign, id).deletedAt))
+  if (!gone.size) return campaign
+  const sessionRecords = campaign.sessionRecords.filter((session) => !gone.has(session.id))
+  return {
+    ...campaign,
+    sessionRecords,
+    secrets: campaign.secrets.map((secret) => secret.sessionIds.some((id) => gone.has(id)) ? { ...secret, sessionIds: secret.sessionIds.filter((id) => !gone.has(id)) } : secret),
+    activeSessionId: campaign.activeSessionId && gone.has(campaign.activeSessionId) ? liveSessions({ ...campaign, sessionRecords }).at(-1)?.id : campaign.activeSessionId,
+  }
+}
+
 /** Starts a game. Preparing other sessions stays possible, but only one can be played at a time. */
 export function startSession(campaign: LocalCampaignRecord, id: string): LocalCampaignRecord {
   const session = find(campaign, id)

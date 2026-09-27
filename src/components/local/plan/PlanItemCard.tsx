@@ -14,7 +14,7 @@ export function PlanItemCard({ api, item, onDropBefore }: { api: PlanApi; item: 
   return <article draggable onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={onDrop} aria-label={`Пункт плана: ${title}`} className={item.status === 'skipped' || item.status === 'cancelled' ? 'dimmed' : ''}>
     <div className="session-plan__item-main">
       <div className="row"><Badge size="sm" tone={item.secretId ? 'warning' : item.source === 'library' ? 'accent' : 'neutral'}>{item.secretId ? 'Секрет' : item.source === 'library' ? 'Библиотека' : 'Текст'}</Badge>{item.alternative.trim() && <Badge size="sm" tone="warning">или: {item.alternative}</Badge>}{scene && <Badge size="sm" tone="neutral">в сцене: {api.itemTitle(scene)}</Badge>}{item.carriedFromSessionId && <Badge size="sm" tone="neutral">перенесено</Badge>}<Select aria-label={`Тип ${title}`} value={item.kind} onChange={(event) => api.patchItem(item.id, { kind: event.target.value as LocalSessionPlanKind })}>{PLAN_KINDS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select></div>
-      <h3>{title}</h3>
+      <h3 title={title}>{title}</h3>
       <SubmitField label={`Заметка ${title}`} value={item.note} placeholder="Локальная заметка, условие или роль…" onSubmit={(note) => api.patchItem(item.id, { note })} />
       <details className="session-plan__item-links"><summary>Связи пункта</summary><div className="row">
         <SubmitField label={`Группа «или-или»: ${title}`} value={item.alternative} placeholder="Группа «или-или», например «вход в порт»" onSubmit={(alternative) => api.patchItem(item.id, { alternative })} />
