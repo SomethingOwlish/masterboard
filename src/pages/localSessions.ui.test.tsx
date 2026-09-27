@@ -29,6 +29,19 @@ describe('session lifecycle', () => {
     expect(screen.getByLabelText('Номер')).toHaveValue(3)
   })
 
+  it('deletes trashed sessions for good after a confirmation', async () => {
+    const user = userEvent.setup()
+    const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Первая ночь'), session('s2', 2, 'Лишняя', { deletedAt: NOW }), session('s3', 3, 'Черновик', { deletedAt: NOW })], activeSessionId: 's1' })
+    renderApp(`/local/campaign/${id}/session`, catalog)
+    const trash = await screen.findByText('Корзина · 2')
+    await user.click(trash)
+    await user.click(screen.getByRole('button', { name: 'Удалить навсегда №2 Лишняя' }))
+    await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Удалить навсегда' }))
+    await waitFor(async () => expect((await catalog.find(id))?.sessionRecords.map((item) => item.id)).toEqual(['s1', 's3']))
+    expect(await screen.findByText('Корзина · 1')).toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Очистить корзину' })).not.toBeInTheDocument()
+  })
+
   it('imports sessions from a JSON file after a preview, keeping the import controls tucked away', async () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign({ sessionRecords: [session('s1', 1, 'Первая ночь')], activeSessionId: 's1' })

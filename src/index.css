@@ -1431,6 +1431,8 @@ kbd {
 .scene-tree__row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--space-2); }
 .scene-tree__title { flex: 1 1 12rem; display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; padding: 2px 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
 .scene-tree__title strong { overflow-wrap: anywhere; }
+/* Titles are short by design; a long one (an old import, a pasted paragraph) shows two lines, the rest in the editor. */
+.scene-tree__scene > header h3, .scene-tree__title strong, .session-plan__item-main h3 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .scene-tree__badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
 .scene-tree__note { margin: 4px 0 0 19px; color: var(--muted); font-size: .86rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
 .scene-tree__details { display: grid; gap: var(--space-2); margin: var(--space-2) 0 2px 19px; cursor: auto; }
@@ -1647,6 +1649,8 @@ kbd {
 .source-clash__note { margin-top: var(--space-3); }
 .sessions-workspace__trash { margin-top: var(--space-4); color: var(--muted); font-size: .88rem; }
 .sessions-workspace__trash summary { cursor: pointer; }
+.sessions-workspace__trash li span { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.sessions-workspace__trash > .btn, .sessions-workspace__trash > button { margin-top: var(--space-2); }
 .sessions-workspace__trash ul { display: grid; gap: var(--space-2); margin: var(--space-2) 0 0; padding: 0; list-style: none; }
 .sessions-workspace__trash li { display: flex; gap: var(--space-2); align-items: center; justify-content: space-between; padding: var(--space-2) var(--space-3); border: 1px dashed var(--border-strong); border-radius: var(--radius); }
 .sessions-workspace__import { margin-top: var(--space-2); }
@@ -1672,3 +1676,6 @@ kbd {
 .print-sheet__fields dt { font-weight: 700; }
 .print-sheet__fields dt::after { content: ':'; }
 .print-sheet__fields dd { margin: 0; }
+
+.campaign-workspace__version { width: min(1280px, 100%); margin: var(--space-2) auto 0; color: var(--muted); font: var(--type-meta); text-align: center; }
+.campaign-workspace__version code { font-family: var(--font-mono); }

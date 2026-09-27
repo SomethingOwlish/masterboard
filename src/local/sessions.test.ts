@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest'
+import { newSecret } from './domain'
 import { blankSession, normalizeCampaign, withLocalSessions } from './normalize'
-import { duplicateSession, liveSessions, nextSessionNumber, restoreSession, startSession, trashSession, trashedSessions, validSessionDate } from './sessions'
+import { duplicateSession, liveSessions, nextSessionNumber, purgeSessions, restoreSession, startSession, trashSession, trashedSessions, validSessionDate } from './sessions'
 import type { LocalCampaignRecord, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 const NOW = '2026-09-26T10:00:00.000Z'
@@ -88,5 +89,18 @@ describe('running a session', () => {
     const campaign = campaignWith(session('a', 1, { status: 'active', deletedAt: NOW }), session('b', 2))
     expect(startSession(campaign, 'b').sessionRecords[1].status).toBe('active')
     expect(() => startSession(campaign, 'a')).toThrow('корзине')
+  })
+})
+
+describe('deleting from the trash', () => {
+  it('removes only trashed sessions for good and unlinks them from secrets', () => {
+    let campaign = campaignWith(session('a', 1), session('b', 2), session('c', 3))
+    campaign = { ...campaign, secrets: [newSecret({ title: 'Тайна', sessionIds: ['a', 'b'] })] }
+    campaign = trashSession(trashSession(campaign, 'b', NOW), 'c', NOW)
+    const purged = purgeSessions(campaign, ['a', 'b'])
+    expect(purged.sessionRecords.map((item) => item.id)).toEqual(['a', 'c'])
+    expect(purged.secrets[0].sessionIds).toEqual(['a'])
+    expect(trashedSessions(purgeSessions(purged, ['c']))).toEqual([])
+    expect(purgeSessions(campaign, ['a'])).toBe(campaign)
   })
 })

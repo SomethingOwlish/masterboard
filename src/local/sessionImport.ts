@@ -24,6 +24,32 @@ const list = (value: unknown): unknown[] => (Array.isArray(value) ? value : [])
 const TEMPLATE_HINTS = new Set(['О чём эта сессия в одном предложении', 'Главный вопрос или цель', 'С чего начинается игра', 'Что должно произойти в сцене', 'Имя записи из библиотеки'].map((hint) => hint.toLocaleLowerCase()))
 const content = (value: unknown): string => { const result = text(value); return TEMPLATE_HINTS.has(key(result)) ? '' : result }
 
+/** Longest title kept as is; a longer one is split into a title and a note. */
+export const TITLE_LIMIT = 80
+
+/**
+ * Splits a paragraph written as a title: the head up to the first sentence
+ * break («. », «: », «? », «! », « — ») becomes the title, the rest the note.
+ * Names of NPCs and materials are split at « — » at any length, since
+ * «Сага — хроникёр корпорации» is a name plus a description.
+ */
+export function splitTitle(value: string, kind: LocalSessionPlanKind): { title: string; rest: string } {
+  const named = kind === 'npc' || kind === 'material'
+  if (value.length <= TITLE_LIMIT && !(named && value.includes(' — '))) return { title: value, rest: '' }
+  const breaks = [/[.:](\s)/, /[?!](\s)/, /\s[—–]\s/].map((pattern) => {
+    const match = pattern.exec(value.slice(0, TITLE_LIMIT + 1))
+    return match && match.index >= 3 ? { at: match.index, keep: /[?!]/.test(match[0][0]), length: match[0].length } : null
+  }).filter((entry): entry is { at: number; keep: boolean; length: number } => entry !== null)
+  const first = breaks.sort((a, b) => a.at - b.at)[0]
+  if (first) {
+    const rest = value.slice(first.at + first.length).trim()
+    return { title: value.slice(0, first.at + (first.keep ? 1 : 0)).trim(), rest: rest.charAt(0).toLocaleUpperCase() + rest.slice(1) }
+  }
+  if (value.length <= TITLE_LIMIT) return { title: value, rest: '' }
+  const cut = value.lastIndexOf(' ', TITLE_LIMIT)
+  return { title: `${value.slice(0, cut > 20 ? cut : TITLE_LIMIT).trim()}…`, rest: value }
+}
+
 /** Plan kinds that have a home outside the plan: library records and campaign secrets. */
 const RECORD_TYPE: Partial<Record<LocalSessionPlanKind, LocalCampaignEntityType>> = { npc: 'npc', material: 'handout' }
 
@@ -97,6 +123,8 @@ export function parseSessionImport(source: string, campaign: LocalCampaignRecord
 
     for (const field of ['participants', 'inGameTime', 'timelinePosition', 'idea', 'focus', 'opening', 'lines', 'layers', 'systems'] as const) session[field] = content(raw[field])
 
+    /** Long titles split into a title and a note, for one warning per session. */
+    let split = 0
     /** Plan items by lowercase title, for transitions. */
     const byTitle = new Map<string, LocalSessionPlanItem>()
     const toItem = (rawItem: unknown, fallbackKind: LocalSessionPlanKind, sceneId?: string): LocalSessionPlanItem | null => {
@@ -113,6 +141,14 @@ export function parseSessionImport(source: string, campaign: LocalCampaignRecord
         // Scenes do not nest: a scene listed inside another one stays top-level.
         ...(sceneId && kind !== 'scene' ? { sceneId } : {}),
       }
+      const written = item.text
+      if (item.text) {
+        const { title, rest } = splitTitle(item.text, kind)
+        if (rest) {
+          Object.assign(item, { text: title, note: [rest, item.note].filter(Boolean).join('\n\n') })
+          split += 1
+        }
+      }
       const libraryName = content(rawItem.library)
       if (libraryName) {
         const entity = entities.get(key(libraryName))
@@ -126,7 +162,7 @@ export function parseSessionImport(source: string, campaign: LocalCampaignRecord
         else { warnings.push(`${where}: секрет «${secretName}» не найден — пункт добавлен текстом`); Object.assign(item, { kind: 'secret', text: item.text || secretName }) }
       }
       if (!item.text) return null
-      if (!byTitle.has(key(item.text))) byTitle.set(key(item.text), item)
+      for (const name of [item.text, written]) if (name && !byTitle.has(key(name))) byTitle.set(key(name), item)
       return item
     }
 
@@ -146,6 +182,7 @@ export function parseSessionImport(source: string, campaign: LocalCampaignRecord
       const flow: LocalSessionFlow = { id: `flow-${crypto.randomUUID()}`, fromItemId: from.id, toItemId: to.id, condition: text(rawFlow.condition) }
       session.flows.push(flow)
     }
+    if (split) warnings.push(`${where}: длинные названия (${split}) разделены на название и заметку — проверьте их`)
     sessions.push(session)
   })
 
@@ -224,6 +261,7 @@ export function sessionImportTemplate(campaign: LocalCampaignRecord): string {
       'kind: scene, idea, goal, event, question, secret, npc, material, note, consequence (можно по-русски: сцена, идея, цель, событие, вопрос, секрет, нпс, материал, заметка, последствие).',
       'priority: required, desired, useful, backup (или: обязательно, желательно, полезно, запас).',
       'alternative — одинаковая метка у взаимоисключающих вариантов («или»). transitions связывают пункты плана по названию.',
+      'title (или text) — короткое название до 80 знаков, подробности — в note. Имя NPC пишите без пояснений: «Сага», а не «Сага — хроникёр». Длинное название импорт разделит сам.',
       'Пункт можно записать просто строкой — он станет заметкой.',
     ],
     sessions: [{

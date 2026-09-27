@@ -59,7 +59,7 @@ export function SceneTree({ api }: { api: PlanApi }) {
           <header draggable onDragStart={(event) => { event.dataTransfer.setData(DRAG_ITEM, scene.id); event.dataTransfer.effectAllowed = 'move' }}>
             <button className="scene-tree__toggle" aria-expanded={isOpen} aria-label={`${isOpen ? 'Свернуть' : 'Развернуть'} сцену ${title}`} onClick={() => toggle(scene.id)}><Icon name={isOpen ? 'chevron-down' : 'chevron-right'} size={18} /></button>
             <span className="scene-tree__index">{String(index + 1).padStart(2, '0')}</span>
-            <h3>{title}</h3>
+            <h3 title={title}>{title}</h3>
             {scene.alternative.trim() && <Badge size="sm" tone="warning">или: {scene.alternative}</Badge>}
             {!isOpen && <span className="scene-tree__count">{members.length ? `пунктов: ${members.length}` : 'пусто'}</span>}
             <div className="scene-tree__controls">
@@ -115,7 +115,7 @@ function TreeItem({ api, item, open, toggle }: { api: PlanApi; item: Item; open:
   return <li draggable onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.setData(DRAG_ITEM, item.id); event.dataTransfer.effectAllowed = 'move' }} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
     <article aria-label={`Пункт плана: ${title}`} className={`scene-tree__item scene-tree__item--${item.priority}${item.status === 'skipped' || item.status === 'cancelled' ? ' dimmed' : ''}`}>
       <div className="scene-tree__row">
-        <button className="scene-tree__title" aria-expanded={open} aria-label={`${open ? 'Скрыть' : 'Показать'} подробности: ${title}`} onClick={toggle}><Icon name={open ? 'chevron-down' : 'chevron-right'} size={15} /><strong>{title}</strong></button>
+        <button className="scene-tree__title" aria-expanded={open} aria-label={`${open ? 'Скрыть' : 'Показать'} подробности: ${title}`} onClick={toggle}><Icon name={open ? 'chevron-down' : 'chevron-right'} size={15} /><strong title={title}>{title}</strong></button>
         <span className="scene-tree__badges"><Badge size="sm" tone="neutral">{entity ? ENTITY_LABEL[entity.type] : KIND_LABEL[item.kind]}</Badge>{secret && <Badge size="sm" tone="warning">Секрет</Badge>}{entity && <Badge size="sm" tone="accent">Библиотека</Badge>}{item.alternative.trim() && <Badge size="sm" tone="warning">или: {item.alternative}</Badge>}{item.carriedFromSessionId && <Badge size="sm" tone="neutral">перенесено</Badge>}</span>
         <div className="scene-tree__controls"><PrioritySelect api={api} item={item} /><StatusSelect api={api} item={item} /><MoveButtons api={api} item={item} title={title} /></div>
       </div>

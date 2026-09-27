@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import { newEntity, newSecret } from './domain'
 import { normalizeCampaign } from './normalize'
-import { applySessionImport, parseSessionImport, sessionImportTemplate } from './sessionImport'
+import { applySessionImport, parseSessionImport, sessionImportTemplate, splitTitle } from './sessionImport'
 
 const NOW = '2026-09-27T10:00:00.000Z'
 const base = () => normalizeCampaign({ id: 'c', name: 'Кампания', sessionRecords: [{ id: 's1', number: 3, title: 'Была' }] }, NOW)!
@@ -74,6 +74,27 @@ describe('session import', () => {
     expect(b.planItems[0]).toMatchObject({ source: 'library', entityId: mirta.id })
     expect(b.planItems[1]).toMatchObject({ secretId: next.secrets[0].id })
     expect(next.activeSessionId).toBe(a.id)
+  })
+
+  it('splits paragraphs written as titles into a title and a note', () => {
+    expect(splitTitle('Пристань', 'scene')).toEqual({ title: 'Пристань', rest: '' })
+    expect(splitTitle('ПОРОГ 1 · ВОДА. Внутри закрывающегося разлома: не глубина, а вес. Мимо идёт что-то длиной с платформу.', 'scene'))
+      .toEqual({ title: 'ПОРОГ 1 · ВОДА', rest: 'Внутри закрывающегося разлома: не глубина, а вес. Мимо идёт что-то длиной с платформу.' })
+    expect(splitTitle('Сверит ли Стиг почерк Лейфа с конвертом, который он уже видел? Подсказку не давать — это награда.', 'question').title).toBe('Сверит ли Стиг почерк Лейфа с конвертом, который он уже видел?')
+    expect(splitTitle('Сага — хроникёр корпорации [?] земное имя', 'npc')).toEqual({ title: 'Сага', rest: 'Хроникёр корпорации [?] земное имя' })
+    expect(splitTitle('Сага — хроникёр', 'note')).toEqual({ title: 'Сага — хроникёр', rest: '' })
+    const unbroken = 'слово '.repeat(30).trim()
+    expect(splitTitle(unbroken, 'note')).toMatchObject({ title: expect.stringMatching(/…$/), rest: unbroken })
+  })
+
+  it('keeps transitions working when a long scene title was split, and says so', () => {
+    const long = 'ПОРОГ 1 · ВОДА. Внутри закрывающегося разлома: не глубина, а вес, и мимо идёт что-то длиной с платформу.'
+    const file = JSON.stringify([{ title: 'А', scenes: [{ title: 'Мост' }, { title: long, note: 'Коротко' }], transitions: [{ from: 'Мост', to: long }] }])
+    const { sessions, warnings } = parseSessionImport(file, base(), 'm', NOW)
+    const scene = sessions[0].planItems[1]
+    expect(scene).toMatchObject({ text: 'ПОРОГ 1 · ВОДА', note: expect.stringMatching(/^Внутри закрывающегося.*\n\nКоротко$/s) })
+    expect(sessions[0].flows).toEqual([expect.objectContaining({ toItemId: scene.id })])
+    expect(warnings).toEqual(['«А»: длинные названия (1) разделены на название и заметку — проверьте их'])
   })
 
   it('rejects files that are not JSON or hold no sessions', () => {

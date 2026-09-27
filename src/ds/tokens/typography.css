@@ -6,7 +6,7 @@
    ------------------------------------------------------------------------- */
 :root {
   /* Families */
-  --font-display: 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Songti SC', Georgia, serif;
+  --font-display: 'Masterboard Display Cyrillic', 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Songti SC', Georgia, serif;
   --font-sans: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
   --font-mono: 'Space Mono', ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
 

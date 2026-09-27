@@ -11,6 +11,7 @@ describe('local campaign workspace', () => {
   it('creates a campaign and reaches the dashboard after the first session', async () => {
     const user = userEvent.setup()
     const { router, catalog } = renderApp('/')
+    expect(await screen.findByLabelText('Версия сборки')).toHaveTextContent(new RegExp(`Версия ${__BUILD_HASH__}`))
     await user.click(await screen.findByRole('button', { name: 'Создать кампанию' }))
     await user.type(screen.getByLabelText('Название'), 'Город под стеклом')
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Создать' }))
