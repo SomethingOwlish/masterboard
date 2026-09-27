@@ -1255,6 +1255,7 @@ kbd {
 .source-links { display: grid; gap: 4px; margin-top: var(--space-2); font: var(--type-meta); }
 .source-links .row { flex-wrap: wrap; align-items: center; gap: 6px; }
 .source-links small { color: var(--muted); }
+.source-links .source-links__removed { color: var(--danger); }
 .source-import__list { display: grid; gap: 0; max-height: 50vh; margin: var(--space-3) 0 0; padding: 0; overflow-y: auto; list-style: none; }
 .source-import__list li { border-top: 1px solid var(--border); }
 .source-import__list label { display: flex; align-items: center; gap: var(--space-2); margin: 0; padding: var(--space-2) 0; color: var(--text); }
