@@ -1,6 +1,6 @@
 import { newArc, newClock, newEntity, newSecret } from './domain'
 import { newGroup, parseMasters } from './team'
-import { WIDGETS } from './labels'
+import { IDEA_PLACEHOLDER, TIME_PLACEHOLDER, WIDGETS } from './labels'
 import { validSessionDate } from './sessions'
 import { EXTERNAL_SYSTEMS, isExternalSystem, type ExternalSystem } from '../model/external'
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord, LocalDashboardLayout, LocalGroup, LocalWidgetId, LocalMaster, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
@@ -212,8 +212,9 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
   return {
     id: value.id,
     name: value.name,
-    idea: text(value.idea),
-    activeTime: text(value.activeTime, 'Время ещё не задано'),
+    // Placeholders used to be stored as data; now they live in the interface only (ТЗ-3, этап 6).
+    idea: text(value.idea) === IDEA_PLACEHOLDER ? '' : text(value.idea),
+    activeTime: text(value.activeTime) === TIME_PLACEHOLDER ? '' : text(value.activeTime),
     masters,
     players: list<Raw>(value.players).filter((player) => isObject(player) && typeof player.id === 'string').map((player) => ({ id: player.id as string, name: text(player.name), characterIds: ids(player.characterIds), note: text(player.note), ...(typeof player.profileId === 'string' ? { profileId: player.profileId } : {}) })),
     groups: team.groups,

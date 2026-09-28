@@ -4,11 +4,12 @@ import { REMOVED_HINT, ROLE_LABEL, SYSTEM_IN, SYSTEM_LABEL, connectionKey, linke
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord } from '../../local/types'
 import { useConnections, useExternal } from '../../local/useExternal'
 import { logImport } from '../../local/imports'
-import { ENTITY_LABEL, Editor, type Persist } from './shared'
+import { Editor, type Persist } from './shared'
+import { ENTITY_LABEL, VISIBILITY_LABEL } from '../../local/labels'
 
 const ROLES: CampaignRole[] = ['world', 'table', 'system']
 const date = (value: string) => value ? new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
-const show = (value: unknown) => Array.isArray(value) ? value.map((tag) => `#${tag}`).join(' ') || '—' : value === 'public' ? 'Для игроков' : value === 'master' ? 'Только ведущим' : String(value ?? '') || '—'
+const show = (value: unknown) => Array.isArray(value) ? value.map((tag) => `#${tag}`).join(' ') || '—' : value === 'public' || value === 'master' ? VISIBILITY_LABEL[value] : String(value ?? '') || '—'
 
 /** «Из SystemSetup» and a status worth a glance («К удалению» loudest), for a record or a link to it. */
 function SourceMarks({ status, fromSystemsetup }: { status?: string; fromSystemsetup: boolean }) {
@@ -67,7 +68,7 @@ export function ImportDialog({ campaign, persist, close, stay = false }: { campa
       {items && items.length > 1 && <label className="source-import__all"><input type="checkbox" checked={visible.every((item) => linked.has(item.id) || chosen.includes(item.id))} onChange={(event) => setChosen(event.target.checked ? [...new Set([...chosen, ...visible.filter((item) => !linked.has(item.id)).map((item) => item.id)])] : chosen.filter((id) => !visible.some((item) => item.id === id)))} /> Выбрать все{query.trim() ? ' найденные' : ''}</label>}
       {items === null ? <p className="muted" role="status">Читаем записи…</p> : visible.length ? <ul className="source-import__list" aria-label="Записи источника">{visible.map((item) => {
         const already = linked.has(item.id)
-        return <li key={item.id}><label><input type="checkbox" disabled={already} checked={already || chosen.includes(item.id)} onChange={() => setChosen(chosen.includes(item.id) ? chosen.filter((id) => id !== item.id) : [...chosen, item.id])} /><span className="source-import__text"><strong>{item.name}</strong><small>{item.type} → {ENTITY_LABEL[importType(source.system, item.type)]}{item.visibility === 'master' ? ' · только ведущим' : ''}{item.archived ? ' · в архиве' : ''}</small></span><SourceMarks status={item.archived ? undefined : item.status} fromSystemsetup={item.source?.app === 'systemsetup'} />{already && <Badge size="sm" tone="neutral">уже в библиотеке</Badge>}</label></li>
+        return <li key={item.id}><label><input type="checkbox" disabled={already} checked={already || chosen.includes(item.id)} onChange={() => setChosen(chosen.includes(item.id) ? chosen.filter((id) => id !== item.id) : [...chosen, item.id])} /><span className="source-import__text"><strong>{item.name}</strong><small>{item.type} → {ENTITY_LABEL[importType(source.system, item.type)]}{item.visibility === 'master' ? ' · только мастерам' : ''}{item.archived ? ' · в архиве' : ''}</small></span><SourceMarks status={item.archived ? undefined : item.status} fromSystemsetup={item.source?.app === 'systemsetup'} />{already && <Badge size="sm" tone="neutral">уже в библиотеке</Badge>}</label></li>
       })}</ul> : !error && <p className="muted">{items.length ? 'Ничего не найдено.' : 'В источнике пока нет записей.'}</p>}
     </>}
     <footer><Button onClick={close}>{stay && added ? 'Готово' : 'Отмена'}</Button><Button variant="primary" icon="download" disabled={!chosen.length} onClick={add}>{chosen.length ? `Добавить ${chosen.length} в библиотеку` : 'Добавить в библиотеку'}</Button></footer>

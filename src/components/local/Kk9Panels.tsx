@@ -27,7 +27,7 @@ export function Kk9StatePanel({ campaign, close }: { campaign: LocalCampaignReco
 
   return <aside className="plan-add-panel kk9-state" aria-label="Состояние КК9">
     <header><h2>КК9{link ? ` · ${link.label}` : ''}</h2><div className="row"><Button size="sm" icon="refresh-cw" disabled={busy || !link} onClick={load}>{busy ? 'Читаем…' : 'Обновить'}</Button>{close && <Button size="sm" icon="x" aria-label="Закрыть панель КК9" onClick={close} />}</div></header>
-    {!link && <p className="muted">Кампания не связана с КК9. Связь ставит владелец в разделе «Публикация».</p>}
+    {!link && <p className="muted">Кампания не связана с КК9. Связь ставит владелец в «Интеграциях».</p>}
     {error && <p className="local-session-error" role="alert">{error}</p>}
     {state && <>
       <section aria-label="Стол КК9">

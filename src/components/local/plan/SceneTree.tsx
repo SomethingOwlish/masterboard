@@ -2,9 +2,10 @@ import { useState, type DragEvent } from 'react'
 import { Badge, Button, Icon, Select } from '../../../ds'
 import { ENTITY_FIELDS } from '../../../local/domain'
 import type { LocalSessionPlanItem, LocalSessionPlanKind } from '../../../local/types'
-import { ENTITY_LABEL, SubmitField } from '../shared'
-import { DRAG_ITEM, DRAG_SOURCE, KIND_LABEL, PLAN_KINDS, PRIORITIES, USE_STATUS, type LinkedSource, type PlanApi, type PlanTarget } from './planApi'
+import { SubmitField } from '../shared'
+import { DRAG_ITEM, DRAG_SOURCE, type LinkedSource, type PlanApi, type PlanTarget } from './planApi'
 import { PeekLink } from '../Peek'
+import { ENTITY_LABEL, KIND_LABEL, PLAN_KINDS, PRIORITIES, USE_STATUS, VISIBILITY_LABEL } from '../../../local/labels'
 
 type Item = LocalSessionPlanItem
 
@@ -116,7 +117,7 @@ function TreeItem({ api, item, open, toggle }: { api: PlanApi; item: Item; open:
   return <li draggable onDragStart={(event) => { event.stopPropagation(); event.dataTransfer.setData(DRAG_ITEM, item.id); event.dataTransfer.effectAllowed = 'move' }} onDragOver={(event) => event.preventDefault()} onDrop={onDrop}>
     <article aria-label={`Пункт плана: ${title}`} className={`scene-tree__item scene-tree__item--${item.priority}${item.status === 'skipped' || item.status === 'cancelled' ? ' dimmed' : ''}`}>
       <div className="scene-tree__row">
-        <button className="scene-tree__title" aria-expanded={open} aria-label={`${open ? 'Скрыть' : 'Показать'} подробности: ${title}`} onClick={toggle}><Icon name={open ? 'chevron-down' : 'chevron-right'} size={15} /><strong title={title}>{title}</strong></button>
+        <button className="scene-tree__title" aria-expanded={open} aria-label={`${open ? 'Скрыть' : 'Показать'} подробности: ${title}`} onClick={toggle}><Icon name={open ? 'chevron-down' : 'chevron-right'} size={15} /><strong title={title}>{title}</strong>{item.role && <span className="scene-tree__role">— {item.role}</span>}</button>
         <span className="scene-tree__badges"><Badge size="sm" tone="neutral">{entity ? ENTITY_LABEL[entity.type] : KIND_LABEL[item.kind]}</Badge>{secret && <Badge size="sm" tone="warning">Секрет</Badge>}{entity && <Badge size="sm" tone="accent">Библиотека</Badge>}{item.alternative.trim() && <Badge size="sm" tone="warning">или: {item.alternative}</Badge>}{item.carriedFromSessionId && <Badge size="sm" tone="neutral">перенесено</Badge>}</span>
         <div className="scene-tree__controls"><PrioritySelect api={api} item={item} /><StatusSelect api={api} item={item} /><MoveButtons api={api} item={item} title={title} /></div>
       </div>
@@ -125,7 +126,7 @@ function TreeItem({ api, item, open, toggle }: { api: PlanApi; item: Item; open:
         {entity && <div className="scene-tree__record">
           <p>{entity.description || 'Описание пока не добавлено.'}</p>
           {ENTITY_FIELDS[entity.type].some((field) => entity.fields[field.id]) && <dl>{ENTITY_FIELDS[entity.type].filter((field) => entity.fields[field.id]).map((field) => <div key={field.id}><dt>{field.label}</dt><dd>{entity.fields[field.id]}</dd></div>)}</dl>}
-          <footer><PeekLink className="peek-link--button" target={{ kind: 'entity', id: entity.id }}>Карточка</PeekLink>{entity.tags.map((tag) => <Badge size="sm" key={tag}>#{tag}</Badge>)}<Badge size="sm" tone={entity.visibility === 'public' ? 'success' : 'warning'}>{entity.visibility === 'public' ? 'Для игроков' : 'Только ведущим'}</Badge><Button size="sm" icon="pencil" aria-label={`Редактировать запись: ${title}`} onClick={() => api.editEntity(entity.id)}>Редактировать запись</Button></footer>
+          <footer><PeekLink className="peek-link--button" target={{ kind: 'entity', id: entity.id }}>Карточка</PeekLink>{entity.tags.map((tag) => <Badge size="sm" key={tag}>#{tag}</Badge>)}<Badge size="sm" tone={entity.visibility === 'public' ? 'success' : 'warning'}>{VISIBILITY_LABEL[entity.visibility]}</Badge><Button size="sm" icon="pencil" aria-label={`Редактировать запись: ${title}`} onClick={() => api.editEntity(entity.id)}>Редактировать запись</Button></footer>
         </div>}
         {secret && <div className="scene-tree__record"><dl><div><dt>Правда</dt><dd>{secret.truth || '—'}</dd></div>{secret.revealCondition && <div><dt>Раскрыть, когда</dt><dd>{secret.revealCondition}</dd></div>}</dl></div>}
         <SubmitField label={`Заметка ${title}`} value={item.note} placeholder="Заметка для этой сессии: условие, роль, реплика…" onSubmit={(note) => api.patchItem(item.id, { note })} />

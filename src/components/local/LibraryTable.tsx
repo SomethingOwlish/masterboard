@@ -1,16 +1,15 @@
 import { useState } from 'react'
 import { Badge, Button, Icon, Select } from '../../ds'
 import { addTags, addToPlan, exportEntities, relateTo, removeTags, sendTo, setField, setStatus, setType, setVisibility } from '../../local/bulk'
-import { ENTITY_FIELDS, ENTITY_STATUS_LABEL, entityUsages, usageCount, type EntityFilter } from '../../local/domain'
+import { ENTITY_FIELDS, entityUsages, usageCount, type EntityFilter } from '../../local/domain'
 import { downloadText } from '../../local/download'
 import { ROLE_LABEL, SYSTEM_LABEL, WRITABLE_ROLES, entityRoles, linkedRole, type WritableRole } from '../../local/integration'
-import { RELATION_TYPE } from '../../local/sessionFlow'
 import { liveSessions } from '../../local/sessions'
 import type { LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalRelationType } from '../../local/types'
 import { PeekLink } from './Peek'
-import { ENTITY_LABEL, ENTITY_TYPES, type Persist } from './shared'
+import type { Persist } from './shared'
 import { useConfirm } from '../useConfirm'
-import { plural } from '../../local/labels'
+import { plural, ENTITY_STATUS_LABEL, RELATION_TYPE, ENTITY_LABEL, ENTITY_TYPES, VISIBILITY_LABEL } from '../../local/labels'
 
 type Sort = NonNullable<EntityFilter['sort']>
 
@@ -27,7 +26,7 @@ export function LibraryTable({ campaign, persist, entities, sort, setSort }: { c
   const head = (label: string, by?: Sort) => <th scope="col" aria-sort={by && sort === by ? 'ascending' : undefined}>{by ? <button type="button" className={sort === by ? 'active' : ''} onClick={() => setSort(sort === by ? 'added' : by)}>{label}{sort === by && <Icon name="chevron-down" size={12} />}</button> : label}</th>
   return <>
     <div className="library-table__wrap"><table className="library-table" aria-label="Библиотека таблицей">
-      <thead><tr><th scope="col" className="library-table__pick"><input type="checkbox" aria-label="Выбрать все найденные" checked={all} onChange={() => setPicked(all ? picked.filter((id) => !shown.has(id)) : [...new Set([...picked, ...shown])])} /></th>{head('Название', 'name')}{head('Тип', 'type')}{head('Теги')}{head('Видимость')}{head('Состояние')}{head('Где хранится')}{head('Используется', 'used')}</tr></thead>
+      <thead><tr><th scope="col" className="library-table__pick"><input type="checkbox" aria-label="Выбрать все найденные" checked={all} onChange={() => setPicked(all ? picked.filter((id) => !shown.has(id)) : [...new Set([...picked, ...shown])])} /></th>{head('Название', 'name')}{head('Тип', 'type')}{head('Теги')}{head('Видимость')}{head('Состояние')}{head('Источник')}{head('Куда отправлять')}{head('Используется', 'used')}</tr></thead>
       <tbody>{entities.map((entity) => {
         const places = entityRoles(campaign, entity).map((role) => SYSTEM_LABEL[linkedRole(campaign, role)!.system])
         const from = [...new Set(entity.sources.map((source) => SYSTEM_LABEL[source.system]))]
@@ -36,9 +35,10 @@ export function LibraryTable({ campaign, persist, entities, sort, setSort }: { c
           <td><PeekLink target={{ kind: 'entity', id: entity.id }}>{entity.name}</PeekLink>{entity.dead && <small> · погиб</small>}</td>
           <td>{ENTITY_LABEL[entity.type]}</td>
           <td>{entity.tags.map((tag) => `#${tag}`).join(' ') || <span className="muted">—</span>}</td>
-          <td>{entity.visibility === 'public' ? 'Для игроков' : 'Только ведущим'}</td>
+          <td>{VISIBILITY_LABEL[entity.visibility]}</td>
           <td>{ENTITY_STATUS_LABEL[entity.status]}</td>
-          <td>{[...new Set([...places, ...from])].join(', ') || <span className="muted">здесь</span>}</td>
+          <td>{from.join(', ') || <span className="muted">—</span>}</td>
+          <td>{places.join(', ') || <span className="muted">—</span>}</td>
           <td className="library-table__num">{usageCount(entityUsages(campaign, entity.id)) || ''}</td>
         </tr>
       })}</tbody>
@@ -105,7 +105,7 @@ function BulkBar({ campaign, persist, ids, clear }: { campaign: LocalCampaignRec
       <button type="button" className="bulk-bar__clear" onClick={clear} aria-label="Снять выбор"><Icon name="x" size={16} /></button>
     </div>
     {action === 'tags' && <form className="bulk-bar__form" onSubmit={(event) => event.preventDefault()}><input aria-label="Теги для выбранных" value={text} placeholder="важное, порт" onChange={(event) => setText(event.target.value)} /><Button size="sm" disabled={!text.trim()} onClick={() => apply(addTags(campaign, ids, text.split(',')), `Теги добавлены: ${ids.length}`)}>Добавить</Button><Button size="sm" disabled={!text.trim()} onClick={() => apply(removeTags(campaign, ids, text.split(',')), `Теги убраны: ${ids.length}`)}>Убрать</Button></form>}
-    {action === 'visibility' && <div className="bulk-bar__form"><Button size="sm" onClick={() => apply(setVisibility(campaign, ids, 'master'), 'Теперь только ведущим')}>Только ведущим</Button><Button size="sm" onClick={() => apply(setVisibility(campaign, ids, 'public'), 'Теперь для игроков')}>Для игроков</Button></div>}
+    {action === 'visibility' && <div className="bulk-bar__form"><Button size="sm" onClick={() => apply(setVisibility(campaign, ids, 'master'), 'Теперь только мастерам')}>{VISIBILITY_LABEL.master}</Button><Button size="sm" onClick={() => apply(setVisibility(campaign, ids, 'public'), 'Теперь для игроков')}>{VISIBILITY_LABEL.public}</Button></div>}
     {action === 'status' && <div className="bulk-bar__form"><Button size="sm" onClick={() => apply(setStatus(campaign, ids, 'archived'), `В архиве: ${ids.length}`)}>В архив</Button><Button size="sm" onClick={() => apply(setStatus(campaign, ids, 'active'), `Возвращены: ${ids.length}`)}>Из архива</Button><Button size="sm" onClick={() => apply(setStatus(campaign, ids, 'inactive'), `Неактивны: ${ids.length}`)}>Неактивные</Button></div>}
     {action === 'field' && (
       <form className="bulk-bar__form" onSubmit={(event) => { event.preventDefault(); applyField() }}>

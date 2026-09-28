@@ -6,7 +6,7 @@ import { ActingMasterSelect } from './ActingMasterSelect'
 import { useLocalCatalog } from '../../local/useLocalCampaign'
 import type { CampaignConflicts } from '../../local/useLocalCampaign'
 import { conflictPlace, conflictValue } from '../../local/merge'
-import type { LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
+import type { LocalCampaignRecord } from '../../local/types'
 import { searchShortcut, usePeek } from '../../local/peekContext'
 import { plural } from '../../local/labels'
 
@@ -81,14 +81,14 @@ export function CampaignHeader({ campaign, section }: { campaign: LocalCampaignR
 /** The same as `StorageBadge`, as an icon for the compact campaign bar. */
 function StorageIcon({ campaignId }: { campaignId: string }) {
   const { shared } = useLocalCatalog()
-  const label = shared?.isShared(campaignId) ? 'Общая кампания' : 'Локальные данные'
-  return <span className="campaign-topbar__storage" title={label}><Icon name={shared?.isShared(campaignId) ? 'cloud' : 'hard-drive'} size={16} /><span className="sr-only">{label}</span></span>
+  if (!shared?.isShared(campaignId)) return null
+  return <span className="campaign-topbar__storage" title="Общая кампания"><Icon name="cloud" size={16} /><span className="sr-only">Общая кампания</span></span>
 }
 
-/** Where this campaign lives: on the shared server or only in this browser. */
+/** A shared campaign's badge. Everything is behind sign-in, so there is no browser-only variant. */
 export function StorageBadge({ campaignId }: { campaignId: string }) {
   const { shared } = useLocalCatalog()
-  return shared?.isShared(campaignId) ? <Badge tone="accent" dot>Общая кампания</Badge> : <Badge tone="neutral" dot>Локальные данные</Badge>
+  return shared?.isShared(campaignId) ? <Badge tone="accent" dot>Общая кампания</Badge> : null
 }
 
 export function SaveErrorBanner({ message, retry, savedInBrowser = false }: { message: string | null; retry: () => void; savedInBrowser?: boolean }) {
@@ -194,10 +194,6 @@ export function Capture({ value, setValue, add, label = 'Добавить' }: { 
   return <div className="new-campaign-room__capture"><input value={value} aria-label="Новая опорная точка" placeholder="Добавить опорную точку…" onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add() }} /><Button icon={label === 'Добавить' ? 'plus' : 'check'} disabled={!value.trim()} onClick={add}>{label}</Button></div>
 }
 
-export const ENTITY_TYPES: Array<{ value: LocalCampaignEntityType; label: string }> = [
-  ['character', 'Персонаж'], ['npc', 'Персонаж ведущего'], ['creature', 'Существо'], ['location', 'Локация'], ['faction', 'Фракция'], ['rumor', 'Слух'], ['item', 'Предмет'], ['audience', 'Аудитория'], ['note', 'Заметка'], ['letter', 'Письмо'], ['handout', 'Раздаточный материал'], ['map', 'Карта'], ['event', 'Событие'], ['lore', 'Лор / статья'], ['home-rule', 'Домашнее правило'],
-].map(([value, label]) => ({ value: value as LocalCampaignEntityType, label }))
-export const ENTITY_LABEL = Object.fromEntries(ENTITY_TYPES.map((item) => [item.value, item.label])) as Record<LocalCampaignEntityType, string>
 
 /** Compact multi-select made of checkboxes, for linking records to each other. */
 export function Checklist({ legend, options, value, onChange, empty }: { legend: string; options: Array<{ id: string; label: string }>; value: string[]; onChange: (next: string[]) => void; empty?: string }) {

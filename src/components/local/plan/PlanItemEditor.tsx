@@ -3,7 +3,8 @@ import { Button, Select } from '../../../ds'
 import { moveItemTo } from '../../../local/plan'
 import type { LocalSessionPlanItem, LocalSessionPlanKind } from '../../../local/types'
 import { SessionModal } from '../shared'
-import { PLAN_KINDS, PRIORITIES, type PlanApi } from './planApi'
+import type { PlanApi } from './planApi'
+import { PLAN_KINDS, PRIORITIES } from '../../../local/labels'
 
 type Item = LocalSessionPlanItem
 
@@ -29,7 +30,7 @@ export function PlanItemEditor({ api, item, close }: { api: PlanApi; item: Item;
   return <SessionModal title={isScene ? 'Сцена' : 'Пункт плана'} close={close} draft={draft}>
     <form className="session-passport-form plan-item-editor" onSubmit={(event) => { event.preventDefault(); save() }}>
       <label>Название{linked
-        ? <span className="plan-item-editor__linked"><input value={title} disabled aria-describedby="plan-item-linked-hint" /><small id="plan-item-linked-hint">{item.secretId ? 'Название секрета меняется в разделе «Секреты».' : 'Название записи меняется в библиотеке.'}</small></span>
+        ? <span className="plan-item-editor__linked"><input value={title} disabled aria-describedby="plan-item-linked-hint" /><small id="plan-item-linked-hint">{item.secretId ? 'Название секрета меняется в «Пульт → Секреты».' : 'Название записи меняется в библиотеке.'}</small></span>
         : <input autoFocus value={draft.text} onChange={(event) => set({ text: event.target.value })} />}
       </label>
       {item.entityId && <Button type="button" size="sm" icon="pencil" onClick={() => { close(); api.editEntity(item.entityId!) }}>Редактировать запись</Button>}

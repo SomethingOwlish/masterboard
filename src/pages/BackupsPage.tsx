@@ -6,6 +6,7 @@ import { backupCause, backupStateLabel, type BackupStatus } from '../local/backu
 import { ExternalError } from '../local/external'
 import { useExternal } from '../local/useExternal'
 import { useLocalCatalog } from '../local/useLocalCampaign'
+import { useDocumentTitle } from '../components/useDocumentTitle'
 
 type State =
   | { status: 'loading' }
@@ -21,6 +22,7 @@ const when = (iso: string) => new Date(iso).toLocaleString('ru-RU', { day: 'nume
  * вошедшего мастера.
  */
 export function BackupsPage() {
+  useDocumentTitle('Резервные копии')
   const port = useExternal()
   const shared = useLocalCatalog().shared
   const [state, setState] = useState<State>({ status: 'loading' })
@@ -41,8 +43,8 @@ export function BackupsPage() {
 
   const last = state.status === 'ready' ? state.backup.last : null
   return <main className="campaign-workspace">
-    <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div>{shared ? <Badge tone="accent" dot>{shared.email}</Badge> : <Badge tone="neutral" dot>Локальные данные</Badge>}<LocalThemeControl /></div></header>
-    <section className="campaign-workspace__hero"><div><Link className="backups__back" to="/"><Icon name="arrow-left" size={15} /> Кампании</Link><span className="panel-kicker">Рабочее пространство ведущего</span><h1>Резервные копии</h1><p>Каждую ночь все общие кампании уходят в приватный репозиторий — по файлу на кампанию. Вернуть кампанию можно обычным «Импортом» на странице кампаний.</p></div><div className="row"><Button variant="primary" icon="refresh-cw" disabled={running || state.status === 'loading' || state.status === 'unconfigured'} onClick={() => void runNow()}>{running ? 'Делаю копию…' : 'Сделать сейчас'}</Button></div></section>
+    <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div>{shared ? <Badge tone="accent" dot>{shared.email}</Badge> : null}<LocalThemeControl /></div></header>
+    <section className="campaign-workspace__hero"><div><Link className="backups__back" to="/"><Icon name="arrow-left" size={15} /> Кампании</Link><span className="panel-kicker">Рабочее пространство мастера</span><h1>Резервные копии</h1><p>Каждую ночь все общие кампании уходят в приватный репозиторий — по файлу на кампанию. Вернуть кампанию можно на странице «Импорт».</p></div><div className="row"><Button variant="primary" icon="refresh-cw" disabled={running || state.status === 'loading' || state.status === 'unconfigured'} onClick={() => void runNow()}>{running ? 'Делаю копию…' : 'Сделать сейчас'}</Button></div></section>
     <section className="backups" aria-label="Резервная копия" aria-busy={state.status === 'loading' || running}>
       {state.status === 'loading' && <p className="backups__line">Спрашиваю мост…</p>}
       {state.status === 'unconfigured' && <div className="campaign-workspace__recovery" role="status"><Icon name="cloud-off" size={18} /><span><strong>Резервная копия не подключена.</strong> {state.message}</span></div>}

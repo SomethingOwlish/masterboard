@@ -1,6 +1,6 @@
 import { newId } from '../model/ids'
 import { EXPORT_FORMAT, blankCampaign, parseExport, type CampaignDraft, type LocalCampaignCatalog } from './catalog'
-import { newMaster } from './team'
+import { nameFromEmail, newMaster } from './team'
 import { mergeCampaign, type MergeConflict } from './merge'
 import { normalizeCampaign } from './normalize'
 import type { LocalCampaignRecord } from './types'
@@ -189,7 +189,7 @@ export function createSharedCatalog(browser: LocalCampaignCatalog, api: Masterbo
     },
     async create(name: string, idea: string, integrations: LocalCampaignRecord['integrations'] = {}) {
       const stamp = new Date().toISOString()
-      return upload({ ...blankCampaign(name, idea, stamp), integrations, masters: [{ ...newMaster('Ведущий', 'owner'), email }] })
+      return upload({ ...blankCampaign(name, idea, stamp), integrations, masters: [{ ...newMaster(nameFromEmail(email), 'owner'), email }] })
     },
     update: (campaign: LocalCampaignRecord) => writeShared(campaign),
     async remove(id: string) {

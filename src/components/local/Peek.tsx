@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Button, Icon } from '../../ds'
-import { ENTITY_STATUS_LABEL, blockingPlans, entityUsages, originLabel } from '../../local/domain'
-import { ARC_STATUS, SECRET_STATUS } from '../../local/labels'
+import { blockingPlans, entityUsages, originLabel } from '../../local/domain'
+import { ARC_STATUS, SECRET_STATUS, ENTITY_STATUS_LABEL, ENTITY_LABEL, VISIBILITY_LABEL, RELATION_TYPE, sessionStatusText } from '../../local/labels'
 import { PeekContext, usePeek, type PeekApi } from '../../local/peekContext'
 import { SEARCH_GROUP, searchCampaign, type PeekTarget, type SearchHit } from '../../local/search'
 import { liveSessions } from '../../local/sessions'
@@ -11,10 +11,8 @@ import type { LocalCampaignRecord } from '../../local/types'
 import { EntityDetails } from './EntityDetails'
 import { EntityEditor } from './EntityEditor'
 import { SourceLinks } from './SourcePanels'
-import { ENTITY_LABEL, type Persist } from './shared'
+import type { Persist } from './shared'
 
-const RELATION_LABEL = { alliance: 'союз', enmity: 'вражда', debt: 'долг', kin: 'родство', belongs: 'принадлежность', other: 'связь' } as const
-const SESSION_STATUS = { draft: 'Черновик', ready: 'Готова', active: 'Идёт', completed: 'Завершена' } as const
 
 /**
  * A name that opens its record in the side panel (ТЗ-2, R9). Outside the
@@ -98,13 +96,13 @@ function PeekDrawer({ campaign, persist, target, back, close }: { campaign: Loca
       const usages = entityUsages(campaign, entity.id)
       return {
         kicker: ENTITY_LABEL[entity.type], title: entity.name,
-        badges: [entity.visibility === 'public' ? 'Для игроков' : 'Только ведущим', ...(entity.status !== 'active' ? [ENTITY_STATUS_LABEL[entity.status]] : []), ...(entity.dead ? ['Погиб'] : [])],
+        badges: [VISIBILITY_LABEL[entity.visibility], ...(entity.status !== 'active' ? [ENTITY_STATUS_LABEL[entity.status]] : []), ...(entity.dead ? ['Погиб'] : [])],
         body: <>
           <p>{entity.description || <span className="muted">Описание пока не добавлено.</span>}</p>
           <EntityDetails entity={entity} className="peek-fields" fate={false} />
           {entity.tags.length > 0 && <p className="row">{entity.tags.map((tag) => <Badge size="sm" key={tag}>#{tag}</Badge>)}</p>}
           <SourceLinks campaign={campaign} entity={entity} persist={persist} />
-          {usages.relations.length > 0 && <PeekSection title="Связи"><ul>{usages.relations.map((relation) => { const other = relation.fromId === entity.id ? relation.toId : relation.fromId; return <li key={relation.id}>{RELATION_LABEL[relation.type]}{relation.direction === 'directed' ? (relation.fromId === entity.id ? ' → ' : ' ← ') : ' ↔ '}<PeekLink target={{ kind: 'entity', id: other }}>{entityName(other) ?? 'удалена'}</PeekLink>{relation.label && <small> · {relation.label}</small>}</li> })}</ul></PeekSection>}
+          {usages.relations.length > 0 && <PeekSection title="Связи"><ul>{usages.relations.map((relation) => { const other = relation.fromId === entity.id ? relation.toId : relation.fromId; return <li key={relation.id}>{RELATION_TYPE[relation.type]}{relation.direction === 'directed' ? (relation.fromId === entity.id ? ' → ' : ' ← ') : ' ↔ '}<PeekLink target={{ kind: 'entity', id: other }}>{entityName(other) ?? 'удалена'}</PeekLink>{relation.label && <small> · {relation.label}</small>}</li> })}</ul></PeekSection>}
           {(usages.clocks.length > 0 || usages.secrets.length > 0) && <PeekSection title="Часы и секреты"><PeekList items={[...usages.clocks.map((clock) => ({ target: { kind: 'clock' as const, id: clock.id }, name: `Часы «${clock.title}»` })), ...usages.secrets.map((secret) => ({ target: { kind: 'secret' as const, id: secret.id }, name: `Секрет «${secret.title}»` }))]} /></PeekSection>}
           {blockingPlans(usages).length > 0 && <PeekSection title="В планах сессий"><PeekList items={blockingPlans(usages).map((usage) => ({ target: { kind: 'session' as const, id: usage.sessionId }, name: `№${usage.sessionNumber} ${usage.sessionTitle}` }))} /></PeekSection>}
           <small className="muted">{originLabel(entity, campaign)}</small>
@@ -117,7 +115,7 @@ function PeekDrawer({ campaign, persist, target, back, close }: { campaign: Loca
       if (!clock) return null
       const arc = campaign.storyArcs.find((item) => item.id === clock.arcId)
       return {
-        kicker: 'Часы', title: clock.title, badges: [`${clock.value}/${clock.segments}`, clock.visibility === 'public' ? 'Для игроков' : 'Только ведущим'],
+        kicker: 'Часы', title: clock.title, badges: [`${clock.value}/${clock.segments}`, VISIBILITY_LABEL[clock.visibility]],
         body: <>
           <div className="peek-meter" aria-label={`Заполнено ${clock.value} из ${clock.segments}`}>{Array.from({ length: clock.segments }, (_, index) => <i key={index} className={index < clock.value ? 'on' : ''} />)}</div>
           <dl className="peek-fields">{[['Срабатывание', clock.trigger], ['Продвигается', clock.advanceCondition], ['Откатывается', clock.rollbackCondition]].filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
@@ -169,7 +167,7 @@ function PeekDrawer({ campaign, persist, target, back, close }: { campaign: Loca
     if (!session) return null
     const scenes = session.planItems.filter((item) => item.kind === 'scene')
     return {
-      kicker: `Сессия №${session.number}`, title: session.title, badges: [SESSION_STATUS[session.status], ...(session.date ? [new Date(`${session.date}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })] : []), `Ведёт: ${masterName(campaign, session.masterId)}`],
+      kicker: `Сессия №${session.number}`, title: session.title, badges: [sessionStatusText(session), ...(session.date ? [new Date(`${session.date}T12:00:00`).toLocaleDateString('ru-RU', { day: 'numeric', month: 'long' })] : []), `Ведёт: ${masterName(campaign, session.masterId)}`],
       body: <>
         <p>{session.focus || session.idea || <span className="muted">Фокус пока не задан.</span>}</p>
         {scenes.length > 0 && <PeekSection title="Сцены"><ul>{scenes.map((scene) => <li key={scene.id}>{scene.text || entityName(scene.entityId ?? '') || 'Сцена'}</li>)}</ul></PeekSection>}

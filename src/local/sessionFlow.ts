@@ -7,8 +7,6 @@ import type {
 
 // ─── Relations ──────────────────────────────────────────────────────────────
 
-export const RELATION_TYPE: Record<LocalRelationType, string> = { alliance: 'Союз', enmity: 'Вражда', debt: 'Долг', kin: 'Родство', belongs: 'Принадлежность', other: 'Другое' }
-
 export interface RelationFilter { visibility: 'all' | 'master' | 'public'; type: LocalRelationType | 'all'; entityId: string }
 
 export function filterRelations(relations: LocalCampaignRelation[], filter: RelationFilter): LocalCampaignRelation[] {
@@ -29,8 +27,6 @@ export function relationEntities(campaign: LocalCampaignRecord, ids: Iterable<st
 }
 
 // ─── Live log ───────────────────────────────────────────────────────────────
-
-export const LOG_KIND: Record<LocalLogKind, string> = { moment: 'Момент', decision: 'Решение', reveal: 'Раскрытие', roll: 'Бросок', clock: 'Часы', entity: 'Новое в мире' }
 
 export function logEntry(kind: LocalLogKind, text: string, now: string, refs: Pick<LocalSessionLogEntry, 'clockId' | 'secretId' | 'entityId'> = {}): LocalSessionLogEntry {
   return { id: `log-${crypto.randomUUID()}`, text: text.trim(), kind, createdAt: now, ...refs }

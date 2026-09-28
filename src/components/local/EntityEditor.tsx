@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Button, Select } from '../../ds'
-import { ENTITY_FIELDS, ENTITY_STATUS_LABEL, blockingPlans, entityUsages, newEntity, removeEntity, retypeEntity } from '../../local/domain'
+import { ENTITY_FIELDS, blockingPlans, entityUsages, newEntity, removeEntity, retypeEntity } from '../../local/domain'
 import { extraFields } from './EntityDetails'
 import type { LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
-import { ENTITY_TYPES, Editor } from './shared'
+import { Editor } from './shared'
 import { ROLE_LABEL, SYSTEM_LABEL, WRITABLE_ROLES, entityRoles, linkedRole, rulesFor } from '../../local/integration'
 import { enqueueByRoles } from '../../local/publishing'
 import { baseFields } from '../../local/bulk'
@@ -11,6 +11,7 @@ import { useBaseSchema } from '../../local/useExternal'
 import { entityRemovalImpact } from '../../local/removal'
 import { useConfirm } from '../useConfirm'
 import { removeWithUndo } from '../toast'
+import { ENTITY_STATUS_LABEL, ENTITY_TYPES, VISIBILITY_LABEL } from '../../local/labels'
 
 type Draft = Omit<LocalCampaignEntity, 'id'>
 const STATUS_LABEL = ENTITY_STATUS_LABEL
@@ -53,7 +54,7 @@ export function EntityEditor({ campaign, persist, entity, defaultType = 'npc', c
       {ENTITY_FIELDS[draft.type].length > 0 && <div className="entity-fields">{ENTITY_FIELDS[draft.type].map((field) => <label key={field.id} htmlFor={`local-entity-field-${field.id}`}>{field.label}<textarea className="auto-grow" rows={1} id={`local-entity-field-${field.id}`} value={draft.fields[field.id] ?? ''} onChange={(event) => setDraft({ ...draft, fields: { ...draft.fields, [field.id]: event.target.value } })} /></label>)}</div>}
       <BaseFieldsBlock campaign={campaign} draft={draft} setDraft={setDraft} />
       <label htmlFor="local-entity-tags">Теги<input id="local-entity-tags" value={draft.tags.join(', ')} placeholder="важное, первая сессия" onChange={(event) => setDraft({ ...draft, tags: event.target.value.split(',') })} /></label>
-      <div className="control-form__row"><label htmlFor="local-entity-visibility">Видимость<select id="local-entity-visibility" value={draft.visibility} onChange={(event) => setDraft({ ...draft, visibility: event.target.value as LocalCampaignEntity['visibility'] })}><option value="master">Только ведущим</option><option value="public">Для игроков</option></select></label><label htmlFor="local-entity-status">Состояние<select id="local-entity-status" value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as LocalCampaignEntity['status'] })}>{Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
+      <div className="control-form__row"><label htmlFor="local-entity-visibility">Видимость<select id="local-entity-visibility" value={draft.visibility} onChange={(event) => setDraft({ ...draft, visibility: event.target.value as LocalCampaignEntity['visibility'] })}><option value="master">{VISIBILITY_LABEL.master}</option><option value="public">{VISIBILITY_LABEL.public}</option></select></label><label htmlFor="local-entity-status">Состояние<select id="local-entity-status" value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as LocalCampaignEntity['status'] })}>{Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
       <HomeChips campaign={campaign} draft={draft} setDraft={setDraft} />
       {draft.type === 'npc' && <label className="campaign-local-library__dead"><input type="checkbox" checked={Boolean(draft.dead)} onChange={(event) => setDraft({ ...draft, dead: event.target.checked })} /> Персонаж погиб</label>}
       <footer>
@@ -74,7 +75,7 @@ export function EntityEditor({ campaign, persist, entity, defaultType = 'npc', c
 }
 
 /**
- * «Где хранить» (ТЗ-2, R3): only here, or also in the campaign's world / table.
+ * «Куда отправлять» (ТЗ-2, R3): only here, or also in the campaign's world / table.
  * Starts from the type's rule; a choice here is the entity's own. On save the
  * entity is queued for every place — sending stays in «Публикации».
  */
@@ -83,7 +84,7 @@ function HomeChips({ campaign, draft, setDraft }: { campaign: LocalCampaignRecor
   if (!roles.length) return null
   const chosen = draft.destinations ?? rulesFor(campaign, draft.type)
   const set = (next: Array<'world' | 'table'>) => setDraft({ ...draft, destinations: next })
-  return <fieldset className="home-chips"><legend>Где хранить{draft.destinations ? '' : ' · по правилу типа'}</legend>
+  return <fieldset className="home-chips"><legend>Куда отправлять{draft.destinations ? '' : ' · по правилу типа'}</legend>
     <label className={`home-chip${chosen.filter((role) => roles.includes(role)).length ? '' : ' on'}`}><input type="checkbox" checked={!chosen.some((role) => roles.includes(role))} onChange={() => set([])} />Только здесь</label>
     {roles.map((role) => { const linked = linkedRole(campaign, role)!; const on = chosen.includes(role); return <label key={role} className={`home-chip${on ? ' on' : ''}`}><input type="checkbox" checked={on} onChange={() => set(on ? chosen.filter((item) => item !== role) : [...chosen, role])} />{ROLE_LABEL[role]} · {SYSTEM_LABEL[linked.system]}</label> })}
     {draft.destinations && <button type="button" className="home-chips__reset" onClick={() => { const { destinations: _drop, ...rest } = draft; setDraft(rest) }}>По правилу</button>}

@@ -1,8 +1,9 @@
 import { useState } from 'react'
 import { Button, Icon, Select } from '../../../ds'
 import type { LocalSessionPlanItem, LocalSessionPlanKind } from '../../../local/types'
-import { ENTITY_LABEL, SessionModal } from '../shared'
-import { DRAG_SOURCE, PLAN_KINDS, PRIORITIES, type LinkedSource, type PlanApi, type PlanTarget } from './planApi'
+import { SessionModal } from '../shared'
+import { DRAG_SOURCE, type LinkedSource, type PlanApi, type PlanTarget } from './planApi'
+import { ENTITY_LABEL, PLAN_KINDS, PRIORITIES } from '../../../local/labels'
 
 type Priority = LocalSessionPlanItem['priority']
 const LOOSE = '__loose'

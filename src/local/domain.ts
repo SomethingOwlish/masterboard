@@ -3,6 +3,7 @@ import type {
   LocalCampaignClock, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignRelation, LocalCampaignSecret,
   LocalClockThreshold, LocalSecretStatus, LocalStoryArc,
 } from './types'
+import { ORIGIN_LABEL } from './labels'
 
 // ─── Library ────────────────────────────────────────────────────────────────
 
@@ -44,10 +45,6 @@ export function retypeEntity<T extends Pick<LocalCampaignEntity, 'type' | 'field
 
 export function newEntity(input: Partial<LocalCampaignEntity> & Pick<LocalCampaignEntity, 'type' | 'name'>): LocalCampaignEntity {
   return { id: `entity-${crypto.randomUUID()}`, description: '', tags: [], visibility: 'master', status: 'active', fields: {}, origin: { kind: 'manual' }, sources: [], ...input }
-}
-
-export const ORIGIN_LABEL: Record<LocalCampaignEntity['origin']['kind'], string> = {
-  manual: 'Создано вручную', plan: 'Из плана сессии', live: 'Из живой сессии', inbox: 'Из входящих', import: 'Импорт', improv: 'Из заготовок',
 }
 
 export function originLabel(entity: LocalCampaignEntity, campaign: LocalCampaignRecord): string {
@@ -240,5 +237,4 @@ export function toggleId(list: string[], id: string): string[] {
   return list.includes(id) ? list.filter((item) => item !== id) : [...list, id]
 }
 
-export const ENTITY_STATUS_LABEL: Record<LocalCampaignEntity['status'], string> = { active: 'Активна', inactive: 'Неактивна', archived: 'В архиве' }
 

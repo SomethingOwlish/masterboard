@@ -110,10 +110,10 @@ export function timeline(session: LocalSessionRecord): TimelineStep[] {
   return steps
 }
 
-/** What the timeline shows (ТЗ-2, R8): by default only scenes and events, and the journal without automatic lines. */
+/** What the timeline shows (ТЗ-2, R8; ТЗ-3, этап 6): by default scenes, events, goals and consequences, and the journal without automatic lines. */
 export interface TimelineOptions { others: boolean; dropped: boolean; journal: boolean; automatic: boolean }
 export const TIMELINE_DEFAULT: TimelineOptions = { others: false, dropped: false, journal: true, automatic: false }
-const EVENT_KINDS = new Set<LocalSessionPlanItem['kind']>(['scene', 'event'])
+const EVENT_KINDS = new Set<LocalSessionPlanItem['kind']>(['scene', 'event', 'goal', 'consequence'])
 const DROPPED = new Set<LocalSessionPlanItem['status']>(['skipped', 'cancelled', 'moved'])
 /** Journal lines written by the app itself: clock moves and «Появилось: …». */
 export const AUTOMATIC_LOG = new Set(['clock', 'entity'])

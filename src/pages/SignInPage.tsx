@@ -1,4 +1,5 @@
 import { Button, Icon } from '../ds'
+import { useDocumentTitle } from '../components/useDocumentTitle'
 
 /**
  * Shown when nobody is signed in (decision F1: all of Masterboard is behind
@@ -6,6 +7,7 @@ import { Button, Icon } from '../ds'
  * front of the app, so people land here only if that step did not happen.
  */
 export function SignInPage() {
+  useDocumentTitle('Вход')
   return <main className="sign-in">
     <section className="sign-in__card" aria-labelledby="sign-in-title">
       <div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div>

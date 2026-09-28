@@ -17,10 +17,11 @@ import { EntityPage } from '../components/local/EntityPage'
 import { ActingProvider } from '../local/ActingProvider'
 import { RelationsSection } from '../components/local/RelationsSection'
 import { WorldSection } from '../components/local/WorldSection'
-import { CampaignHeader, KNOWN_SECTIONS, SaveErrorBanner, ConflictNotice, type SectionProps } from '../components/local/shared'
+import { CAMPAIGN_SECTIONS, CampaignHeader, KNOWN_SECTIONS, SaveErrorBanner, ConflictNotice, type SectionProps } from '../components/local/shared'
 import { isCampaignReady } from '../local/normalize'
 import { useLocalCampaign } from '../local/useLocalCampaign'
 import { campaignScope, dismissToasts } from '../components/toast'
+import { useDocumentTitle } from '../components/useDocumentTitle'
 
 const SECTIONS: Record<string, (props: SectionProps) => JSX.Element> = {
   overview: OverviewSection,
@@ -37,6 +38,13 @@ const SECTIONS: Record<string, (props: SectionProps) => JSX.Element> = {
   import: ImportSection,
 }
 
+/** The tab-title name of a campaign page: its menu label, or the session mode. */
+function sectionTitle(section: string): string | undefined {
+  if (section === 'play') return 'Проведение'
+  if (section === 'review') return 'Разбор'
+  return CAMPAIGN_SECTIONS.find((item) => item.id === section)?.label
+}
+
 export function LocalNewCampaignPage() {
   const params = useParams()
   const { campaignId = '', entityId } = params
@@ -44,6 +52,12 @@ export function LocalNewCampaignPage() {
   const state = useLocalCampaign(campaignId)
   // «Отменить» удаления живёт, пока открыта кампания.
   useEffect(() => () => dismissToasts(campaignScope(campaignId)), [campaignId])
+  const loaded = state.status === 'ready' ? state.campaign : undefined
+  const entityName = entityId ? loaded?.entities.find((entity) => entity.id === entityId)?.name : undefined
+  useDocumentTitle(
+    loaded && !isCampaignReady(loaded) ? 'Новая кампания' : entityName ?? sectionTitle(entityId ? 'library' : section),
+    loaded?.name,
+  )
   if (state.status === 'loading') return <main className="target-dashboard created-dashboard" aria-busy="true"><p className="local-session-footnote">Загружаем кампанию…</p></main>
   if (state.status === 'missing') return <Navigate to="/" replace />
   if (section === 'entity' && !entityId) return <Navigate to={`/local/campaign/${campaignId}/library`} replace />

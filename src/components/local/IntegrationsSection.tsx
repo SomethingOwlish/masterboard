@@ -4,12 +4,12 @@ import { Badge, Button, Icon } from '../../ds'
 import type { CapabilityPassport, ExternalSystem } from '../../model/external'
 import { useActing } from '../../local/actingContext'
 import { ROLE_HINT, ROLE_LABEL, ROLE_SYSTEMS, SYSTEM_IN, SYSTEM_LABEL, WRITABLE_ROLES, checkedLink, linkedRole, queuedFor, roleConnection, rulesFor, withLink, linkOf, type BaseOption, type CampaignRole, type WritableRole } from '../../local/integration'
-import { plural } from '../../local/labels'
+import { plural, ENTITY_TYPES } from '../../local/labels'
 import type { CampaignLink, LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
 import { useBaseOptions, useExternal } from '../../local/useExternal'
 import { useConfirm } from '../useConfirm'
 import { rulesResetChanges } from '../../local/removal'
-import { ENTITY_TYPES, Editor, type Persist, type SectionProps } from './shared'
+import { Editor, type Persist, type SectionProps } from './shared'
 
 const ROLES: CampaignRole[] = ['world', 'table', 'system']
 const date = (value?: string) => value ? new Date(value).toLocaleString('ru-RU', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : ''
@@ -163,7 +163,7 @@ function ConnectWizard({ campaign, persist, role, close }: { campaign: LocalCamp
   const last = role === 'system' ? 3 : 4
   return <Editor kicker={`Подключение · ${ROLE_LABEL[role]}`} title={role === 'table' ? 'Стол кампании' : role === 'world' ? 'Мир кампании' : 'Игровая система'} close={close}>
     <ol className="wizard-steps" aria-label="Шаги">{steps.map((label, index) => label && index < last ? <li key={label} className={index + 1 === step ? 'active' : index + 1 < step ? 'done' : ''}>{label}</li> : null)}</ol>
-    {step === 1 && <fieldset className="wizard-choice"><legend>Какой стол</legend>{ROLE_SYSTEMS[role].map((item) => <label key={item}><input type="radio" name="wizard-system" checked={system === item} onChange={() => { setSystem(item); setChoice(null) }} /><span><strong>{SYSTEM_LABEL[item]}</strong><small>{item === 'kk9' ? 'Стол КК9: персонажи, НПС-библиотека, предметы, состояние стола' : 'Кампания ЛавГеймс: НПС, раздатки, кодекс'}</small></span></label>)}</fieldset>}
+    {step === 1 && <fieldset className="wizard-choice"><legend>Какой стол</legend>{ROLE_SYSTEMS[role].map((item) => <label key={item}><input type="radio" name="wizard-system" checked={system === item} onChange={() => { setSystem(item); setChoice(null) }} /><span><strong>{SYSTEM_LABEL[item]}</strong><small>{item === 'kk9' ? 'Стол КК9: персонажи, NPC-библиотека, предметы, состояние стола' : 'Кампания ЛавГеймс: NPC, раздатки, кодекс'}</small></span></label>)}</fieldset>}
     {step === 2 && <>
       {base.status === 'loading' && <p className="muted" role="status">Узнаём, что вам доступно…</p>}
       {(base.status === 'unconfigured' || base.status === 'error') && <p className="local-session-error" role="alert">{base.status === 'unconfigured' ? 'Связь с внешними системами ещё не настроена на сервере Мастерборда.' : base.message}</p>}

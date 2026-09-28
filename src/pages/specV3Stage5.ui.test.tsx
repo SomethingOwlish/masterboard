@@ -174,7 +174,7 @@ describe('ТЗ-3, этап 5: удаление — подтверждение и
     expect(screen.queryByRole('button', { name: 'Как было' })).not.toBeInTheDocument()
     await user.click(await screen.findByRole('button', { name: 'По умолчанию' }))
     const dialog = await screen.findByRole('dialog', { name: 'Вернуть правила по умолчанию?' })
-    expect(within(dialog).getByText('Персонаж ведущего: только здесь → стол')).toBeInTheDocument()
+    expect(within(dialog).getByText('NPC: только здесь → стол')).toBeInTheDocument()
     await user.click(within(dialog).getByRole('button', { name: 'Вернуть' }))
     await waitFor(async () => expect((await catalog.find(id))!.publishRules).toBeUndefined())
   })

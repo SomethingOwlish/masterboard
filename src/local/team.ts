@@ -4,10 +4,13 @@ export const newMaster = (name: string, role: LocalMaster['role'] = 'co-master')
 export const newPlayer = (name: string): LocalPlayer => ({ id: `player-${crypto.randomUUID()}`, name: name.trim(), characterIds: [], note: '' })
 export const newGroup = (name: string, playerIds: string[] = []): LocalGroup => ({ id: `group-${crypto.randomUUID()}`, name: name.trim(), playerIds })
 
+/** A new master's name from their sign-in address: the part before «@». */
+export const nameFromEmail = (email: string): string => email.split('@')[0].trim() || 'Мастер'
+
 /** Old campaigns stored masters as "Сова + Лис"; the first name becomes the owner. */
 export function parseMasters(text: string): LocalMaster[] {
   const names = text.split(/[+,]/).map((name) => name.trim()).filter(Boolean)
-  return (names.length ? names : ['Ведущий']).map((name, index) => newMaster(name, index === 0 ? 'owner' : 'co-master'))
+  return (names.length ? names : ['Мастер']).map((name, index) => newMaster(name, index === 0 ? 'owner' : 'co-master'))
 }
 
 export const ownerOf = (campaign: LocalCampaignRecord): LocalMaster => campaign.masters.find((master) => master.role === 'owner') ?? campaign.masters[0]

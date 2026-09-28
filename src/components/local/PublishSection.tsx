@@ -3,12 +3,12 @@ import { Badge, Button, EmptyState, Select } from '../../ds'
 import type { PublicationOperation, PublicationQueueItem } from '../../model/external'
 import { Link } from 'react-router-dom'
 import { ROLE_LABEL, SYSTEM_LABEL, WRITABLE_ROLES, linkedRole, parseConnectionKey, roleConnection, targetTypes } from '../../local/integration'
-import { plural } from '../../local/labels'
+import { plural, ENTITY_LABEL } from '../../local/labels'
 import { canRemove, confirmSelected, enqueue, enqueueByRoles, pendingByRoles, pickHint, OPERATION_LABEL, previewDrafts, reasonLabel, removeQueued, retrySelected, sendConfirmed, STATE_LABEL, unconfirm } from '../../local/publishing'
 import type { LocalCampaignRecord } from '../../local/types'
 import { useConnections, useExternal, usePassports } from '../../local/useExternal'
 import { useConfirm } from '../useConfirm'
-import { ENTITY_LABEL, type SectionProps } from './shared'
+import type { SectionProps } from './shared'
 
 const OPERATIONS: PublicationOperation[] = ['create', 'update', 'change-visibility', 'archive']
 const TONE: Record<PublicationQueueItem['state'], 'neutral' | 'accent' | 'warning' | 'success' | 'danger'> = { draft: 'neutral', ready: 'accent', blocked: 'warning', succeeded: 'success', failed: 'danger' }
@@ -77,13 +77,13 @@ export function PublishSection({ campaign, persist }: SectionProps) {
     )}
 
     {destinations.length > 0 ? <div className="publish-section__composer" role="group" aria-label="Добавить в очередь">
-      <Select aria-label="Что публикуем" value={entityId} onChange={(e) => setEntityId(e.target.value)}><option value="">Сущность…</option>{entities.map((item) => <option key={item.id} value={item.id}>{item.name} · {ENTITY_LABEL[item.type]}{item.visibility === 'master' ? ' · только ведущим' : ''}</option>)}</Select>
+      <Select aria-label="Что публикуем" value={entityId} onChange={(e) => setEntityId(e.target.value)}><option value="">Сущность…</option>{entities.map((item) => <option key={item.id} value={item.id}>{item.name} · {ENTITY_LABEL[item.type]}{item.visibility === 'master' ? ' · только мастерам' : ''}</option>)}</Select>
       <Select aria-label="Куда" value={destinationId} onChange={(e) => setConnectionId(e.target.value)}>{destinations.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</Select>
       <Select aria-label="Операция" value={operation} onChange={(e) => setOperation(e.target.value as PublicationOperation)}>{OPERATIONS.map((value) => <option key={value} value={value}>{OPERATION_LABEL[value]}</option>)}</Select>
       {entity && <Select aria-label="Тип там" value={chosenType} onChange={(e) => setTargetType(e.target.value)}>{typeOptions(destinationId, entity.type).map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</Select>}
       <Button icon="plus" disabled={!entityId} onClick={add}>В очередь</Button>
     </div> : <p className="muted">Кампания пока не подключена к миру или столу. <Link to={`/local/campaign/${campaign.id}/integrations`}>Подключить</Link></p>}
-    {entity?.visibility === 'master' && <p className="local-session-error">Эта сущность видна только ведущим. В Лорбуке она будет скрытой, в ЛавГеймс — не видна игрокам.</p>}
+    {entity?.visibility === 'master' && <p className="local-session-error">Эта сущность видна только мастерам. В Лорбуке она будет скрытой, в ЛавГеймс — не видна игрокам.</p>}
 
     <div className="publish-section__actions"><Button disabled={busy || !queue.some((item) => item.state === 'draft' || item.state === 'blocked')} onClick={() => void check()}>1. Проверить черновики</Button><Button disabled={!selected.some((id) => queue.find((item) => item.id === id)?.state === 'ready')} onClick={confirmChosen}>2. Подтвердить выбранные</Button><Button variant="primary" icon="upload" disabled={busy || !confirmed.length} onClick={send}>3. Отправить подтверждённые ({confirmed.length})</Button><Button disabled={!selected.some((id) => queue.find((item) => item.id === id)?.state === 'failed')} onClick={retry}>Повторить выбранные</Button></div>
     {message && <p className="muted" role="status">{message}</p>}

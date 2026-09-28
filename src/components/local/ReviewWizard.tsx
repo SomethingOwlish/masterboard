@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Badge, Button, Select } from '../../ds'
 import { moveClock } from '../../local/domain'
-import { LOG_KIND, completeReview, missingDecisions, reviewItems } from '../../local/sessionFlow'
+import { completeReview, missingDecisions, reviewItems } from '../../local/sessionFlow'
 import type { LocalCampaignRecord, LocalReviewDecision, LocalSessionPlanItem, LocalSessionRecord } from '../../local/types'
-import { withSession } from '../../local/labels'
+import { withSession, LOG_KIND, TIME_PLACEHOLDER } from '../../local/labels'
 import type { Persist } from './shared'
 import { liveSessions, nextSessionNumber } from '../../local/sessions'
 import { Kk9SendPanel } from './Kk9Panels'
@@ -85,7 +85,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
     </div>}
 
     {step === 3 && <div className="session-review-wizard__body">
-      <label htmlFor="review-time">Текущее время кампании после сессии<input id="review-time" value={campaign.activeTime} onChange={(e) => persist({ ...campaign, activeTime: e.target.value })} /></label>
+      <label htmlFor="review-time">Текущее время кампании после сессии<input id="review-time" value={campaign.activeTime} placeholder={TIME_PLACEHOLDER} onChange={(e) => persist({ ...campaign, activeTime: e.target.value })} /></label>
     </div>}
 
     {step === 4 && <div className="session-review-wizard__body">

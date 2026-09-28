@@ -7,6 +7,7 @@ import { WEEKDAYS, charactersByCampaign, newProfile, type PlayerEntry, type Play
 import type { LocalCampaignRecord } from '../local/types'
 import { usePlayerDirectory } from '../local/usePlayerDirectory'
 import { useLocalCatalog } from '../local/useLocalCampaign'
+import { useDocumentTitle } from '../components/useDocumentTitle'
 
 /**
  * Игроки (ТЗ-2, R11): один справочник для всех мастеров. Профиль — общий;
@@ -14,6 +15,7 @@ import { useLocalCatalog } from '../local/useLocalCampaign'
  * кампаний, которые может открыть этот мастер.
  */
 export function PlayersPage() {
+  useDocumentTitle('Игроки')
   const catalog = useLocalCatalog()
   const shared = catalog.shared
   const directory = usePlayerDirectory()
@@ -29,8 +31,8 @@ export function PlayersPage() {
   const visible = entries.filter((entry) => !query.trim() || `${entry.profile.name} ${entry.profile.contacts} ${entry.profile.preferences}`.toLocaleLowerCase().includes(query.trim().toLocaleLowerCase()))
   const create = async () => { const profile = newProfile(query.trim() || 'Новый игрок'); const entry = await directory.save(profile, 0); if (entry) { setQuery(''); setParams({ open: entry.profile.id }) } }
   return <main className="campaign-workspace">
-    <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div>{shared ? <Badge tone="accent" dot>{shared.email}</Badge> : <Badge tone="neutral" dot>Локальные данные</Badge>}<LocalThemeControl /></div></header>
-    <section className="campaign-workspace__hero"><div><Link className="backups__back" to="/"><Icon name="arrow-left" size={15} /> Кампании</Link><span className="panel-kicker">Рабочее пространство ведущего</span><h1>Игроки</h1><p>Общий справочник для всех мастеров. Личная заметка видна только вам.</p></div></section>
+    <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div>{shared ? <Badge tone="accent" dot>{shared.email}</Badge> : null}<LocalThemeControl /></div></header>
+    <section className="campaign-workspace__hero"><div><Link className="backups__back" to="/"><Icon name="arrow-left" size={15} /> Кампании</Link><span className="panel-kicker">Рабочее пространство мастера</span><h1>Игроки</h1><p>Общий справочник для всех мастеров. Личная заметка видна только вам.</p></div></section>
     {directory.state.status === 'error' && <div className="campaign-workspace__recovery" role="alert"><Icon name="cloud-off" size={18} /><span><strong>Справочник недоступен.</strong> {directory.state.message}</span></div>}
     {directory.notice && <div className="campaign-workspace__recovery" role="status"><Icon name="git-merge" size={18} /><span>{directory.notice}</span></div>}
     <div className="players-page">

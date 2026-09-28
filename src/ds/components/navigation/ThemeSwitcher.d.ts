@@ -6,6 +6,15 @@ export interface ThemeChange {
   theme: string
 }
 
+export interface ThemeSwitcherLabels {
+  /** Family id → name shown as the dot's title. */
+  families?: Record<string, string>
+  /** Toggle text while dark (switches to light). */
+  light?: string
+  /** Toggle text while light (switches to dark). */
+  dark?: string
+}
+
 export interface ThemeSwitcherProps extends React.HTMLAttributes<HTMLDivElement> {
   /** Controlled family: parchment | sage | sumi | indigo | dusk. */
   family?: string
@@ -14,6 +23,8 @@ export interface ThemeSwitcherProps extends React.HTMLAttributes<HTMLDivElement>
   onChange?: (change: ThemeChange) => void
   /** Element to write data-theme on. Defaults to document.documentElement. */
   target?: HTMLElement
+  /** Interface text; English defaults. */
+  labels?: ThemeSwitcherLabels
 }
 
 export function ThemeSwitcher(props: ThemeSwitcherProps): React.ReactElement
