@@ -12,6 +12,10 @@ import { IdbStorageGateway } from './adapters/idbStorageGateway'
 import { SignInPage } from './pages/SignInPage'
 import './ds/styles.css' // design-system tokens, fonts, themes — must load first
 import './index.css' // app classes (bridged onto the DS tokens above)
+import './styles/home.css'
+import './styles/campaign.css'
+import './styles/sessions.css'
+import './styles/print.css' // last: print overrides everything above
 
 applyStoredTheme()
 
