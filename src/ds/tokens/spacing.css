@@ -33,8 +33,10 @@
   --blur-veil: 28px;
 
   /* Z layers */
+  --z-sticky: 20;     /* @kind other */ /* sticky bars inside a page */
   --z-rail: 30;       /* @kind other */
   --z-scrim: 40;      /* @kind other */
+  --z-dropdown: 40;   /* @kind other */ /* menus opened from a bar */
   --z-panel: 45;      /* @kind other */
   --z-modal: 50;      /* @kind other */
   --z-toast: 60;      /* @kind other */
