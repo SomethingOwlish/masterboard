@@ -89,7 +89,7 @@ export const ROLE_SYSTEMS: Record<CampaignRole, ExternalSystem[]> = { world: ['l
 export const ROLE_LABEL: Record<CampaignRole, string> = { world: 'Мир', table: 'Стол', system: 'Система' }
 export const ROLE_HINT: Record<CampaignRole, string> = {
   world: 'Лор: локации, фракции, события, статьи',
-  table: 'Персонажи, НПС, предметы и их статы',
+  table: 'Персонажи, NPC, предметы и их статы',
   system: 'Правила и поля карточек',
 }
 /** Roles a campaign can send entities to; the system is read-only (decision E4). */

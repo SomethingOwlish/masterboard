@@ -13,8 +13,9 @@ export const MB_THEMES = [
  * ThemeSwitcher — picks one of five colour families and toggles light/dark,
  * writing data-theme on <html> (e.g. "sumi-dark"). Renders five accent dots and
  * a sun/moon toggle. Controlled (pass family/mode/onChange) or self-managing.
+ * `labels` overrides the family names and the light/dark toggle text.
  */
-export function ThemeSwitcher({ family, mode, onChange, target, style, ...rest }) {
+export function ThemeSwitcher({ family, mode, onChange, target, labels, style, ...rest }) {
   const [fam, setFam] = React.useState(family || 'parchment')
   const [md, setMd] = React.useState(mode || 'light')
   const curFam = family ?? fam
@@ -27,6 +28,8 @@ export function ThemeSwitcher({ family, mode, onChange, target, style, ...rest }
   }
   const pickFamily = (f) => { setFam(f); apply(f, curMode) }
   const toggleMode = () => { const m = curMode === 'dark' ? 'light' : 'dark'; setMd(m); apply(curFam, m) }
+  const familyLabel = (t) => labels?.families?.[t.id] ?? t.label
+  const modeLabel = curMode === 'dark' ? (labels?.light ?? 'Light') : (labels?.dark ?? 'Dark')
 
   return (
     <div
@@ -50,8 +53,8 @@ export function ThemeSwitcher({ family, mode, onChange, target, style, ...rest }
             <button
               key={t.id}
               type="button"
-              title={t.label}
-              aria-label={t.label}
+              title={familyLabel(t)}
+              aria-label={familyLabel(t)}
               aria-pressed={active}
               onClick={() => pickFamily(t.id)}
               style={{
@@ -75,8 +78,8 @@ export function ThemeSwitcher({ family, mode, onChange, target, style, ...rest }
       <button
         type="button"
         onClick={toggleMode}
-        aria-label={curMode === 'dark' ? 'Switch to light' : 'Switch to dark'}
-        title={curMode === 'dark' ? 'Light' : 'Dark'}
+        aria-label={modeLabel}
+        title={modeLabel}
         style={{
           display: 'inline-flex',
           alignItems: 'center',

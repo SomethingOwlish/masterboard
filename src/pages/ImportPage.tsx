@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Icon } from '../ds'
 import { LocalThemeControl } from '../components/LocalThemeControl'
 import { useLocalCatalog } from '../local/useLocalCampaign'
+import { useDocumentTitle } from '../components/useDocumentTitle'
 
 /**
  * «Импорт» рядом со списком кампаний (ТЗ-2, R6): кампания целиком из файла и
@@ -10,6 +11,7 @@ import { useLocalCatalog } from '../local/useLocalCampaign'
  * в её разделе «Обмен → Импорт».
  */
 export function ImportPage() {
+  useDocumentTitle('Импорт')
   const catalog = useLocalCatalog()
   const shared = catalog.shared
   const navigate = useNavigate()
@@ -20,8 +22,8 @@ export function ImportPage() {
     try { const campaign = await catalog.importCampaign(await chosen.text()); navigate(`/local/campaign/${campaign.id}/overview`) } catch (failure) { setError(failure instanceof Error ? failure.message : 'Не удалось импортировать файл') }
   }
   return <main className="campaign-workspace">
-    <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div>{shared ? <Badge tone="accent" dot>{shared.email}</Badge> : <Badge tone="neutral" dot>Локальные данные</Badge>}<LocalThemeControl /></div></header>
-    <section className="campaign-workspace__hero"><div><Link className="backups__back" to="/"><Icon name="arrow-left" size={15} /> Кампании</Link><span className="panel-kicker">Рабочее пространство ведущего</span><h1>Импорт</h1><p>Кампании из файла и из подключённых систем.</p></div></section>
+    <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div>{shared ? <Badge tone="accent" dot>{shared.email}</Badge> : null}<LocalThemeControl /></div></header>
+    <section className="campaign-workspace__hero"><div><Link className="backups__back" to="/"><Icon name="arrow-left" size={15} /> Кампании</Link><span className="panel-kicker">Рабочее пространство мастера</span><h1>Импорт</h1><p>Кампании из файла и из подключённых систем.</p></div></section>
     {error && <div className="campaign-workspace__recovery" role="alert"><Icon name="triangle-alert" size={18} /><span><strong>Не получилось.</strong> {error}</span><button onClick={() => setError(null)} aria-label="Закрыть сообщение"><Icon name="x" size={16} /></button></div>}
     <div className="import-tiles import-tiles--home">
       <article className="import-tile" aria-label="Кампания из файла"><header><Icon name="upload" size={18} /><strong>Кампания из файла</strong></header><p className="muted">Файл «Экспорта» кампании. Если такая уже есть, появится копия.</p><Button variant="primary" icon="upload" onClick={() => file.current?.click()}>Выбрать файл</Button></article>

@@ -1,8 +1,9 @@
 import type { DragEvent } from 'react'
 import { Badge, Button, Select } from '../../../ds'
 import type { LocalSessionPlanItem, LocalSessionPlanKind } from '../../../local/types'
-import { DRAG_ITEM, PLAN_KINDS, USE_STATUS, type PlanApi } from './planApi'
+import { DRAG_ITEM, type PlanApi } from './planApi'
 import { SubmitField } from '../shared'
+import { PLAN_KINDS, USE_STATUS } from '../../../local/labels'
 
 /** One plan item, shared by the list and the scene board. Draggable. */
 export function PlanItemCard({ api, item, onDropBefore }: { api: PlanApi; item: LocalSessionPlanItem; onDropBefore: (draggedId: string) => void }) {

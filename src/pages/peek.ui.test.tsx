@@ -14,13 +14,13 @@ describe('side panel, search and entity page (ТЗ-2, R5/R9)', () => {
     renderApp(`/local/campaign/${id}/control`, catalog)
     const clock = await screen.findByRole('article', { name: 'Часы: Прилив' })
     await user.click(within(clock).getByRole('button', { name: 'Олан' }))
-    const panel = await screen.findByRole('complementary', { name: 'Персонаж ведущего: Олан' })
+    const panel = await screen.findByRole('complementary', { name: 'NPC: Олан' })
     expect(within(panel).getByText('Старый фонарщик')).toBeInTheDocument()
     await user.click(within(panel).getByRole('button', { name: 'Часы «Прилив»' }))
     expect(await screen.findByRole('complementary', { name: 'Часы: Прилив' })).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Назад' }))
-    await user.click(within(await screen.findByRole('complementary', { name: 'Персонаж ведущего: Олан' })).getByRole('button', { name: 'Открыть полностью' }))
-    expect(await screen.findByRole('navigation', { name: 'Путь' })).toHaveTextContent('Библиотека › Персонаж ведущего')
+    await user.click(within(await screen.findByRole('complementary', { name: 'NPC: Олан' })).getByRole('button', { name: 'Открыть полностью' }))
+    expect(await screen.findByRole('navigation', { name: 'Путь' })).toHaveTextContent('Библиотека › NPC')
     expect(screen.getByRole('heading', { name: 'Олан', level: 2 })).toBeInTheDocument()
   })
 
@@ -33,7 +33,7 @@ describe('side panel, search and entity page (ТЗ-2, R5/R9)', () => {
     await user.type(await screen.findByLabelText('Что ищем'), 'фонарщик')
     expect(screen.getByRole('option', { name: /Олан/ })).toHaveAttribute('aria-selected', 'true')
     await user.keyboard('{Enter}')
-    expect(await screen.findByRole('complementary', { name: 'Персонаж ведущего: Олан' })).toBeInTheDocument()
+    expect(await screen.findByRole('complementary', { name: 'NPC: Олан' })).toBeInTheDocument()
   })
 
   it('saves a set of library filters for this master', async () => {

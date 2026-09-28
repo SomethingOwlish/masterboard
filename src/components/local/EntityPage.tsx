@@ -1,16 +1,16 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, EmptyState } from '../../ds'
-import { ENTITY_STATUS_LABEL, entityUsages, originLabel } from '../../local/domain'
+import { entityUsages, originLabel } from '../../local/domain'
 import { ROLE_LABEL, SYSTEM_LABEL, entityRoles, linkedRole } from '../../local/integration'
 import type { LocalCampaignRecord } from '../../local/types'
 import { EntityDetails } from './EntityDetails'
 import { EntityEditor } from './EntityEditor'
 import { PeekLink } from './Peek'
 import { SourceLinks } from './SourcePanels'
-import { ENTITY_LABEL, type Persist } from './shared'
+import type { Persist } from './shared'
+import { ENTITY_STATUS_LABEL, ENTITY_LABEL, VISIBILITY_LABEL, RELATION_TYPE } from '../../local/labels'
 
-const RELATION_LABEL = { alliance: 'Союз', enmity: 'Вражда', debt: 'Долг', kin: 'Родство', belongs: 'Принадлежность', other: 'Связь' } as const
 
 /** «Открыть полностью» (ТЗ-2, R9): everything about one library record on its own page. */
 export function EntityPage({ campaign, persist, entityId }: { campaign: LocalCampaignRecord; persist: Persist; entityId: string }) {
@@ -23,14 +23,14 @@ export function EntityPage({ campaign, persist, entityId }: { campaign: LocalCam
   const archive = () => persist({ ...campaign, entities: campaign.entities.map((item) => item.id === entity.id ? { ...item, status: item.status === 'archived' ? 'active' : 'archived' } : item) })
   return <section className="campaign-section entity-page">
     <nav className="entity-page__crumbs" aria-label="Путь"><Link to={`/local/campaign/${campaign.id}/library`}>Библиотека</Link> › {ENTITY_LABEL[entity.type]}</nav>
-    <div className="section-bar"><div><h2>{entity.name}</h2><div className="row">{[entity.visibility === 'public' ? 'Для игроков' : 'Только ведущим', ENTITY_STATUS_LABEL[entity.status], ...(entity.dead ? ['Погиб'] : [])].map((badge) => <Badge key={badge} size="sm">{badge}</Badge>)}</div></div><div className="row"><Button icon={entity.status === 'archived' ? 'undo-2' : 'history'} onClick={archive}>{entity.status === 'archived' ? 'Вернуть из архива' : 'В архив'}</Button><Button variant="primary" icon="pencil" onClick={() => setEditing(true)}>Редактировать</Button></div></div>
+    <div className="section-bar"><div><h2>{entity.name}</h2><div className="row">{[VISIBILITY_LABEL[entity.visibility], ENTITY_STATUS_LABEL[entity.status], ...(entity.dead ? ['Погиб'] : [])].map((badge) => <Badge key={badge} size="sm">{badge}</Badge>)}</div></div><div className="row"><Button icon={entity.status === 'archived' ? 'undo-2' : 'history'} onClick={archive}>{entity.status === 'archived' ? 'Вернуть из архива' : 'В архив'}</Button><Button variant="primary" icon="pencil" onClick={() => setEditing(true)}>Редактировать</Button></div></div>
     <div className="entity-page__layout">
       <div className="entity-page__main">
         <p className="entity-page__description">{entity.description || <span className="muted">Описание пока не добавлено.</span>}</p>
         <EntityDetails entity={entity} className="peek-fields entity-page__fields" fate={false} />
         {entity.tags.length > 0 && <p className="row">{entity.tags.map((tag) => <Badge size="sm" key={tag}>#{tag}</Badge>)}</p>}
         <h3>Связи</h3>
-        {usages.relations.length ? <ul className="entity-page__list">{usages.relations.map((relation) => { const other = relation.fromId === entity.id ? relation.toId : relation.fromId; return <li key={relation.id}><span className="muted">{RELATION_LABEL[relation.type]}{relation.direction === 'directed' ? (relation.fromId === entity.id ? ' →' : ' ←') : ' ↔'}</span> <PeekLink target={{ kind: 'entity', id: other }}>{name(other)}</PeekLink>{relation.label && <small> · {relation.label}</small>}</li> })}</ul> : <p className="muted">Связей нет. <Link to={`/local/campaign/${campaign.id}/map`}>Добавить в «Связях»</Link></p>}
+        {usages.relations.length ? <ul className="entity-page__list">{usages.relations.map((relation) => { const other = relation.fromId === entity.id ? relation.toId : relation.fromId; return <li key={relation.id}><span className="muted">{RELATION_TYPE[relation.type]}{relation.direction === 'directed' ? (relation.fromId === entity.id ? ' →' : ' ←') : ' ↔'}</span> <PeekLink target={{ kind: 'entity', id: other }}>{name(other)}</PeekLink>{relation.label && <small> · {relation.label}</small>}</li> })}</ul> : <p className="muted">Связей нет. <Link to={`/local/campaign/${campaign.id}/map`}>Добавить в «Связях»</Link></p>}
       </div>
       <aside className="entity-page__side">
         <h3>Где используется</h3>
@@ -39,10 +39,11 @@ export function EntityPage({ campaign, persist, entityId }: { campaign: LocalCam
           {usages.clocks.map((clock) => <li key={clock.id}><PeekLink target={{ kind: 'clock', id: clock.id }}>Часы «{clock.title}»</PeekLink></li>)}
           {usages.secrets.map((secret) => <li key={secret.id}><PeekLink target={{ kind: 'secret', id: secret.id }}>Секрет «{secret.title}»</PeekLink></li>)}
         </ul> : <p className="muted">Пока нигде.</p>}
-        <h3>Где хранится</h3>
-        <p>{places.length ? `Здесь и: ${places.join(', ')}` : 'Только в Мастерборде'}</p>
+        <h3>Куда отправлять</h3>
+        <p>{places.length ? places.join(', ') : 'Никуда, только в Мастерборде'}</p>
+        <h3>Источник</h3>
+        <p className="muted">{originLabel(entity, campaign)}</p>
         <SourceLinks campaign={campaign} entity={entity} persist={persist} />
-        <small className="muted">{originLabel(entity, campaign)}</small>
       </aside>
     </div>
     {editing && <EntityEditor campaign={campaign} persist={persist} entity={entity} close={() => setEditing(false)} />}

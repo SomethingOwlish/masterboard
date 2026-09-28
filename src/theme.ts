@@ -1,8 +1,8 @@
 // Theme is a CSS-variable swap driven by `data-theme` on <html>, sourced from
 // the design system's tokens/themes.css. Five colour families each ship a light
 // and a dark mode (data-theme = family, or `${family}-dark`). The shell choice
-// is persisted in localStorage; a campaign may override the family via its
-// settings. Legacy stored values from the old 4-theme system are migrated.
+// is persisted in localStorage. Legacy stored values from the old 4-theme
+// system are migrated.
 
 export type Family = 'parchment' | 'sage' | 'sumi' | 'indigo' | 'dusk'
 export type Mode = 'light' | 'dark'
@@ -12,19 +12,8 @@ export interface StoredTheme {
   mode: Mode
 }
 
-export const FAMILIES: { id: Family; label: string }[] = [
-  { id: 'parchment', label: 'Parchment' },
-  { id: 'sage', label: 'Sage' },
-  { id: 'sumi', label: 'Sumi' },
-  { id: 'indigo', label: 'Indigo' },
-  { id: 'dusk', label: 'Dusk' },
-]
-
-// Back-compat alias: a few callers still import THEMES as the family list.
-export const THEMES = FAMILIES
-
 const KEY = 'mb.theme'
-const FAMILY_IDS = new Set<string>(FAMILIES.map((f) => f.id))
+const FAMILY_IDS = new Set<string>(['parchment', 'sage', 'sumi', 'indigo', 'dusk'] satisfies Family[])
 
 // Old 4-theme ids → the closest new {family, mode}.
 const LEGACY: Record<string, StoredTheme> = {
@@ -64,12 +53,4 @@ export function getStoredTheme(): StoredTheme {
 export function setTheme(family: Family, mode: Mode): void {
   document.documentElement.dataset.theme = resolveDataTheme(family, mode)
   localStorage.setItem(KEY, JSON.stringify({ family, mode }))
-}
-
-// Map any campaign-stored theme value (legacy id, family, or `${family}-dark`)
-// to a `data-theme` attribute string. Used when a campaign overrides the shell.
-export function campaignThemeToDataAttr(theme: string): string {
-  const legacy = LEGACY[theme]
-  if (legacy) return resolveDataTheme(legacy.family, legacy.mode)
-  return theme
 }

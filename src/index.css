@@ -1033,6 +1033,7 @@ kbd {
 .scene-tree__row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px var(--space-2); }
 .scene-tree__title { flex: 1 1 12rem; display: inline-flex; align-items: center; gap: 4px; min-width: 0; max-width: 100%; padding: 2px 0; border: 0; background: none; color: var(--text); text-align: left; cursor: pointer; }
 .scene-tree__title strong { overflow-wrap: anywhere; }
+.scene-tree__role { flex: none; color: var(--muted); font-size: .9em; }
 /* Titles are short by design; a long one (an old import, a pasted paragraph) shows two lines, the rest in the editor. */
 .scene-tree__scene > header h3, .scene-tree__title strong, .session-plan__item-main h3 { display: -webkit-box; -webkit-box-orient: vertical; -webkit-line-clamp: 2; line-clamp: 2; overflow: hidden; }
 .scene-tree__badges { display: inline-flex; flex-wrap: wrap; gap: 4px; }
@@ -1540,6 +1541,7 @@ textarea.auto-grow { field-sizing: content; min-height: 2.4em; max-height: 50vh;
 .inbox-row__text { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
 .inbox-row__actions { display: flex; flex-wrap: wrap; align-items: center; gap: 4px; }
 .inbox-row__actions select { padding: 4px 6px; border: 1px solid var(--border); border-radius: var(--radius-sm); background: var(--surface); color: var(--text); font: inherit; font-size: .85rem; }
+.inbox-row__library { display: inline-flex; align-items: center; gap: 4px; }
 .plan-timeline__filters { display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: var(--space-3); }
 .plan-timeline__filters .home-chip { padding: 3px 10px; font-size: .85rem; }
 

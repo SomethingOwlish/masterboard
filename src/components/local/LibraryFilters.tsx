@@ -5,10 +5,10 @@ import { EXTERNAL_SYSTEMS } from '../../model/external'
 import { useActing } from '../../local/actingContext'
 import { SYSTEM_LABEL } from '../../local/integration'
 import type { LocalCampaignRecord } from '../../local/types'
-import { ENTITY_LABEL, ENTITY_TYPES, type Persist } from './shared'
+import type { Persist } from './shared'
+import { ENTITY_LABEL, ENTITY_TYPES, VISIBILITY_LABEL } from '../../local/labels'
 
 const SORT_LABEL = { added: 'По порядку добавления', name: 'По названию', type: 'По типу', used: 'Чаще используемые' } as const
-const VISIBILITY_LABEL = { master: 'Только ведущим', public: 'Для игроков' } as const
 const STATUS_LABEL = { active: 'Активные', inactive: 'Неактивные' } as const
 
 /**
@@ -47,7 +47,7 @@ export function LibraryFilters({ campaign, persist, filter, setFilter, total, sh
     </div>
     {open && <div className="library-filters__panel" role="group" aria-label="Фильтры библиотеки">
       <fieldset><legend>Теги</legend>{tags.length ? <div className="library-filters__tags">{tags.map((tag) => { const on = filter.tags?.includes(tag); return <label key={tag} className={`home-chip${on ? ' on' : ''}`}><input type="checkbox" checked={Boolean(on)} onChange={() => setFilter({ ...filter, tags: on ? filter.tags!.filter((item) => item !== tag) : [...(filter.tags ?? []), tag] })} />#{tag}</label> })}</div> : <small className="muted">Тегов пока нет</small>}</fieldset>
-      <label>Видимость<Select value={filter.visibility ?? 'all'} onChange={(event) => setFilter({ ...filter, visibility: event.target.value as EntityFilter['visibility'] })}><option value="all">Любая</option><option value="master">Только ведущим</option><option value="public">Для игроков</option></Select></label>
+      <label>Видимость<Select value={filter.visibility ?? 'all'} onChange={(event) => setFilter({ ...filter, visibility: event.target.value as EntityFilter['visibility'] })}><option value="all">Любая</option><option value="master">{VISIBILITY_LABEL.master}</option><option value="public">{VISIBILITY_LABEL.public}</option></Select></label>
       <label>Состояние<Select value={filter.status ?? 'all'} onChange={(event) => setFilter({ ...filter, status: event.target.value as EntityFilter['status'] })}><option value="all">Любое</option><option value="active">Активные</option><option value="inactive">Неактивные</option></Select></label>
       <label>Источник<Select value={filter.source ?? 'all'} onChange={(event) => setFilter({ ...filter, source: event.target.value as EntityFilter['source'] })}><option value="all">Любой</option><option value="none">Только здесь</option>{systems.map((system) => <option key={system} value={system}>{SYSTEM_LABEL[system]}</option>)}</Select></label>
       {filter.type === 'npc' && <label>Судьба<Select aria-label="Судьба NPC" value={filter.fate ?? 'all'} onChange={(event) => setFilter({ ...filter, fate: event.target.value as NonNullable<EntityFilter['fate']> })}><option value="all">Живые и погибшие</option><option value="alive">Только живые</option><option value="dead">Только погибшие</option></Select></label>}
@@ -59,7 +59,7 @@ export function LibraryFilters({ campaign, persist, filter, setFilter, total, sh
       {(chips.length > 0 || filter.query || filter.type !== 'all') && <button type="button" className="home-chips__reset" onClick={() => setFilter({ ...EMPTY_FILTER, sort: filter.sort })}>Сбросить</button>}
       <span className="library-filters__saved" role="group" aria-label="Мои подборки">
         {saved.map((item) => <span key={item.id} className="library-filters__preset"><button type="button" onClick={() => setFilter({ ...EMPTY_FILTER, ...item.filter })}><Icon name="bookmark" size={13} /> {item.name}</button><button type="button" aria-label={`Удалить подборку: ${item.name}`} onClick={() => setSaved(saved.filter((entry) => entry.id !== item.id))}><Icon name="x" size={12} /></button></span>)}
-        {naming === null ? <button type="button" className="home-chips__reset" onClick={() => setNaming('')}>Сохранить подборку</button> : <form className="library-filters__name" onSubmit={(event) => { event.preventDefault(); saveCurrent() }}><input autoFocus aria-label="Название подборки" value={naming} placeholder="НПС для сессии 3" onChange={(event) => setNaming(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') setNaming(null) }} /><Button size="sm" type="submit" disabled={!naming.trim()}>Сохранить</Button></form>}
+        {naming === null ? <button type="button" className="home-chips__reset" onClick={() => setNaming('')}>Сохранить подборку</button> : <form className="library-filters__name" onSubmit={(event) => { event.preventDefault(); saveCurrent() }}><input autoFocus aria-label="Название подборки" value={naming} placeholder="NPC для сессии 3" onChange={(event) => setNaming(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') setNaming(null) }} /><Button size="sm" type="submit" disabled={!naming.trim()}>Сохранить</Button></form>}
       </span>
     </div>
   </div>
