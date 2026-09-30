@@ -75,7 +75,7 @@ export function CampaignNav({ campaignId, section, className }: { campaignId: st
 }
 
 export function CampaignHeader({ campaign, section }: { campaign: LocalCampaignRecord; section: string }) {
-  return <header className="local-dashboard-header campaign-topbar"><Link className="campaign-topbar__back" to="/" aria-label="Все кампании"><Icon name="arrow-left" size={16} /> <span>Кампании</span></Link><strong className="campaign-topbar__name">{campaign.name}</strong><CampaignNav campaignId={campaign.id} section={section} /><div className="row campaign-topbar__tools"><ActingMasterSelect campaign={campaign} /><StorageIcon campaignId={campaign.id} /><LocalThemeControl /></div></header>
+  return <header className="local-dashboard-header campaign-topbar"><Link className="campaign-topbar__back" to="/" aria-label="Все кампании"><Icon name="arrow-left" size={16} /> <span className="campaign-topbar__back-label">Кампании</span></Link><strong className="campaign-topbar__name">{campaign.name}</strong><CampaignNav campaignId={campaign.id} section={section} /><div className="row campaign-topbar__tools"><ActingMasterSelect campaign={campaign} /><StorageIcon campaignId={campaign.id} /><LocalThemeControl /></div></header>
 }
 
 /** The same as `StorageBadge`, as an icon for the compact campaign bar. */
