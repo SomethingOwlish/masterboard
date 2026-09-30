@@ -193,6 +193,7 @@
 /* ---- .print-controls --------------------------------------------------- */
 .print-controls {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--space-3);
   margin-bottom: var(--space-4);
 }

@@ -139,7 +139,7 @@
 
 /* ---- .created-dashboard ------------------------------------------------ */
 .created-dashboard {
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-4);
   background: radial-gradient(circle at 82% 0, var(--accent-soft), transparent 28%), var(--bg);
 }
@@ -367,6 +367,8 @@
   display: flex;
   gap: 4px;
   width: max-content;
+  max-width: 100%;
+  overflow-x: auto;
   margin: var(--space-4) 0;
   padding: 4px;
   border: 1px solid var(--border);
@@ -1353,7 +1355,7 @@
 
 /* ---- .relation-graph --------------------------------------------------- */
 .relation-graph {
-  height: min(640px, 70vh);
+  height: min(640px, 70dvh);
   border: 1px solid var(--border);
   border-radius: var(--radius-lg);
   overflow: hidden;
@@ -1670,7 +1672,7 @@
 .source-import__list {
   display: grid;
   gap: 0;
-  max-height: 50vh;
+  max-height: 50dvh;
   margin: var(--space-3) 0 0;
   padding: 0;
   overflow-y: auto;
@@ -1983,9 +1985,63 @@
   background: var(--accent-soft);
   color: var(--accent);
 }
+/* ---- .theme-control ---------------------------------------------------- */
+.theme-control {
+  position: relative;
+}
+.theme-control__toggle {
+  display: none;
+}
 @media (max-width: 600px) {
-  .campaign-topbar__name {
+  .theme-control__toggle {
+    display: inline-grid;
+    place-items: center;
+    width: 36px;
+    height: 36px;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+  }
+  .theme-control__panel {
     display: none;
+    position: absolute;
+    top: calc(100% + 4px);
+    right: 0;
+    z-index: var(--z-dropdown);
+  }
+  .theme-control--open .theme-control__panel {
+    display: block;
+  }
+}
+
+/* Phone: one row for back + name + tools, one scrolling row for the sections. */
+@media (max-width: 600px) {
+  .local-dashboard-header.campaign-topbar {
+    gap: var(--space-1) var(--space-2);
+    padding-bottom: var(--space-2);
+    margin-bottom: var(--space-2);
+  }
+  .campaign-topbar__back {
+    order: 1;
+  }
+  .campaign-topbar__back-label {
+    display: none;
+  }
+  .campaign-topbar__name {
+    order: 2;
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+  }
+  .campaign-topbar__tools {
+    order: 3;
+    margin-left: 0;
+  }
+  .campaign-topbar > .campaign-nav {
+    order: 4;
+    flex: 1 0 100%;
   }
 }
 
@@ -2096,12 +2152,33 @@
     display: none;
   }
 }
+/* Phone: sections scroll sideways; the group menu is a bottom sheet (fixed, so the scroller does not clip it). */
 @media (max-width: 600px) {
+  .campaign-nav {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .campaign-nav__group {
+    flex: none;
+  }
+  .campaign-nav__search {
+    flex: none;
+  }
   .campaign-nav__menu {
     position: fixed;
-    left: 16px;
-    right: 16px;
     top: auto;
+    right: 0;
+    bottom: 0;
+    left: 0;
+    max-height: 70dvh;
+    overflow-y: auto;
+    padding: var(--space-2) var(--space-2) calc(var(--space-2) + env(safe-area-inset-bottom));
+    border-width: 1px 0 0;
+    border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+  }
+  .campaign-nav__menu a {
+    min-height: 44px;
   }
 }
 
@@ -2448,6 +2525,33 @@
 }
 .bulk-bar__done {
   margin: 0;
+}
+/* Phone: a slim bar; the actions scroll sideways in one line, the fields share the width. */
+@media (max-width: 600px) {
+  .bulk-bar {
+    bottom: var(--space-2);
+    padding: var(--space-2) var(--space-3);
+  }
+  .bulk-bar__row {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .bulk-bar__row > * {
+    flex: none;
+  }
+  .bulk-bar__clear {
+    position: sticky;
+    right: 0;
+    background: var(--surface);
+  }
+  .bulk-bar__form input {
+    min-width: 0;
+    flex: 1 1 8rem;
+  }
+  .bulk-bar__form select {
+    max-width: 100%;
+  }
 }
 
 /* ---- .import-tiles ----------------------------------------------------- */

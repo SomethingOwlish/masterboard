@@ -2,7 +2,7 @@
 /* ---- .campaign-workspace ----------------------------------------------- */
 /* Russian product entry — the only visible campaign hub. */
 .campaign-workspace {
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-4);
   background: radial-gradient(circle at 80% 0, var(--accent-soft), transparent 28%), var(--bg);
 }
@@ -279,8 +279,9 @@
   .campaign-workspace {
     padding: var(--space-3);
   }
-  .campaign-workspace__topbar > div:last-child > span:first-child {
-    display: none;
+  .campaign-workspace__topbar {
+    flex-wrap: wrap;
+    gap: var(--space-2);
   }
   .campaign-workspace__hero {
     align-items: flex-start;
@@ -305,7 +306,7 @@
   gap: var(--space-2);
 }
 .new-campaign-room {
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-4);
   background: linear-gradient(130deg, var(--accent-soft), transparent 32%), var(--bg);
 }
@@ -497,7 +498,7 @@
 .sign-in {
   display: grid;
   place-items: center;
-  min-height: 100vh;
+  min-height: 100dvh;
   padding: var(--space-4);
   background: var(--bg);
 }
