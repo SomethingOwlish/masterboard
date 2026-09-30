@@ -17,6 +17,7 @@ export function Button({
   disabled = false,
   type = 'button',
   style,
+  className,
   ...rest
 }) {
   const sizes = {
@@ -69,6 +70,7 @@ export function Button({
     <button
       type={type}
       disabled={disabled}
+      className={size === 'sm' ? ['mb-btn-sm', className].filter(Boolean).join(' ') : className}
       onMouseEnter={() => setHover(true)}
       onMouseLeave={() => { setHover(false); setActive(false) }}
       onMouseDown={() => setActive(true)}

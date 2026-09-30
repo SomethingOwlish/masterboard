@@ -290,8 +290,9 @@
   gap: 6px;
 }
 .campaign-local-library__grid article.archived {
-  opacity: .65;
   border-style: dashed;
+  background: var(--surface-2);
+  color: var(--muted);
 }
 .campaign-local-library__fields {
   display: grid;

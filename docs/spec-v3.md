@@ -276,7 +276,7 @@
 
 ---
 
-## Этап 8 — Контраст, фокус, шрифты ⛔
+## Этап 8 — Контраст, фокус, шрифты ✅
 
 **Цель:** WCAG AA во всех 10 темах без глобальных заплаток.
 
@@ -521,3 +521,4 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 | 5 | SomethingOwlish/masterboard#96 | 27.09.2026 |
 | 6 | SomethingOwlish/masterboard#97 | 28.09.2026 |
 | 7 | SomethingOwlish/masterboard#98 | 28.09.2026 |
+| 8 | (PR этапа 8) | 30.09.2026 |

@@ -57,24 +57,14 @@ export function ThemeSwitcher({ family, mode, onChange, target, labels, style, .
               aria-label={familyLabel(t)}
               aria-pressed={active}
               onClick={() => pickFamily(t.id)}
-              style={{
-                width: 18,
-                height: 18,
-                padding: 0,
-                borderRadius: '50%',
-                background: t.swatch,
-                border: 'none',
-                cursor: 'pointer',
-                outline: active ? '2px solid var(--text)' : '1px solid var(--border)',
-                outlineOffset: active ? 1 : 0,
-                transition: 'transform var(--dur-fast) var(--ease-out)',
-                transform: active ? 'scale(1.05)' : 'scale(1)',
-              }}
+              className="mb-theme-swatch"
+              data-active={active ? 'true' : undefined}
+              style={{ background: t.swatch }}
             />
           )
         })}
       </div>
-      <span style={{ width: 1, height: 18, background: 'var(--border)' }} />
+      <span style={{ width: 1, height: 24, background: 'var(--border)' }} />
       <button
         type="button"
         onClick={toggleMode}
@@ -84,8 +74,8 @@ export function ThemeSwitcher({ family, mode, onChange, target, labels, style, .
           display: 'inline-flex',
           alignItems: 'center',
           justifyContent: 'center',
-          width: 26,
-          height: 22,
+          width: 28,
+          height: 24,
           padding: 0,
           border: 'none',
           borderRadius: 'var(--radius-pill)',

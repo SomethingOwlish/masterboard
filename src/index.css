@@ -16,9 +16,6 @@
 #root {
   height: 100%;
 }
-body {
-  --muted: color-mix(in oklab, var(--text) 82%, var(--surface));
-}
 /* element resets, body font, headings, links & focus ring come from
    ds/tokens/base.css. The app only needs full-height root + control defaults. */
 button {
@@ -40,7 +37,7 @@ input, select, textarea {
   font: var(--type-body);
   color: var(--text);
   background: var(--surface);
-  border: 1px solid var(--border);
+  border: 1px solid var(--border-strong);
   border-radius: var(--radius-sm);
   padding: 0.5rem 0.7rem;
   transition: border-color var(--dur) var(--ease-out), box-shadow var(--dur) var(--ease-out);
@@ -436,6 +433,10 @@ button.ghost {
   padding: var(--space-3) var(--space-4);
   border-bottom: 1px solid var(--border);
   color: var(--muted);
+}
+.search-palette__field:focus-within {
+  border-bottom-color: var(--accent);
+  box-shadow: inset 0 -2px 0 var(--accent);
 }
 .search-palette__field input {
   flex: 1;
