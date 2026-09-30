@@ -8,7 +8,7 @@
   /* Families */
   --font-display: 'Masterboard Display Cyrillic', 'Zen Old Mincho', 'Hiragino Mincho ProN', 'Songti SC', Georgia, serif;
   --font-sans: 'Hanken Grotesk', system-ui, -apple-system, 'Segoe UI', sans-serif;
-  --font-mono: 'Space Mono', ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
+  --font-mono: 'PT Mono', ui-monospace, 'SF Mono', 'Roboto Mono', monospace;
 
   /* Weights */
   --weight-light: 300;

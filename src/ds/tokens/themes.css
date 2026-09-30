@@ -24,10 +24,10 @@
   --glass: rgba(251, 246, 234, 0.66);
   --glass-border: rgba(255, 255, 255, 0.55);
   --text: #2a2318;
-  --muted: #7c6f53;
+  --muted: #6e6249;
   --faint: #a8997626;
   --border: #ddcfa9;
-  --border-strong: #c9b988;
+  --border-strong: #918461;
   --accent: #9c5436;
   --accent-2: #834326;
   --accent-soft: #9c54361f;
@@ -36,6 +36,7 @@
   --success: #4f7a47;  --success-soft: #4f7a4718;
   --danger: #b3443a;   --danger-soft: #b3443a18;
   --warning: #b07a23;  --warning-soft: #b07a2320;
+  --warning-text: #825c1f;
   --info: #3a6a86;
   --line: #b98a5e;     --line-strong: #9c5436;
   --pattern-ink: #2a23180c;
@@ -55,7 +56,7 @@
   --muted: #a99a7e;
   --faint: #a99a7e26;
   --border: #3b342a;
-  --border-strong: #514736;
+  --border-strong: #766c5b;
   --accent: #d4915a;
   --accent-2: #e3a772;
   --accent-soft: #d4915a1f;
@@ -64,6 +65,7 @@
   --success: #7faa6f;  --success-soft: #7faa6f1c;
   --danger: #d8736a;   --danger-soft: #d8736a1c;
   --warning: #d2a14e;  --warning-soft: #d2a14e1c;
+  --warning-text: #d2a14e;
   --info: #74a6c2;
   --line: #8a6b48;     --line-strong: #d4915a;
   --pattern-ink: #ece3d208;
@@ -82,10 +84,10 @@
   --glass: rgba(247, 248, 244, 0.66);
   --glass-border: rgba(255, 255, 255, 0.6);
   --text: #232821;
-  --muted: #6b7464;
+  --muted: #5f6759;
   --faint: #6b746426;
   --border: #cdd4c2;
-  --border-strong: #b3bda4;
+  --border-strong: #828a77;
   --accent: #4f6f52;
   --accent-2: #3f5b42;
   --accent-soft: #4f6f521c;
@@ -94,6 +96,7 @@
   --success: #4d7a4f;  --success-soft: #4d7a4f18;
   --danger: #a94a3f;   --danger-soft: #a94a3f18;
   --warning: #9c7a2a;  --warning-soft: #9c7a2a20;
+  --warning-text: #796227;
   --info: #426c80;
   --line: #8aa07a;     --line-strong: #4f6f52;
   --pattern-ink: #2328210c;
@@ -110,10 +113,10 @@
   --glass: rgba(30, 35, 29, 0.60);
   --glass-border: rgba(200, 216, 192, 0.12);
   --text: #e4e8df;
-  --muted: #8b9684;
+  --muted: #8f9a89;
   --faint: #8b968426;
   --border: #333c31;
-  --border-strong: #475040;
+  --border-strong: #687061;
   --accent: #84a884;
   --accent-2: #9bbd9b;
   --accent-soft: #84a8841c;
@@ -122,6 +125,7 @@
   --success: #7faa6f;  --success-soft: #7faa6f1c;
   --danger: #d27a6f;   --danger-soft: #d27a6f1c;
   --warning: #c79f54;  --warning-soft: #c79f541c;
+  --warning-text: #c79f54;
   --info: #79a2b6;
   --line: #5f7a5a;     --line-strong: #84a884;
   --pattern-ink: #e4e8df08;
@@ -140,10 +144,10 @@
   --glass: rgba(251, 250, 246, 0.66);
   --glass-border: rgba(255, 255, 255, 0.6);
   --text: #1c1a17;
-  --muted: #6e6a60;
+  --muted: #69655c;
   --faint: #6e6a6026;
   --border: #d8d4c8;
-  --border-strong: #c0bbac;
+  --border-strong: #8d897e;
   --accent: #c2412d;
   --accent-2: #a3331f;
   --accent-soft: #c2412d18;
@@ -152,6 +156,7 @@
   --success: #4f7a4d;  --success-soft: #4f7a4d18;
   --danger: #b53a2a;   --danger-soft: #b53a2a18;
   --warning: #a87723;  --warning-soft: #a8772320;
+  --warning-text: #845f20;
   --info: #3f6678;
   --line: #6e6a60;     --line-strong: #c2412d;
   --pattern-ink: #1c1a170d;
@@ -171,7 +176,7 @@
   --muted: #a09a8c;
   --faint: #a09a8c26;
   --border: #34322c;
-  --border-strong: #49463d;
+  --border-strong: #6d6a61;
   --accent: #e0664a;
   --accent-2: #ee7e63;
   --accent-soft: #e0664a1c;
@@ -180,6 +185,7 @@
   --success: #82a96f;  --success-soft: #82a96f1c;
   --danger: #e0664a;   --danger-soft: #e0664a1c;
   --warning: #cfa052;  --warning-soft: #cfa0521c;
+  --warning-text: #cfa052;
   --info: #76a0b2;
   --line: #5a564c;     --line-strong: #e0664a;
   --pattern-ink: #ece9e108;
@@ -198,10 +204,10 @@
   --glass: rgba(246, 247, 250, 0.66);
   --glass-border: rgba(255, 255, 255, 0.6);
   --text: #1d2130;
-  --muted: #646b80;
+  --muted: #5b6276;
   --faint: #646b8026;
   --border: #c6ccdb;
-  --border-strong: #aab2c8;
+  --border-strong: #7e8599;
   --accent: #2e4a7a;
   --accent-2: #233a62;
   --accent-soft: #2e4a7a18;
@@ -210,6 +216,7 @@
   --success: #3f7a55;  --success-soft: #3f7a5518;
   --danger: #a8443f;   --danger-soft: #a8443f18;
   --warning: #9a6f28;  --warning-soft: #9a6f2820;
+  --warning-text: #7d5d2a;
   --info: #2e4a7a;
   --line: #7d88a8;     --line-strong: #2e4a7a;
   --pattern-ink: #1d21300c;
@@ -226,10 +233,10 @@
   --glass: rgba(24, 28, 43, 0.62);
   --glass-border: rgba(190, 202, 230, 0.12);
   --text: #dde2f0;
-  --muted: #828bab;
+  --muted: #8891b0;
   --faint: #828bab26;
   --border: #2c3450;
-  --border-strong: #3d4868;
+  --border-strong: #606a86;
   --accent: #6f8fcf;
   --accent-2: #88a4dc;
   --accent-soft: #6f8fcf1c;
@@ -238,6 +245,7 @@
   --success: #6fae7e;  --success-soft: #6fae7e1c;
   --danger: #d3776e;   --danger-soft: #d3776e1c;
   --warning: #c69a55;  --warning-soft: #c69a551c;
+  --warning-text: #c69a55;
   --info: #6f8fcf;
   --line: #495a86;     --line-strong: #6f8fcf;
   --pattern-ink: #dde2f008;
@@ -256,10 +264,10 @@
   --glass: rgba(244, 248, 248, 0.66);
   --glass-border: rgba(255, 255, 255, 0.6);
   --text: #182523;
-  --muted: #5e7470;
+  --muted: #536764;
   --faint: #5e747026;
   --border: #c0d2d0;
-  --border-strong: #a3bbb8;
+  --border-strong: #758987;
   --accent: #1f7a72;
   --accent-2: #16615b;
   --accent-soft: #1f7a721a;
@@ -268,6 +276,7 @@
   --success: #2f8060;  --success-soft: #2f806018;
   --danger: #ab483f;   --danger-soft: #ab483f18;
   --warning: #94732a;  --warning-soft: #94732a20;
+  --warning-text: #766028;
   --info: #2c6f86;
   --line: #6fa39d;     --line-strong: #1f7a72;
   --pattern-ink: #1825230c;
@@ -284,10 +293,10 @@
   --glass: rgba(18, 30, 28, 0.58);
   --glass-border: rgba(120, 220, 208, 0.14);
   --text: #d7eeeb;
-  --muted: #74938e;
+  --muted: #789792;
   --faint: #74938e26;
   --border: #25403b;
-  --border-strong: #355953;
+  --border-strong: #4f716b;
   --accent: #2fb3a4;
   --accent-2: #45cabb;
   --accent-soft: #2fb3a41f;
@@ -296,6 +305,7 @@
   --success: #4fc09a;  --success-soft: #4fc09a1c;
   --danger: #df7d6f;   --danger-soft: #df7d6f1c;
   --warning: #cfa755;  --warning-soft: #cfa7551c;
+  --warning-text: #cfa755;
   --info: #56b3c8;
   --line: #2f6b63;     --line-strong: #2fb3a4;
   --pattern-ink: #d7eeeb08;
