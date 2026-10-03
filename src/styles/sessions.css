@@ -1163,6 +1163,29 @@
   gap: 6px;
 }
 
+/* Районы карты Ноктюрна в отправке итогов: название, напряжение, держатель. */
+.nocturne-districts {
+  display: grid;
+  gap: 4px;
+  margin-top: var(--space-2);
+  max-height: 320px;
+  overflow-y: auto;
+}
+.nocturne-districts .row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(130px, auto) minmax(130px, auto);
+  align-items: center;
+  gap: 6px;
+}
+@media (max-width: 560px) {
+  .nocturne-districts .row {
+    grid-template-columns: 1fr 1fr;
+  }
+  .nocturne-districts .row > span {
+    grid-column: 1 / -1;
+  }
+}
+
 /* ---- .library-picker --------------------------------------------------- */
 /* «Из библиотеки»: several records at once, straight into a scene. */
 .library-picker {

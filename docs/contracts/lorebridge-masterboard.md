@@ -151,6 +151,71 @@ lorebook — миры, где мастер автор; lovegame — кампан
   КК9. Ответ — частичный результат по каждой части.
 - Worker пропускает `state` (GET) и `session` (POST).
 
+## Ноктюрн (`system: 'nocturne'`) — добавлено 3 октября 2026
+
+Пятый берег, необязательный: без секрета `NOCTURNE_KEY` в мосту строки
+`nocturne` в `/mb/connections` нет, ручки отвечают 501. Решения — лист
+«Мастерборд ↔ Ноктюрн» от 3 октября 2026 (номера ниже — его пункты). Код
+моста — `lorebridge/src/nocturne.ts`, случаи — раздел `nocturne` в
+`fixtures/masterboard.items.json`.
+
+- **Путь** (01-A): через lorebridge, как КК9. Мост ходит служебным ключом
+  Ноктюрна мимо его мутаций и оставляет тот же след: форма документа как у
+  `npc.create` / `npc.edit` / `npc.reveal` / `chronicle.create` /
+  `map.set_district`, `updated_at` ISO-строкой, строка аудита от имени мастера
+  (`change.via = 'masterboard'`).
+- **Кто мастер** (02-A): почта ищется в `users/{uid}.email` Ноктюрна; мастер —
+  `owner` или `co_master` членства кампании. Почту Ноктюрн при регистрации не
+  подтверждает — риск принят.
+- **Роль** (03-A): Ноктюрн — третий вид стола. Мир можно по-прежнему связать с
+  Лорбуком.
+- **`connections`**: `scope: 'campaign'`, `externalId` — id кампании, `label` —
+  её `title`; архивные не называются.
+- **`passport`**: `character` — только `read`; семь видов кодекса (`npc`,
+  `touchstone`, `location`, `faction`, `item`, `lore`, `event`) — `read,
+  create, update, change-visibility`. Архива и статусов нет (07-A).
+- **`entities`**:
+  - `character` — образ и ключевые числа (05-B): «Игрок», «Клан»,
+    «Поколение», «Сир», у V5 — «Хищник», «Амбиция», «Желание»,
+    «Человечность», «Кровавая Мощь», «Здоровье (макс.)», «Сила воли
+    (макс.)»; у V20 — «Натура», «Маска», «Человечность / Путь», «Сила воли»,
+    «Пул крови (макс.)»; «Дисциплины», «Убежище», «Внешность», «Столпы»,
+    «Редакция». `summary` — история. Атрибутов, навыков и треков нет;
+  - вид кодекса — своим типом. `summary` — `player_note` (видят игроки на
+    раскрытой карточке, 09-A); поля вида — подписями Ноктюрна; «Мёртв»,
+    «Игровая дата», «Подпись даты»; «Заметки мастера» — свой текст `note`,
+    абзац «— Из Masterboard —» разбирается в поля. Видимость — `revealed`
+    (06-A); кому ещё видно (`visible_to`), Masterboard не показывает;
+  - `relations[] {targetId, type, direction: out|in|none, comment,
+    visibility}` — связи графа у обоих концов (14-B). Masterboard при импорте
+    кладёт их в граф: между записями, которые есть в библиотеке, по разу.
+- **`publish`** (08-A): кодекс — `create` (id от ключа повтора, новая скрыта,
+  `import_key = masterboard:<ключ>`), `update` (вид не меняется; переименование
+  доходит до Столпов на листах), `change-visibility`. Свежесть — по
+  `updated_at` (409). Персонаж, архив, статусы — 400. Тип там по таблице
+  «широко» (04-A): существо — НПС, место и карта — локация, слух, письмо,
+  раздатка, заметка, аудиенция, хоумрул — лор; Столп читается НПС.
+- **`GET /mb/state?system=nocturne`** (10-B, 13-B): `campaign {name, system,
+  nextSession {date, time}, tenets}`, `party[] {id, name, subtitle, tracks[]
+  {label, max, value?, damage?[] {label, count}}, statuses[], flags[]}` — V5 и
+  V20 одним форматом; `journal[] {id, stream: campaign|gmPrivate, kind,
+  title, body, at}` (мастер видит и приватные), `requests[]` — открытые заявки
+  на опыт, `districts[]` — все районы карты, `factions[]`. Masterboard не
+  сохраняет; панель стола одна для КК9 и Ноктюрна (15-A).
+- **`POST /mb/session`** `{system: 'nocturne', externalId, idempotencyKey,
+  journal?, news?, nextSession?, districts?}`:
+  - `journal {stream, title, body, expectedFingerprint?, force?}` — пост
+    `session_recap`: `campaign` — открытый, `gmPrivate` — приватный (11-B);
+  - `news {title, body, expectedFingerprint?, force?}` — «Новое в мире»
+    отдельным открытым постом `note`;
+  - оба с id от ключа повтора; автор — мастер, отправивший первым, так что
+    второй мастер переотправит тот же пост. Правка в Ноктюрне после прошлой
+    отправки — `{ok: false, status: 409, current {title, body, fingerprint}}`;
+  - `nextSession {date: 'ГГГГ-ММ-ДД' | null, time}` — дата и время игры
+    (12-B; поле `next_session_time` добавлено в Ноктюрн);
+  - `districts[] {id, tension?, factionId?}` — напряжение и держатель района
+    (13-C).
+
 ### Резервная копия (этап М5) — добавлено 27 сентября 2026
 
 Копию делает мост: ночью, после укладки индекса (00:40 по Москве), своим

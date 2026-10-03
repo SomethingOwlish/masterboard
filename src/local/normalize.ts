@@ -92,6 +92,13 @@ function normalizeSession(raw: unknown, index: number, fallbackDate: string, tea
     ...(isObject(raw.kk9Sent) && typeof raw.kk9Sent.pageId === 'string' && typeof raw.kk9Sent.fingerprint === 'number'
       ? { kk9Sent: { stream: oneOf(raw.kk9Sent.stream, ['campaign', 'worldNews', 'gmPrivate'] as const, 'campaign'), pageId: raw.kk9Sent.pageId, fingerprint: raw.kk9Sent.fingerprint, sentAt: text(raw.kk9Sent.sentAt), ...(typeof raw.kk9Sent.nextSession === 'string' ? { nextSession: raw.kk9Sent.nextSession } : {}) } }
       : {}),
+    ...(isObject(raw.nocturneSent) && typeof raw.nocturneSent.postId === 'string' && typeof raw.nocturneSent.fingerprint === 'number'
+      ? { nocturneSent: {
+          stream: oneOf(raw.nocturneSent.stream, ['campaign', 'gmPrivate'] as const, 'campaign'), postId: raw.nocturneSent.postId, fingerprint: raw.nocturneSent.fingerprint, sentAt: text(raw.nocturneSent.sentAt),
+          ...(typeof raw.nocturneSent.newsId === 'string' && typeof raw.nocturneSent.newsFingerprint === 'number' ? { newsId: raw.nocturneSent.newsId, newsFingerprint: raw.nocturneSent.newsFingerprint } : {}),
+          ...(typeof raw.nocturneSent.nextSession === 'string' ? { nextSession: raw.nocturneSent.nextSession } : {}),
+        } }
+      : {}),
     planLayout: isObject(raw.planLayout) ? (raw.planLayout as LocalSessionRecord['planLayout']) : {},
     printConfig: isObject(raw.printConfig) ? { ...defaultPrintConfig(), ...(raw.printConfig as Partial<LocalPrintConfig>) } : defaultPrintConfig(),
     ...(typeof raw.deletedAt === 'string' && raw.deletedAt ? { deletedAt: raw.deletedAt } : {}),

@@ -22,6 +22,13 @@ const blockedNote = (count: number) => count ? ` ${count} ${plural(count, 'эл�
  * read as a fact with «Сменить» and «Отвязать»; a new link goes through the
  * wizard: system → record → check → rules. Only the owner changes them.
  */
+/** What each table brings, in the wizard's «Какой стол» step. */
+const TABLE_HINT: Partial<Record<string, string>> = {
+  lovegame: 'Кампания ЛавГеймс: NPC, раздатки, кодекс',
+  kk9: 'Стол КК9: персонажи, NPC-библиотека, предметы, состояние стола',
+  nocturne: 'Хроника Ноктюрна (VtM): персонажи, кодекс и связи, состояние стола, районы карты, хроника',
+}
+
 export function IntegrationsSection({ campaign, persist }: SectionProps) {
   const acting = useActing(campaign)
   const confirm = useConfirm()
@@ -163,7 +170,7 @@ function ConnectWizard({ campaign, persist, role, close }: { campaign: LocalCamp
   const last = role === 'system' ? 3 : 4
   return <Editor kicker={`Подключение · ${ROLE_LABEL[role]}`} title={role === 'table' ? 'Стол кампании' : role === 'world' ? 'Мир кампании' : 'Игровая система'} close={close}>
     <ol className="wizard-steps" aria-label="Шаги">{steps.map((label, index) => label && index < last ? <li key={label} className={index + 1 === step ? 'active' : index + 1 < step ? 'done' : ''}>{label}</li> : null)}</ol>
-    {step === 1 && <fieldset className="wizard-choice"><legend>Какой стол</legend>{ROLE_SYSTEMS[role].map((item) => <label key={item}><input type="radio" name="wizard-system" checked={system === item} onChange={() => { setSystem(item); setChoice(null) }} /><span><strong>{SYSTEM_LABEL[item]}</strong><small>{item === 'kk9' ? 'Стол КК9: персонажи, NPC-библиотека, предметы, состояние стола' : 'Кампания ЛавГеймс: NPC, раздатки, кодекс'}</small></span></label>)}</fieldset>}
+    {step === 1 && <fieldset className="wizard-choice"><legend>Какой стол</legend>{ROLE_SYSTEMS[role].map((item) => <label key={item}><input type="radio" name="wizard-system" checked={system === item} onChange={() => { setSystem(item); setChoice(null) }} /><span><strong>{SYSTEM_LABEL[item]}</strong><small>{TABLE_HINT[item] ?? ''}</small></span></label>)}</fieldset>}
     {step === 2 && <>
       {base.status === 'loading' && <p className="muted" role="status">Узнаём, что вам доступно…</p>}
       {(base.status === 'unconfigured' || base.status === 'error') && <p className="local-session-error" role="alert">{base.status === 'unconfigured' ? 'Связь с внешними системами ещё не настроена на сервере Мастерборда.' : base.message}</p>}

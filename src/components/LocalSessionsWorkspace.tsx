@@ -17,7 +17,8 @@ import { handOver, masterName, runSessionHint, sessionPlayers } from '../local/t
 import { PlanViews } from './local/plan/PlanViews'
 import { type LinkedSource, type PlanApi, type PlanTarget } from './local/plan/planApi'
 import { LibraryPicker, PlanAddPanel } from './local/plan/PlanAdd'
-import { Kk9StatePanel } from './local/Kk9Panels'
+import { TableStatePanel } from './local/TablePanels'
+import { LIVE_TABLE_LABEL, liveTable } from '../local/table'
 import { EntityEditor } from './local/EntityEditor'
 import { moveItemTo, removeItem, setItemStatus, shiftAmongPeers } from '../local/plan'
 import { parseSessionImport, sessionImportTemplate, type SessionImportResult } from '../local/sessionImport'
@@ -52,7 +53,8 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
     target?.focus({ preventScroll: true })
   }, [mode])
   // Боковая панель у плана: «Добавить в план» или живое состояние КК9 (М4) — одна за раз.
-  const [panel, setPanel] = useState<'add' | 'kk9' | null>(null)
+  const [panel, setPanel] = useState<'add' | 'table' | null>(null)
+  const table = liveTable(campaign)
   const panelOpen = panel === 'add'
   const setPanelOpen = (open: boolean) => setPanel(open ? 'add' : null)
   /** Library picker: `undefined` is closed, otherwise the scene it adds to (`null` — outside scenes). */
@@ -181,7 +183,7 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
             <Button variant="primary" icon="play" title={startBlocked ?? (acting.canRun(selected) ? emptyPlan : runSessionHint(campaign, selected))} disabled={Boolean(emptyPlan) || !acting.canRun(selected) || Boolean(startBlocked)} onClick={start}>Начать</Button>
           </>}</div></header>
         <dl className="session-plan__meta"><div><dt>Ответственный мастер</dt><dd>{masterName(campaign, selected.masterId)}{selected.handovers.length > 0 && <small className="session-plan__handovers">{selected.handovers.map((handover) => `${masterName(campaign, handover.fromId)} → ${masterName(campaign, handover.toId)}`).join('; ')}</small>}</dd></div><div><dt>Группа и участники</dt><dd>{[campaign.groups.find((group) => group.id === selected.groupId)?.name, sessionPlayers(campaign, selected).map((player) => player.name).join(', '), selected.participants].filter(Boolean).join(' · ') || 'Не заданы'}</dd></div><div><dt>Дата игры</dt><dd>{formatDate(selected.date) || 'Не назначена'}</dd></div><div><dt>Время и шкала</dt><dd>{[selected.inGameTime, selected.timelinePosition].filter(Boolean).join(' · ') || 'Не заданы'}</dd></div><div><dt>Стартовая ситуация</dt><dd>{selected.opening || 'Не задана'}</dd></div></dl>
-        {planApi && <PlanViews api={planApi} actions={<><Button icon="plus" variant={panelOpen ? 'primary' : undefined} aria-pressed={panelOpen} onClick={() => setPanelOpen(!panelOpen)}>Добавить в план</Button><Button icon="library" onClick={() => setPickerTarget(null)}>Из библиотеки</Button>{campaign.integrations.kk9 && <Button icon="users" variant={panel === 'kk9' ? 'primary' : undefined} aria-pressed={panel === 'kk9'} onClick={() => setPanel(panel === 'kk9' ? null : 'kk9')}>КК9</Button>}</>} panel={panel === 'add' ? <PlanAddPanel api={planApi} close={() => setPanel(null)} /> : panel === 'kk9' ? <Kk9StatePanel campaign={campaign} close={() => setPanel(null)} /> : undefined} />}
+        {planApi && <PlanViews api={planApi} actions={<><Button icon="plus" variant={panelOpen ? 'primary' : undefined} aria-pressed={panelOpen} onClick={() => setPanelOpen(!panelOpen)}>Добавить в план</Button><Button icon="library" onClick={() => setPickerTarget(null)}>Из библиотеки</Button>{table && <Button icon="users" variant={panel === 'table' ? 'primary' : undefined} aria-pressed={panel === 'table'} onClick={() => setPanel(panel === 'table' ? null : 'table')}>{LIVE_TABLE_LABEL[table.system]}</Button>}</>} panel={panel === 'add' ? <PlanAddPanel api={planApi} close={() => setPanel(null)} /> : panel === 'table' ? <TableStatePanel campaign={campaign} close={() => setPanel(null)} /> : undefined} />}
         {selected.status === 'active' && <LivePanel campaign={campaign} session={selected} persist={persist} canClose={acting.canRun(selected)} closeHint={runSessionHint(campaign, selected)} onClose={() => { updateSession({ ...selected, status: 'completed' }); navigate(`/local/campaign/${campaign.id}/review`) }} />}
         {mode === 'play' && selected.status !== 'active' && <p className="session-plan__notice" role="status">Эта сессия сейчас не проводится. {selected.status === 'completed' ? 'Она уже закрыта — откройте разбор.' : 'Нажмите «Начать», чтобы открыть живую панель.'}</p>}
         {mode === 'review' && selected.status !== 'completed' && <p className="session-plan__notice" role="status">Разбор откроется, когда сессия будет закрыта.</p>}

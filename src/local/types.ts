@@ -243,6 +243,12 @@ export interface LocalSessionRecord {
    * fingerprint lets lorebridge see a later edit in КК9 (decision R-4).
    */
   kk9Sent?: { stream: 'campaign' | 'worldNews' | 'gmPrivate'; pageId: string; fingerprint: number; sentAt: string; nextSession?: string }
+  /**
+   * What the review sent to Ноктюрн: the recap post and the «Новое в мире»
+   * post live under ids derived from this session's id, so a resend rewrites
+   * the same posts; fingerprints let lorebridge see a later edit there.
+   */
+  nocturneSent?: { stream: 'campaign' | 'gmPrivate'; postId: string; fingerprint: number; newsId?: string; newsFingerprint?: number; sentAt: string; nextSession?: string }
   /** Node positions of the transitions graph, by plan item id. */
   planLayout: Record<string, { x: number; y: number }>
   printConfig: LocalPrintConfig
