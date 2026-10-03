@@ -1,5 +1,5 @@
 /**
- * Door to lorebook / lovegame / systemsetup / kk9 through lorebridge (contract
+ * Door to lorebook / lovegame / systemsetup / kk9 / nocturne through lorebridge (contract
  * docs/contracts/lorebridge-masterboard.md, decision E1: service binding).
  * The browser calls /api/ext/*; the Worker adds the shared secret and the
  * master's email checked by Cloudflare Access, and forwards to /mb/*.
@@ -12,7 +12,7 @@ export interface BridgeEnv {
 }
 
 export class BridgeUnavailableError extends Error {
-  constructor() { super('Связь с внешними системами (Лорбук, ЛавГеймс, КК9) не настроена'); this.name = 'BridgeUnavailableError' }
+  constructor() { super('Связь с внешними системами (Лорбук, ЛавГеймс, КК9, Ноктюрн) не настроена'); this.name = 'BridgeUnavailableError' }
 }
 
 // state и session — живое состояние стола КК9 и итоги сессии (этап М4);

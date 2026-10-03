@@ -3,6 +3,7 @@ import { isExternalSystem, type CapabilityPassport, type ExternalConnection, typ
 import { SYSTEM_LABEL, connectionKey, parseConnectionKey, type ExternalItem, type ExternalListing, type ExternalSchema } from './integration'
 import type { BackupStatus } from './backup'
 import type { Kk9SessionBody, Kk9SessionResult, Kk9State } from './kk9'
+import type { NocturneSessionBody, NocturneSessionResult, NocturneState } from './nocturne'
 
 /** A refusal from the Worker or lorebridge, with the bridge's `side` / `kind` when it gave them. */
 export class ExternalError extends Error {
@@ -66,6 +67,16 @@ export class HttpExternalGateway implements ExternalGateway {
   /** Живое состояние стола КК9 (М4). Не кешируется: это то, что за столом сейчас. */
   async kk9State(externalId: string): Promise<Kk9State> {
     return this.call<Kk9State>(`state?system=kk9&externalId=${encodeURIComponent(externalId)}`)
+  }
+
+  /** Живое состояние стола Ноктюрна: партия, хроника, заявки, районы. Не кешируется. */
+  async nocturneState(externalId: string): Promise<NocturneState> {
+    return this.call<NocturneState>(`state?system=nocturne&externalId=${encodeURIComponent(externalId)}`)
+  }
+
+  /** Итоги сессии в Ноктюрн: частичный результат по каждой части. Ключ повтора — id сессии. */
+  async sendNocturneSession(externalId: string, sessionId: string, body: NocturneSessionBody): Promise<NocturneSessionResult> {
+    return this.call<NocturneSessionResult>('session', { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ system: 'nocturne', externalId, idempotencyKey: sessionId, ...body }) })
   }
 
   /** Итог резервной копии (М5). */

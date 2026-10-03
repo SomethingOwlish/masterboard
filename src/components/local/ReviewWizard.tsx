@@ -6,7 +6,8 @@ import type { LocalCampaignRecord, LocalReviewDecision, LocalSessionPlanItem, Lo
 import { withSession, LOG_KIND, TIME_PLACEHOLDER } from '../../local/labels'
 import type { Persist } from './shared'
 import { liveSessions, nextSessionNumber } from '../../local/sessions'
-import { Kk9SendPanel } from './Kk9Panels'
+import { TableSendPanel } from './TablePanels'
+import { LIVE_TABLE_LABEL, liveTable } from '../../local/table'
 
 const STEPS = ['Итоги', 'Решения по пунктам', 'Последствия', 'Время в мире', 'Следующая сессия'] as const
 const DECISION: Record<LocalReviewDecision, string> = { carry: 'Перенести в следующую', library: 'Вернуть только в библиотеку', cancel: 'Отменить', keep: 'Оставить неиспользованным' }
@@ -36,13 +37,14 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
   const chosenTarget = carried.length && target === 'none' ? 'new' : target
   const nextSession = campaign.sessionRecords.find((item) => item.id === session.nextSessionId)
   const defaultReason = `Итоги сессии №${session.number}`
+  const table = liveTable(campaign)
 
   if (session.reviewStatus === 'completed') {
     return <section className="session-review-panel" aria-label="Разбор сессии" tabIndex={-1}><header><div><span className="panel-kicker">Разбор завершён</span><h2>Итоги сессии №{session.number}</h2></div><Button disabled={!canComplete} title={canComplete ? undefined : completeHint} onClick={() => { update({ ...session, reviewStatus: 'draft' }); setStep(0) }}>Открыть разбор заново</Button></header>
       {session.reviewNotes && <p>{session.reviewNotes}</p>}
       <ul className="session-review-panel__summary">{items.map((item) => <li key={item.id}><strong>{itemTitle(item)}</strong> — {DECISION[session.reviewDecisions[item.id]]}</li>)}</ul>
       {nextSession && <Button variant="primary" onClick={() => openSession(nextSession.id)}>Открыть сессию №{nextSession.number}: {nextSession.title}</Button>}
-      <Kk9SendPanel campaign={campaign} session={session} persist={persist} itemTitle={itemTitle} canSend={canComplete} hint={completeHint} />
+      <TableSendPanel campaign={campaign} session={session} persist={persist} itemTitle={itemTitle} canSend={canComplete} hint={completeHint} />
     </section>
   }
 
@@ -93,7 +95,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
         <div className="row"><input type="date" aria-label="Дата следующей игры" value={session.nextGame?.date ?? ''} onChange={(e) => update({ ...session, nextGame: { date: e.target.value, time: session.nextGame?.time ?? '' } })} /><input aria-label="Время следующей игры" value={session.nextGame?.time ?? ''} placeholder="19:00" onChange={(e) => update({ ...session, nextGame: { date: session.nextGame?.date ?? '', time: e.target.value } })} /></div>
         <small className="muted">
           Дата ляжет в выбранную ниже сессию, если у неё ещё нет своей.
-          {campaign.integrations.kk9 ? ' Итоги и дату в КК9 можно отправить после завершения разбора.' : ''}
+          {table ? ` Итоги и дату в ${LIVE_TABLE_LABEL[table.system]} можно отправить после завершения разбора.` : ''}
         </small>
       </fieldset>
       {carried.length > 0 && <p>Переносятся пункты: {carried.map(itemTitle).join(', ')}.</p>}

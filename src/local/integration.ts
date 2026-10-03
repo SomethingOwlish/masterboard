@@ -1,10 +1,10 @@
-// Masterboard ↔ lorebook / lovegame / systemsetup / kk9 through lorebridge
+// Masterboard ↔ lorebook / lovegame / systemsetup / kk9 / nocturne through lorebridge
 // (docs/contracts/lorebridge-masterboard.md, decisions F2–F4).
 
 import type { CapabilityPassport, ExternalSystem, PublicationOperation } from '../model/external'
 import { fieldValueEqual } from '../storage/fieldMerge'
 import { ENTITY_FIELDS, newEntity } from './domain'
-import type { CampaignLink, EntitySnapshot, EntitySource, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord } from './types'
+import type { CampaignLink, EntitySnapshot, EntitySource, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignRelation, LocalRelationType } from './types'
 
 /** A record as lorebridge returns it from GET /mb/entities. */
 export interface ExternalItem {
@@ -23,7 +23,12 @@ export interface ExternalItem {
   url?: string
   /** lorebook only: the world record was moved from a SystemSetup system (lorebridge `ss.lore`). */
   source?: { app: 'systemsetup'; system: string; dataset: string; entry: string }
+  /** nocturne only: links of its relation graph at this end (decision 14-B), read-only. */
+  relations?: ExternalRelation[]
 }
+
+/** A link of Nocturne's relation graph as the bridge sends it at one end. */
+export interface ExternalRelation { targetId: string; type: string; direction: 'out' | 'in' | 'none'; comment: string; visibility: 'public' | 'master' }
 
 /** GET /mb/schema (ТЗ-2, R2): card fields of each record type there. */
 export type ExternalSchema = Array<{ type: string; fields: Array<{ label: string; long?: boolean }> }>
@@ -63,29 +68,30 @@ export const statusBadge = (status: string | undefined) => status && status !== 
 /** Hint under a record marked «к удалению». */
 export const REMOVED_HINT = 'Запись убрали из системы в SystemSetup. В мире она пока есть — удалить её или оставить своей решает автор мира в Лорбуке.'
 
-export const SYSTEM_LABEL: Record<ExternalSystem, string> = { lorebook: 'Лорбук', lovegame: 'ЛавГеймс', systemsetup: 'SystemSetup', kk9: 'КК9' }
+export const SYSTEM_LABEL: Record<ExternalSystem, string> = { lorebook: 'Лорбук', lovegame: 'ЛавГеймс', systemsetup: 'SystemSetup', kk9: 'КК9', nocturne: 'Ноктюрн' }
 /** «Where» for each system, with its preposition: «в Лорбуке», «в ЛавГеймс». */
-export const SYSTEM_IN: Record<ExternalSystem, string> = { lorebook: 'в Лорбуке', lovegame: 'в ЛавГеймс', systemsetup: 'в SystemSetup', kk9: 'в КК9' }
+export const SYSTEM_IN: Record<ExternalSystem, string> = { lorebook: 'в Лорбуке', lovegame: 'в ЛавГеймс', systemsetup: 'в SystemSetup', kk9: 'в КК9', nocturne: 'в Ноктюрне' }
 /** Systems a campaign links to (decision F4, R1): a world, a table and a game system. */
-export const LINKABLE_SYSTEMS = ['lorebook', 'lovegame', 'kk9', 'systemsetup'] as const
+export const LINKABLE_SYSTEMS = ['lorebook', 'lovegame', 'kk9', 'nocturne', 'systemsetup'] as const
 export type LinkableSystem = typeof LINKABLE_SYSTEMS[number]
 /**
  * Systems a campaign can publish to; systemsetup is read-only (decision E4).
  * kk9 takes only NPCs (into its library) and items (into its catalog) — the
- * passport says so, and the queue offers nothing else there.
+ * passport says so, and the queue offers nothing else there. nocturne takes
+ * every codex kind; its player characters are read-only.
  */
-export const WRITABLE_SYSTEMS: ExternalSystem[] = ['lorebook', 'lovegame', 'kk9']
+export const WRITABLE_SYSTEMS: ExternalSystem[] = ['lorebook', 'lovegame', 'kk9', 'nocturne']
 
 // ─── Roles (ТЗ-2, R3): world, table, system ─────────────────────────────────
 
 /**
  * What a system is for a campaign. Lorebook is the **world** (lore lives there),
- * ЛавГеймс and КК9 are kinds of **table** (characters and their stats live
+ * ЛавГеймс, КК9 and Ноктюрн are kinds of **table** (characters and their stats live
  * there; one table per campaign), SystemSetup is the **system** (rules, read-only).
  */
 export type CampaignRole = 'world' | 'table' | 'system'
-export const ROLE_OF: Record<ExternalSystem, CampaignRole> = { lorebook: 'world', lovegame: 'table', kk9: 'table', systemsetup: 'system' }
-export const ROLE_SYSTEMS: Record<CampaignRole, ExternalSystem[]> = { world: ['lorebook'], table: ['lovegame', 'kk9'], system: ['systemsetup'] }
+export const ROLE_OF: Record<ExternalSystem, CampaignRole> = { lorebook: 'world', lovegame: 'table', kk9: 'table', nocturne: 'table', systemsetup: 'system' }
+export const ROLE_SYSTEMS: Record<CampaignRole, ExternalSystem[]> = { world: ['lorebook'], table: ['lovegame', 'kk9', 'nocturne'], system: ['systemsetup'] }
 export const ROLE_LABEL: Record<CampaignRole, string> = { world: 'Мир', table: 'Стол', system: 'Система' }
 export const ROLE_HINT: Record<CampaignRole, string> = {
   world: 'Лор: локации, фракции, события, статьи',
@@ -186,6 +192,16 @@ export const TARGET_TYPE: Record<'lorebook' | 'lovegame', Record<LocalCampaignEn
  */
 const KK9_TARGET: Partial<Record<LocalCampaignEntityType, string>> = { npc: 'npc-light', character: 'npc-light', creature: 'companion', item: 'item', location: 'place', map: 'place' }
 
+/**
+ * Ноктюрн (решение 04-A, «широко»): у каждого типа есть вид кодекса; то, чему
+ * пары нет (слух, письмо, раздатка, заметка, аудиенция, хоумрул), уходит лором.
+ * Существо — НПС: у кодекса Ноктюрна отдельного вида для него нет.
+ */
+const NOCTURNE_TARGET: Record<LocalCampaignEntityType, string> = {
+  character: 'npc', npc: 'npc', creature: 'npc', location: 'location', map: 'location', faction: 'faction', item: 'item', event: 'event',
+  lore: 'lore', rumor: 'lore', letter: 'lore', handout: 'lore', note: 'lore', audience: 'lore', 'home-rule': 'lore',
+}
+
 /** Masterboard type for a record read from another system. */
 const IMPORT_TYPE: Record<ExternalSystem, Record<string, LocalCampaignEntityType>> = {
   lorebook: { character: 'npc', location: 'location', faction: 'faction', item: 'item', event: 'event', lore: 'lore', note: 'note' },
@@ -198,12 +214,14 @@ const IMPORT_TYPE: Record<ExternalSystem, Record<string, LocalCampaignEntityType
     // Прежнее общее имя видов библиотеки — у источников, заведённых до видов.
     npc: 'npc',
   },
+  // Ноктюрн: Столп — НПС (у Мастерборда нет своего типа для него).
+  nocturne: { character: 'character', npc: 'npc', touchstone: 'npc', location: 'location', faction: 'faction', item: 'item', lore: 'lore', event: 'event' },
 }
 export const importType = (system: ExternalSystem, type: string): LocalCampaignEntityType => IMPORT_TYPE[system][type] ?? 'note'
 
 /** Types the destination accepts for a new record; the table's choice first when it is among them. */
 export function targetTypes(passport: CapabilityPassport | undefined, system: ExternalSystem, type: LocalCampaignEntityType): Array<{ id: string; label: string }> {
-  const preferred = system === 'lorebook' || system === 'lovegame' ? TARGET_TYPE[system][type] : system === 'kk9' ? KK9_TARGET[type] ?? '' : ''
+  const preferred = system === 'lorebook' || system === 'lovegame' ? TARGET_TYPE[system][type] : system === 'kk9' ? KK9_TARGET[type] ?? '' : system === 'nocturne' ? NOCTURNE_TARGET[type] : ''
   const accepted = passport?.entities.filter((entity) => entity.enabled && entity.operations.includes('create')).map((entity) => ({ id: entity.entityType, label: entity.label })) ?? []
   if (!accepted.length) return preferred ? [{ id: preferred, label: preferred }] : []
   return [...accepted.filter((item) => item.id === preferred), ...accepted.filter((item) => item.id !== preferred)]
@@ -264,7 +282,39 @@ export function importItems(campaign: LocalCampaignRecord, system: ExternalSyste
     const snapshot = snapshotFromItem(item, type)
     return newEntity({ type, name: snapshot.name, description: snapshot.description, tags: snapshot.tags, fields: snapshot.fields, visibility: snapshot.visibility, status: item.archived ? 'archived' : 'active', origin: { kind: 'import' }, sources: [newSource(system, containerId, item, snapshot, now)] })
   })
-  return { campaign: { ...campaign, entities: [...campaign.entities, ...entities] }, added: entities.length }
+  const next = { ...campaign, entities: [...campaign.entities, ...entities] }
+  return { campaign: { ...next, relations: [...next.relations, ...importedRelations(next, system, containerId, items)] }, added: entities.length }
+}
+
+/** Ноктюрн's relation types → Masterboard's; the type itself stays in the label. */
+const RELATION_TYPE: Record<string, LocalRelationType> = { 'союзник': 'alliance', 'враг': 'enmity', 'соперник': 'enmity', 'должник': 'debt', 'сир': 'kin', 'потомок': 'kin', 'родич': 'kin' }
+
+/**
+ * Links of the source's relation graph between records the library has (decision 14-B):
+ * each link once, from its outgoing end; a link already in the graph between the same
+ * two entities under the same label is not added again.
+ */
+export function importedRelations(campaign: LocalCampaignRecord, system: ExternalSystem, containerId: string, items: ExternalItem[]): LocalCampaignRelation[] {
+  const byExternal = new Map<string, string>()
+  for (const entity of campaign.entities) for (const source of entity.sources) if (source.system === system && source.containerId === containerId) byExternal.set(source.id, entity.id)
+  const seen = new Set(campaign.relations.map((relation) => `${relation.fromId}|${relation.toId}|${relation.label.toLocaleLowerCase()}`))
+  const out: LocalCampaignRelation[] = []
+  for (const item of items) {
+    for (const link of item.relations ?? []) {
+      if (link.direction === 'in') continue
+      // A link without direction comes at both ends; the end with the smaller id brings it.
+      if (link.direction === 'none' && link.targetId < item.id) continue
+      const fromId = byExternal.get(item.id)
+      const toId = byExternal.get(link.targetId)
+      if (!fromId || !toId || fromId === toId) continue
+      const label = link.comment.trim() ? `${link.type}: ${link.comment.trim()}` : link.type
+      const key = `${fromId}|${toId}|${label.toLocaleLowerCase()}`
+      if (seen.has(key) || (link.direction === 'none' && seen.has(`${toId}|${fromId}|${label.toLocaleLowerCase()}`))) continue
+      seen.add(key)
+      out.push({ id: `relation-${crypto.randomUUID()}`, fromId, toId, label, type: RELATION_TYPE[link.type.trim().toLocaleLowerCase()] ?? 'other', direction: link.direction === 'none' ? 'mutual' : 'directed', visibility: link.visibility })
+    }
+  }
+  return out
 }
 
 // ─── Refresh from source: field-by-field three-way comparison (decision I4) ─

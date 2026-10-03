@@ -4,6 +4,7 @@ import { ExternalError } from '../local/external'
 import { connectionKey, parseConnectionKey, type ExternalItem, type ExternalPatch } from '../local/integration'
 import type { ExternalPort } from '../local/useExternal'
 import type { Kk9SessionBody, Kk9SessionResult, Kk9State, Kk9Stream } from '../local/kk9'
+import type { NocturneSessionBody, NocturneSessionResult, NocturneState } from '../local/nocturne'
 
 const passport = (entities: CapabilityPassport['entities']): Omit<CapabilityPassport, 'connectionId'> => ({ fetchedAt: '2026-09-26T00:00:00.000Z', entities })
 
@@ -112,6 +113,48 @@ export class FakeBridge implements ExternalPort {
       const state = this.kk9.get(externalId)
       if (state) state.campaign.nextSession = body.nextSession
       out.nextSession = { ok: true, value: body.nextSession }
+    }
+    return out
+  }
+
+  /** Ноктюрн: состояние стола по id кампании, посты хроники по ключу повтора и части итогов. */
+  readonly nocturne = new Map<string, NocturneState>()
+  readonly nocturnePosts = new Map<string, { title: string; body: string; isPrivate: boolean }>()
+  readonly nocturneSessions: Array<{ externalId: string; sessionId: string; body: NocturneSessionBody }> = []
+
+  async nocturneState(externalId: string): Promise<NocturneState> {
+    const found = this.nocturne.get(externalId)
+    if (!found) throw new ExternalError('Ноктюрн: такой кампании нет', 404)
+    return structuredClone(found)
+  }
+  async sendNocturneSession(externalId: string, sessionId: string, body: NocturneSessionBody): Promise<NocturneSessionResult> {
+    this.nocturneSessions.push({ externalId, sessionId, body })
+    const print = (page: { title: string; body: string }) => page.title.length * 31 + page.body.length
+    const post = (slot: string, raw: { title: string; body: string; expectedFingerprint?: number; force?: boolean }, isPrivate: boolean) => {
+      const key = `${slot}:${sessionId}`
+      const was = this.nocturnePosts.get(key)
+      if (was && !raw.force && raw.expectedFingerprint !== undefined && print(was) !== raw.expectedFingerprint) {
+        return { ok: false as const, status: 409, error: 'Пост поправили в Ноктюрне после прошлой отправки', current: { title: was.title, body: was.body, fingerprint: print(was) } }
+      }
+      this.nocturnePosts.set(key, { title: raw.title, body: raw.body, isPrivate })
+      return { ok: true as const, id: `post-${key}`, fingerprint: print(raw) }
+    }
+    const out: NocturneSessionResult = {}
+    if (body.journal) out.journal = post('journal', body.journal, body.journal.stream === 'gmPrivate')
+    if (body.journal && out.journal?.ok) out.journal = { ...out.journal, stream: body.journal.stream }
+    if (body.news) out.news = post('news', body.news, false)
+    const state = this.nocturne.get(externalId)
+    if (body.nextSession) {
+      if (state) state.campaign.nextSession = { date: body.nextSession.date ?? '', time: body.nextSession.time }
+      out.nextSession = { ok: true, value: body.nextSession }
+    }
+    if (body.districts?.length) {
+      for (const change of body.districts) {
+        const district = state?.districts.find((item) => item.id === change.id)
+        if (district && change.tension !== undefined) district.tension = change.tension
+        if (district && change.factionId !== undefined) { district.factionId = change.factionId; district.faction = state!.factions.find((item) => item.id === change.factionId)?.name ?? '' }
+      }
+      out.districts = { ok: true, ids: body.districts.map((item) => item.id) }
     }
     return out
   }

@@ -6,8 +6,9 @@ import { ROLE_OF, importType, linkedRole, roleConnection, type BaseOption, type 
 import type { LocalCampaignEntityType, LocalCampaignRecord } from './types'
 import type { BackupStatus } from './backup'
 import type { Kk9SessionBody, Kk9SessionResult, Kk9State } from './kk9'
+import type { NocturneSessionBody, NocturneSessionResult, NocturneState } from './nocturne'
 
-/** What the screens need from lorebook / lovegame / systemsetup. */
+/** What the screens need from lorebook / lovegame / systemsetup / kk9 / nocturne. */
 export interface ExternalPort extends ExternalGateway {
   entities(connectionId: string, type?: string): Promise<ExternalItem[]>
   listing(connectionId: string, type?: string): Promise<ExternalListing>
@@ -15,6 +16,8 @@ export interface ExternalPort extends ExternalGateway {
   schema?(connectionId: string): Promise<ExternalSchema>
   kk9State(externalId: string): Promise<Kk9State>
   sendKk9Session(externalId: string, sessionId: string, body: Kk9SessionBody): Promise<Kk9SessionResult>
+  nocturneState(externalId: string): Promise<NocturneState>
+  sendNocturneSession(externalId: string, sessionId: string, body: NocturneSessionBody): Promise<NocturneSessionResult>
   /** Итог последней резервной копии (М5). */
   backupStatus(): Promise<BackupStatus>
   /** Резервная копия сейчас; отвечает тем же итогом. */

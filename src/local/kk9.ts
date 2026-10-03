@@ -52,23 +52,33 @@ export function nextSessionText(date: string, time: string): string {
   return parts.join(', ')
 }
 
+const sessionTitle = (session: LocalSessionRecord) => `Сессия №${session.number}${session.title.trim() ? ` — ${session.title.trim()}` : ''}`
+const logLines = (session: LocalSessionRecord, kinds: string[]) => session.log.filter((entry) => kinds.includes(entry.kind)).map((entry) => `— ${entry.text}`)
+
+/** «Новое в мире» отдельной страницей — для стола, где новости идут своим постом (Ноктюрн, 11-B). */
+export function worldNewsPage(session: LocalSessionRecord): { title: string; body: string } | null {
+  const world = logLines(session, ['entity'])
+  return world.length ? { title: `Новое в мире — ${sessionTitle(session)}`, body: world.join('\n') } : null
+}
+
 /**
  * Страница журнала КК9 из разбора: итоги мастера, затем сыгранные сцены,
  * решения, раскрытия и новое в мире из живого журнала. Простой текст: КК9
- * показывает журнал как есть, без разметки.
+ * показывает журнал как есть, без разметки. `world: false` — без «Нового в
+ * мире»: у Ноктюрна оно уходит своим постом.
  */
-export function kk9JournalPage(session: LocalSessionRecord, itemTitle: (item: LocalSessionPlanItem) => string): { title: string; body: string } {
-  const title = `Сессия №${session.number}${session.title.trim() ? ` — ${session.title.trim()}` : ''}`
+export function kk9JournalPage(session: LocalSessionRecord, itemTitle: (item: LocalSessionPlanItem) => string, options: { world?: boolean } = {}): { title: string; body: string } {
+  const title = sessionTitle(session)
   const blocks: string[] = []
   if (session.reviewNotes.trim()) blocks.push(session.reviewNotes.trim())
   const played = session.planItems.filter((item) => item.kind === 'scene' && item.status === 'used').map(itemTitle)
   if (played.length) blocks.push(`Сыграно:\n${played.map((name) => `— ${name}`).join('\n')}`)
-  const logOf = (kinds: string[]) => session.log.filter((entry) => kinds.includes(entry.kind)).map((entry) => `— ${entry.text}`)
+  const logOf = (kinds: string[]) => logLines(session, kinds)
   const decisions = logOf(['decision'])
   if (decisions.length) blocks.push(`Решения:\n${decisions.join('\n')}`)
   const reveals = logOf(['reveal'])
   if (reveals.length) blocks.push(`Раскрыто:\n${reveals.join('\n')}`)
-  const world = logOf(['entity'])
+  const world = options.world === false ? [] : logOf(['entity'])
   if (world.length) blocks.push(`Новое в мире:\n${world.join('\n')}`)
   return { title, body: blocks.join('\n\n') }
 }
