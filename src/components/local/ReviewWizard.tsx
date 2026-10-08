@@ -3,14 +3,13 @@ import { Badge, Button, Select } from '../../ds'
 import { moveClock } from '../../local/domain'
 import { completeReview, missingDecisions, reviewItems } from '../../local/sessionFlow'
 import type { LocalCampaignRecord, LocalReviewDecision, LocalSessionPlanItem, LocalSessionRecord } from '../../local/types'
-import { withSession, LOG_KIND, TIME_PLACEHOLDER } from '../../local/labels'
+import { withSession, LOG_KIND, REVIEW_DECISION, TIME_PLACEHOLDER } from '../../local/labels'
 import type { Persist } from './shared'
 import { liveSessions, nextSessionNumber } from '../../local/sessions'
 import { TableSendPanel } from './TablePanels'
 import { LIVE_TABLE_LABEL, liveTable } from '../../local/table'
 
 const STEPS = ['Итоги', 'Решения по пунктам', 'Последствия', 'Время в мире', 'Следующая сессия'] as const
-const DECISION: Record<LocalReviewDecision, string> = { carry: 'Перенести в следующую', library: 'Вернуть только в библиотеку', cancel: 'Отменить', keep: 'Оставить неиспользованным' }
 
 interface Props {
   campaign: LocalCampaignRecord
@@ -42,7 +41,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
   if (session.reviewStatus === 'completed') {
     return <section className="session-review-panel" aria-label="Разбор сессии" tabIndex={-1}><header><div><span className="panel-kicker">Разбор завершён</span><h2>Итоги сессии №{session.number}</h2></div><Button disabled={!canComplete} title={canComplete ? undefined : completeHint} onClick={() => { update({ ...session, reviewStatus: 'draft' }); setStep(0) }}>Открыть разбор заново</Button></header>
       {session.reviewNotes && <p>{session.reviewNotes}</p>}
-      <ul className="session-review-panel__summary">{items.map((item) => <li key={item.id}><strong>{itemTitle(item)}</strong> — {DECISION[session.reviewDecisions[item.id]]}</li>)}</ul>
+      <ul className="session-review-panel__summary">{items.map((item) => <li key={item.id}><strong>{itemTitle(item)}</strong> — {REVIEW_DECISION[session.reviewDecisions[item.id]]}</li>)}</ul>
       {nextSession && <Button variant="primary" onClick={() => openSession(nextSession.id)}>Открыть сессию №{nextSession.number}: {nextSession.title}</Button>}
       <TableSendPanel campaign={campaign} session={session} persist={persist} itemTitle={itemTitle} canSend={canComplete} hint={completeHint} />
     </section>
@@ -74,7 +73,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
     </div>}
 
     {step === 1 && <div className="session-review-wizard__body">
-      {items.length ? <div className="session-review-panel__unused">{items.map((item) => <label key={item.id}><span><strong>{itemTitle(item)}</strong><small>{item.priority === 'required' ? 'Обязательно' : 'Желательно'}{session.appliedDecisions[item.id] ? ' · уже применено' : ''}</small></span><Select aria-label={`Решение: ${itemTitle(item)}`} value={session.reviewDecisions[item.id] ?? ''} onChange={(e) => update({ ...session, reviewDecisions: { ...session.reviewDecisions, [item.id]: e.target.value as LocalReviewDecision } })}><option value="">Нужно решение</option>{Object.entries(DECISION).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></label>)}</div> : <p className="muted">Все обязательные и желательные пункты сыграны. Решений не требуется.</p>}
+      {items.length ? <div className="session-review-panel__unused">{items.map((item) => <label key={item.id}><span><strong>{itemTitle(item)}</strong><small>{item.priority === 'required' ? 'Обязательно' : 'Желательно'}{session.appliedDecisions[item.id] ? ' · уже применено' : ''}</small></span><Select aria-label={`Решение: ${itemTitle(item)}`} value={session.reviewDecisions[item.id] ?? ''} onChange={(e) => update({ ...session, reviewDecisions: { ...session.reviewDecisions, [item.id]: e.target.value as LocalReviewDecision } })}><option value="">Нужно решение</option>{Object.entries(REVIEW_DECISION).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></label>)}</div> : <p className="muted">Все обязательные и желательные пункты сыграны. Решений не требуется.</p>}
       {missing.length > 0 && <p className="local-session-error">Осталось решить: {missing.length}.</p>}
     </div>}
 
