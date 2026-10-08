@@ -6,6 +6,9 @@ import { ROLE_LABEL, SYSTEM_LABEL, WRITABLE_ROLES, linkedRole, parseConnectionKe
 import { plural, ENTITY_LABEL } from '../../local/labels'
 import { canRemove, confirmSelected, enqueue, enqueueByRoles, pendingByRoles, pickHint, OPERATION_LABEL, previewDrafts, reasonLabel, removeQueued, retrySelected, sendConfirmed, STATE_LABEL, unconfirm } from '../../local/publishing'
 import type { LocalCampaignRecord } from '../../local/types'
+import { exportSessionResults } from '../../local/aiExport'
+import { downloadText } from '../../local/download'
+import { liveSessions } from '../../local/sessions'
 import { useConnections, useExternal, usePassports } from '../../local/useExternal'
 import { useConfirm } from '../useConfirm'
 import type { SectionProps } from './shared'
@@ -28,6 +31,7 @@ export function PublishSection({ campaign, persist }: SectionProps) {
   const [selected, setSelected] = useState<string[]>([])
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
+  const [resultsOf, setResultsOf] = useState('')
   const destinationId = destinations.some((item) => item.id === connectionId) ? connectionId : destinations[0]?.id ?? ''
   const queue = campaign.publications.filter((item) => item.state !== 'succeeded')
   const history = campaign.publications.filter((item) => item.state === 'succeeded')
@@ -60,9 +64,23 @@ export function PublishSection({ campaign, persist }: SectionProps) {
   const send = () => confirm({ title: `Отправить ${confirmed.length} ${plural(confirmed.length, 'операцию', 'операции', 'операций')}?`, message: 'Изменения уйдут в подключённые мир и стол и станут видны там по их правилам доступа. Результат каждой операции сохранится здесь.', confirmLabel: 'Отправить', cancelLabel: 'Отмена', tone: 'accent', onConfirm: () => { setBusy(true); void sendConfirmed(campaign, port, now()).then((result) => { persist(result.campaign); setMessage(`Отправлено: ${result.succeeded}. Ошибок: ${result.failed}.${result.blocked ? ` Заблокировано: ${result.blocked} — подключение отвязано.` : ''}`) }, (error: unknown) => setMessage(error instanceof Error ? error.message : 'Не удалось отправить')).finally(() => setBusy(false)) } })
   const retry = () => { persist(retrySelected(campaign, selected, now())); setSelected([]) }
   const remove = (id: string) => persist(removeQueued(campaign, id))
+  const sessions = liveSessions(campaign).sort((a, b) => a.number - b.number)
+  const resultsSession = sessions.find((item) => item.id === resultsOf)
+  const exportResults = () => {
+    const slug = campaign.name.replace(/[^\p{L}\p{N}]+/gu, '-')
+    downloadText(`${slug}-${resultsSession ? `сессия-${String(resultsSession.number).padStart(2, '0')}` : 'все-сессии'}.ai.json`, exportSessionResults(campaign, now(), resultsSession?.id))
+  }
 
   return <section className="campaign-section publish-section">
     <div className="section-bar"><div><span className="panel-kicker">Обмен</span><h2>Публикация</h2></div><p className="muted">Очередь → проверка → подтверждение → отправка. Куда что уходит — в <Link to={`/local/campaign/${campaign.id}/integrations`}>«Интеграциях»</Link>.</p></div>
+
+    <div className="publish-section__rules" role="group" aria-label="Результаты сессий для ИИ">
+      <span><strong>Результаты сессий для ИИ</strong> — журнал, разбор, секреты, часы и новое в мире одним JSON.</span>
+      <div className="row">
+        <Select aria-label="Какие сессии выгрузить" value={resultsSession?.id ?? ''} onChange={(e) => setResultsOf(e.target.value)}><option value="">Все сессии</option>{sessions.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}</Select>
+        <Button icon="download" disabled={!sessions.length} onClick={exportResults}>JSON для ИИ</Button>
+      </div>
+    </div>
 
     {connectionsState.status === 'loading' && <p className="muted" role="status">Узнаём, какие миры и кампании вам доступны…</p>}
     {(connectionsState.status === 'unconfigured' || connectionsState.status === 'error') && <p className="local-session-error" role="alert">{connectionsState.status === 'unconfigured' ? 'Связь с внешними системами ещё не настроена на сервере Мастерборда.' : connectionsState.message}</p>}

@@ -1,7 +1,7 @@
 import type { InboxTarget } from './inbox'
 import type {
   LocalCampaignClock, LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalLogKind, LocalRelationType, LocalSecretStatus,
-  LocalSessionPlanItem, LocalSessionPlanKind, LocalSessionRecord, LocalStoryArc, LocalWidgetId,
+  LocalReviewDecision, LocalSessionPlanItem, LocalSessionPlanKind, LocalSessionRecord, LocalStoryArc, LocalWidgetId,
 } from './types'
 
 // One map per notion (ТЗ-3, этап 6): every status, visibility, kind and type
@@ -51,6 +51,8 @@ export const USE_STATUS = [['prepared', 'Подготовлено'], ['current',
 export const PRIORITY_LABEL = Object.fromEntries(PRIORITIES) as Record<LocalSessionPlanItem['priority'], string>
 export const KIND_LABEL = Object.fromEntries(PLAN_KINDS) as Record<LocalSessionPlanKind, string>
 export const USE_STATUS_LABEL = Object.fromEntries(USE_STATUS) as Record<LocalSessionPlanItem['status'], string>
+
+export const REVIEW_DECISION: Record<LocalReviewDecision, string> = { carry: 'Перенести в следующую', library: 'Вернуть только в библиотеку', cancel: 'Отменить', keep: 'Оставить неиспользованным' }
 
 export const SESSION_STATUS: Record<LocalSessionRecord['status'], string> = { draft: 'Черновик', ready: 'Готова', active: 'Проводится', completed: 'Закрыта' }
 /** Session status with what is left to do: a closed session is either waiting for its review or reviewed. */
