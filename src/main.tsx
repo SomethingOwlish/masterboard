@@ -9,7 +9,7 @@ import { resolveCatalog } from './local/remote'
 import { LocalCatalogProvider } from './local/useLocalCampaign'
 import { createLocalCampaignCatalog } from './local/catalog'
 import { IdbStorageGateway } from './adapters/idbStorageGateway'
-import { SignInPage } from './pages/SignInPage'
+import { Boot } from './pages/SignInPage'
 import './ds/styles.css' // design-system tokens, fonts, themes — must load first
 import './index.css' // app classes (bridged onto the DS tokens above)
 import './styles/home.css'
@@ -23,16 +23,18 @@ applyStoredTheme()
 // move campaigns kept here before that; it no longer seeds an example campaign.
 const browser = createLocalCampaignCatalog(new IdbStorageGateway(), { legacyStorage: window.localStorage, seed: false })
 
-void resolveCatalog(browser).then((catalog) => {
-  ReactDOM.createRoot(document.getElementById('root')!).render(
-    <React.StrictMode>
-      {catalog
-        ? <LocalCatalogProvider catalog={catalog}>
+const resolve = () => resolveCatalog(browser)
+
+ReactDOM.createRoot(document.getElementById('root')!).render(
+  <React.StrictMode>
+    <Boot resolve={resolve}>
+      {(catalog) => (
+        <LocalCatalogProvider catalog={catalog}>
           <RouterProvider router={router} />
           <ConfirmHost />
           <ToastHost />
         </LocalCatalogProvider>
-        : <SignInPage />}
-    </React.StrictMode>,
-  )
-})
+      )}
+    </Boot>
+  </React.StrictMode>,
+)

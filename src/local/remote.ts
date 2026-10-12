@@ -22,13 +22,23 @@ export class MasterboardApi {
     return { status: response.status, body: parsed as T }
   }
 
-  /** The signed-in email, or null when this build runs without the Worker (plain static hosting, dev server). */
-  async me(): Promise<string | null> {
+  /**
+   * Who is signed in. «signed-out» — no session (401/403, the Cloudflare Access
+   * redirect, or a build without the Worker: plain static hosting answers with
+   * HTML). «unreachable» — the server did not answer or failed (network, 5xx),
+   * which must not look like «войдите».
+   */
+  async whoami(): Promise<{ status: 'signed-in'; email: string } | { status: 'signed-out' | 'unreachable' }> {
+    let response: Response
     try {
-      const response = await this.fetcher(`${this.base}/me`, { credentials: 'same-origin', signal: AbortSignal.timeout(4000) })
-      if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return null
-      return ((await response.json()) as { email?: string }).email ?? null
-    } catch { return null }
+      response = await this.fetcher(`${this.base}/me`, { credentials: 'same-origin', redirect: 'manual', signal: AbortSignal.timeout(8000) })
+    } catch { return { status: 'unreachable' } }
+    if (response.status >= 500) return { status: 'unreachable' }
+    if (!response.ok || !response.headers.get('content-type')?.includes('application/json')) return { status: 'signed-out' }
+    try {
+      const email = ((await response.json()) as { email?: string }).email
+      return email ? { status: 'signed-in', email } : { status: 'signed-out' }
+    } catch { return { status: 'unreachable' } }
   }
 
   list = async () => (await this.call<Snapshot[]>('GET', 'collections/localCampaigns')).body
@@ -95,10 +105,14 @@ export const SERVER_POLL_MS = 10_000
 
 export type CampaignCatalog = LocalCampaignCatalog & { shared?: SharedAccess }
 
-/** The server catalog for the signed-in master, or null when nobody is signed in (decision F1: everything is behind sign-in). */
-export async function resolveCatalog(browser: LocalCampaignCatalog, api = new MasterboardApi()): Promise<CampaignCatalog | null> {
-  const email = await api.me()
-  return email ? createSharedCatalog(browser, api, email) : null
+export type CatalogState =
+  | { status: 'ready'; catalog: CampaignCatalog }
+  | { status: 'signed-out' | 'unreachable' }
+
+/** The server catalog for the signed-in master; otherwise why there is none (decision F1: everything is behind sign-in). */
+export async function resolveCatalog(browser: LocalCampaignCatalog, api = new MasterboardApi()): Promise<CatalogState> {
+  const who = await api.whoami()
+  return who.status === 'signed-in' ? { status: 'ready', catalog: createSharedCatalog(browser, api, who.email) } : who
 }
 
 /**

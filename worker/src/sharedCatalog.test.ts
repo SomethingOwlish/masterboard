@@ -90,7 +90,10 @@ describe('shared catalog on the Worker', () => {
   it('asks to sign in when there is no signed-in master', async () => {
     const local = createLocalCampaignCatalog(new MemoryStorageGateway())
     const staticHost = new MasterboardApi((async () => new Response('<!doctype html>', { headers: { 'content-type': 'text/html' } })) as typeof fetch)
-    expect(await resolveCatalog(local, staticHost)).toBeNull()
-    expect((await resolveCatalog(local, apiFor(OWNER)))?.shared?.email).toBe(OWNER)
+    expect(await resolveCatalog(local, staticHost)).toEqual({ status: 'signed-out' })
+    const signedIn = await resolveCatalog(local, apiFor(OWNER))
+    expect(signedIn.status === 'ready' && signedIn.catalog.shared?.email).toBe(OWNER)
+    const anonymous = new MasterboardApi((async (input: RequestInfo | URL, init?: RequestInit) => handleApi(new Request(`https://mb.test${String(input)}`, init), { ...env, ACCESS_TEAM_DOMAIN: 'team.cloudflareaccess.com', ACCESS_AUD: 'aud' })) as typeof fetch)
+    expect(await resolveCatalog(local, anonymous)).toEqual({ status: 'signed-out' })
   })
 })

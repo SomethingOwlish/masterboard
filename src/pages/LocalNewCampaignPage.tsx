@@ -17,7 +17,7 @@ import { EntityPage } from '../components/local/EntityPage'
 import { ActingProvider } from '../local/ActingProvider'
 import { RelationsSection } from '../components/local/RelationsSection'
 import { WorldSection } from '../components/local/WorldSection'
-import { CAMPAIGN_SECTIONS, CampaignHeader, KNOWN_SECTIONS, SaveErrorBanner, ConflictNotice, type SectionProps } from '../components/local/shared'
+import { CAMPAIGN_SECTIONS, CampaignHeader, KNOWN_SECTIONS, ONBOARDING_SECTIONS, SaveErrorBanner, ConflictNotice, type SectionProps } from '../components/local/shared'
 import { isCampaignReady } from '../local/normalize'
 import { useLocalCampaign } from '../local/useLocalCampaign'
 import { campaignScope, dismissToasts } from '../components/toast'
@@ -55,7 +55,7 @@ export function LocalNewCampaignPage() {
   const loaded = state.status === 'ready' ? state.campaign : undefined
   const entityName = entityId ? loaded?.entities.find((entity) => entity.id === entityId)?.name : undefined
   useDocumentTitle(
-    loaded && !isCampaignReady(loaded) ? 'Новая кампания' : entityName ?? sectionTitle(entityId ? 'library' : section),
+    loaded && !isCampaignReady(loaded) && section === 'overview' ? 'Новая кампания' : entityName ?? sectionTitle(entityId ? 'library' : section),
     loaded?.name,
   )
   if (state.status === 'loading') return <main className="target-dashboard created-dashboard" aria-busy="true"><p className="local-session-footnote">Загружаем кампанию…</p></main>
@@ -64,15 +64,26 @@ export function LocalNewCampaignPage() {
   if (!KNOWN_SECTIONS.has(section)) return <Navigate to={`/local/campaign/${campaignId}/overview`} replace />
   const { campaign, persist, saveError, retry, savedInBrowser, conflicts, resolveConflicts } = state
   const banner = <><SaveErrorBanner message={saveError} retry={retry} savedInBrowser={savedInBrowser} /><ConflictNotice campaign={campaign} conflicts={conflicts} resolve={resolveConflicts} /></>
-  if (!isCampaignReady(campaign)) return <>{banner}<OnboardingRoom campaign={campaign} persist={persist} /></>
+  // Before session 1 (ТЗ-3, этап 10): «Обзор» is the onboarding room; the world, team and ways in already open.
+  const onboarding = !isCampaignReady(campaign)
+  if (onboarding && !ONBOARDING_SECTIONS.has(section === 'entity' ? 'library' : section)) return <Navigate to={`/local/campaign/${campaignId}/overview`} replace />
   const Section = SECTIONS[section]
   return <ActingProvider key={campaign.id} campaign={campaign}><PeekProvider campaign={campaign} persist={persist}>
-    {section === 'session' || section === 'play' || section === 'review'
-      ? <>{banner}<LocalSessionsWorkspace key={section} campaign={campaign} persist={persist} mode={section === 'play' ? 'play' : section === 'review' ? 'review' : 'plan'} /></>
-      : <main className="target-dashboard created-dashboard">
-        <CampaignHeader campaign={campaign} section={section} />
+    {onboarding && section === 'overview'
+      ? <>
         {banner}
-        {entityId ? <EntityPage campaign={campaign} persist={persist} entityId={entityId} /> : <Section campaign={campaign} persist={persist} />}
-      </main>}
+        <OnboardingRoom campaign={campaign} persist={persist} />
+      </>
+      : section === 'session' || section === 'play' || section === 'review'
+        ? <>{banner}<LocalSessionsWorkspace key={section} campaign={campaign} persist={persist} mode={section === 'play' ? 'play' : section === 'review' ? 'review' : 'plan'} /></>
+        : <main className="target-dashboard created-dashboard">
+          <CampaignHeader
+            campaign={campaign}
+            section={section}
+            onboarding={onboarding}
+          />
+          {banner}
+          {entityId ? <EntityPage campaign={campaign} persist={persist} entityId={entityId} /> : <Section campaign={campaign} persist={persist} />}
+        </main>}
   </PeekProvider></ActingProvider>
 }

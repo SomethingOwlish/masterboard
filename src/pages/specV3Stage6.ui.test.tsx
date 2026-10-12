@@ -20,7 +20,7 @@ describe('ТЗ-3, этап 6: глоссарий и тексты', () => {
     const user = userEvent.setup()
     const catalog = createLocalCampaignCatalog(new MemoryStorageGateway())
     renderApp('/', catalog)
-    await user.click(await screen.findByRole('button', { name: /Новая кампания/ }))
+    await user.click(await screen.findByRole('button', { name: 'Создать кампанию' }))
     const dialog = screen.getByRole('dialog', { name: 'С чего начинается история?' })
     expect(within(dialog).queryByText(/в этом браузере/)).not.toBeInTheDocument()
     await user.type(within(dialog).getByLabelText('Название'), 'Маяк')
