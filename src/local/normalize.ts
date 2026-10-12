@@ -280,3 +280,10 @@ export function withLocalSessions(campaign: LocalCampaignRecord, sessions: Local
 
 /** The campaign dashboard opens once the first session exists. */
 export const isCampaignReady = (campaign: LocalCampaignRecord): boolean => campaign.sessionRecords.length > 0
+
+/**
+ * «Мир начат» on the onboarding screen (ТЗ-3, этап 10): a note, or anything in
+ * the library — say, records taken from the base — that is not archived.
+ */
+export const worldStarted = (campaign: LocalCampaignRecord): boolean =>
+  campaign.notes.length > 0 || campaign.entities.some((entity) => entity.status !== 'archived')

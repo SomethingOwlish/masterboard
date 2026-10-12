@@ -2590,6 +2590,15 @@
   color: var(--accent);
   font-weight: 700;
 }
+.import-tile__target {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+.import-tile__target select {
+  flex: 1 1 10rem;
+  min-width: 0;
+}
 
 /* ---- .import-section --------------------------------------------------- */
 .import-section__columns {

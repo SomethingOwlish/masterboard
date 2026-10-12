@@ -81,7 +81,7 @@ describe('ТЗ-3, этап 4: один примитив диалога', () => {
   it('asks before closing «Новая кампания» with a typed name', async () => {
     const user = userEvent.setup()
     renderApp('/local')
-    await user.click(await screen.findByRole('button', { name: /Новая кампания/ }))
+    await user.click(await screen.findByRole('button', { name: 'Создать кампанию' }))
     const dialog = screen.getByRole('dialog', { name: 'С чего начинается история?' })
     expect(within(dialog).getByLabelText('Название')).toHaveFocus()
     await user.type(within(dialog).getByLabelText('Название'), 'Маяк')

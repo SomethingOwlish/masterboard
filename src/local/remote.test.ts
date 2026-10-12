@@ -35,3 +35,17 @@ describe('shared catalog polling', () => {
     expect(await catalog.shared.poll!('unknown')).toBeNull()
   })
 })
+
+describe('who is signed in (ТЗ-3, этап 10)', () => {
+  const answering = (respond: () => Promise<Response>) => new MasterboardApi((async () => respond()) as unknown as typeof fetch)
+  const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })
+
+  it('tells «not signed in» from «server unreachable»', async () => {
+    expect(await answering(async () => json({ email: 'owl@example.com' })).whoami()).toEqual({ status: 'signed-in', email: 'owl@example.com' })
+    expect(await answering(async () => json({ error: 'Войдите' }, 401)).whoami()).toEqual({ status: 'signed-out' })
+    expect(await answering(async () => new Response('<!doctype html>', { headers: { 'content-type': 'text/html' } })).whoami()).toEqual({ status: 'signed-out' })
+    expect(await answering(async () => json({ error: 'D1 упал' }, 500)).whoami()).toEqual({ status: 'unreachable' })
+    expect(await answering(async () => new Response('Bad gateway', { status: 502 })).whoami()).toEqual({ status: 'unreachable' })
+    expect(await answering(async () => { throw new TypeError('Failed to fetch') }).whoami()).toEqual({ status: 'unreachable' })
+  })
+})

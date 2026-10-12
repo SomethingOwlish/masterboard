@@ -38,6 +38,12 @@ export const NAV_GROUPS = [
   { id: 'exchange', label: 'Обмен', sections: ['import', 'integrations', 'publish', 'print'] },
 ] as const satisfies ReadonlyArray<{ id: string; label: string; sections: readonly SectionId[] }>
 
+/**
+ * What a new campaign can open before its first session (ТЗ-3, этап 10): the
+ * world, the team and the ways in. Sessions, plot, desk and output wait for session 1.
+ */
+export const ONBOARDING_SECTIONS: ReadonlySet<string> = new Set<SectionId>(['overview', 'library', 'world', 'team', 'import', 'integrations'])
+
 /** Every `section` route value the campaign page understands. */
 export const KNOWN_SECTIONS = new Set<string>([...CAMPAIGN_SECTIONS.map((item) => item.id), 'play', 'review', 'entity'])
 
@@ -48,7 +54,7 @@ const sectionOf = (id: string) => CAMPAIGN_SECTIONS.find((item) => item.id === i
  * Campaign menu (ТЗ-2, R4 C): groups open a list of their sections; the active
  * group shows which section is open. Plus the campaign search (Ctrl+K).
  */
-export function CampaignNav({ campaignId, section, className }: { campaignId: string; section: string; className?: string }) {
+export function CampaignNav({ campaignId, section, className, onboarding = false }: { campaignId: string; section: string; className?: string; onboarding?: boolean }) {
   const [open, setOpen] = useState<string | null>(null)
   const peek = usePeek()
   const current = SESSION_MODES.has(section) ? 'session' : section === 'entity' ? 'library' : section
@@ -61,7 +67,9 @@ export function CampaignNav({ campaignId, section, className }: { campaignId: st
   }, [open])
   const link = (id: SectionId, onClick?: () => void) => { const item = sectionOf(id); const active = id === current; return <Link key={id} role={onClick ? 'menuitem' : undefined} className={active ? 'active' : ''} aria-current={active ? 'page' : undefined} to={`/local/campaign/${campaignId}/${id}`} onClick={onClick}><Icon name={item.icon} size={16} /> {item.label}</Link> }
   return <nav className={`campaign-nav${className ? ` ${className}` : ''}`} aria-label="Разделы кампании">
-    {NAV_GROUPS.map((group) => {
+    {NAV_GROUPS.map((all) => {
+      const group = { ...all, sections: all.sections.filter((id) => !onboarding || ONBOARDING_SECTIONS.has(id)) as SectionId[] }
+      if (!group.sections.length) return null
       if (group.sections.length === 1) return <div key={group.id} className={`campaign-nav__group campaign-nav__group--single${group.sections[0] === current ? ' active' : ''}`}>{link(group.sections[0])}</div>
       const active = (group.sections as readonly string[]).includes(current)
       const expanded = open === group.id
@@ -74,8 +82,26 @@ export function CampaignNav({ campaignId, section, className }: { campaignId: st
   </nav>
 }
 
-export function CampaignHeader({ campaign, section }: { campaign: LocalCampaignRecord; section: string }) {
-  return <header className="local-dashboard-header campaign-topbar"><Link className="campaign-topbar__back" to="/" aria-label="Все кампании"><Icon name="arrow-left" size={16} /> <span className="campaign-topbar__back-label">Кампании</span></Link><strong className="campaign-topbar__name">{campaign.name}</strong><CampaignNav campaignId={campaign.id} section={section} /><div className="row campaign-topbar__tools"><ActingMasterSelect campaign={campaign} /><StorageIcon campaignId={campaign.id} /><LocalThemeControl /></div></header>
+/** `onboarding` — the campaign has no session yet: the menu shows only `ONBOARDING_SECTIONS`. */
+export function CampaignHeader({ campaign, section, onboarding = false }: { campaign: LocalCampaignRecord; section: string; onboarding?: boolean }) {
+  return <header className="local-dashboard-header campaign-topbar">
+    <Link className="campaign-topbar__back" to="/" aria-label="Все кампании">
+      <Icon name="arrow-left" size={16} />
+      {' '}
+      <span className="campaign-topbar__back-label">Кампании</span>
+    </Link>
+    <strong className="campaign-topbar__name">{campaign.name}</strong>
+    <CampaignNav
+      campaignId={campaign.id}
+      section={section}
+      onboarding={onboarding}
+    />
+    <div className="row campaign-topbar__tools">
+      <ActingMasterSelect campaign={campaign} />
+      <StorageIcon campaignId={campaign.id} />
+      <LocalThemeControl />
+    </div>
+  </header>
 }
 
 /** The same as `StorageBadge`, as an icon for the compact campaign bar. */

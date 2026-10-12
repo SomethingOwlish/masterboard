@@ -1,11 +1,10 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Badge, Button, Icon } from '../ds'
-import { LocalThemeControl } from '../components/LocalThemeControl'
+import { HomeHeader } from '../components/HomeHeader'
 import { backupCause, backupStateLabel, type BackupStatus } from '../local/backup'
 import { ExternalError } from '../local/external'
 import { useExternal } from '../local/useExternal'
-import { useLocalCatalog } from '../local/useLocalCampaign'
 import { useDocumentTitle } from '../components/useDocumentTitle'
 
 type State =
@@ -24,7 +23,6 @@ const when = (iso: string) => new Date(iso).toLocaleString('ru-RU', { day: 'nume
 export function BackupsPage() {
   useDocumentTitle('Резервные копии')
   const port = useExternal()
-  const shared = useLocalCatalog().shared
   const [state, setState] = useState<State>({ status: 'loading' })
   const [running, setRunning] = useState(false)
 
@@ -43,7 +41,7 @@ export function BackupsPage() {
 
   const last = state.status === 'ready' ? state.backup.last : null
   return <main className="campaign-workspace">
-    <header className="campaign-workspace__topbar"><div className="campaign-workspace__brand"><span>М</span><strong>Мастерборд</strong></div><div>{shared ? <Badge tone="accent" dot>{shared.email}</Badge> : null}<LocalThemeControl /></div></header>
+    <HomeHeader />
     <section className="campaign-workspace__hero"><div><Link className="backups__back" to="/"><Icon name="arrow-left" size={15} /> Кампании</Link><span className="panel-kicker">Рабочее пространство мастера</span><h1>Резервные копии</h1><p>Каждую ночь все общие кампании уходят в приватный репозиторий — по файлу на кампанию. Вернуть кампанию можно на странице «Импорт».</p></div><div className="row"><Button variant="primary" icon="refresh-cw" disabled={running || state.status === 'loading' || state.status === 'unconfigured'} onClick={() => void runNow()}>{running ? 'Делаю копию…' : 'Сделать сейчас'}</Button></div></section>
     <section className="backups" aria-label="Резервная копия" aria-busy={state.status === 'loading' || running}>
       {state.status === 'loading' && <p className="backups__line">Спрашиваю мост…</p>}

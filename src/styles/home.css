@@ -20,6 +20,10 @@
   padding-bottom: var(--space-3);
   border-bottom: 1px solid var(--border);
 }
+.campaign-workspace__home {
+  color: inherit;
+  text-decoration: none;
+}
 .campaign-workspace__brand, .campaign-workspace__topbar > div {
   display: flex;
   align-items: center;
@@ -58,7 +62,6 @@
   gap: var(--space-4);
 }
 .campaign-workspace__card, .campaign-workspace__new {
-  min-height: 430px;
   border: 1px solid var(--border-strong);
   border-radius: var(--radius-xl);
   background: var(--surface);
@@ -77,18 +80,10 @@
   text-decoration: none;
 }
 .campaign-workspace__cover {
-  position: relative;
   display: grid;
   place-items: center;
   background: linear-gradient(135deg, color-mix(in oklab, var(--accent) 75%, var(--surface)), var(--surface-2));
   color: var(--surface);
-}
-.campaign-workspace__cover > span {
-  position: absolute;
-  top: var(--space-3);
-  left: var(--space-3);
-  font: var(--type-data);
-  opacity: .8;
 }
 .campaign-workspace__cover > i {
   font: var(--type-hero);
@@ -263,12 +258,10 @@
 .campaign-workspace__backups:hover {
   color: var(--accent);
 }
-/* The «Новая кампания» tile no longer stretches to a card's height (R12). */
+/* «Первая кампания»: the empty state of the grid, only while there are no campaigns (ТЗ-3, этап 10). */
 .campaign-workspace__grid > .campaign-workspace__new {
-  align-self: start;
-  min-height: 0;
-  height: auto;
-  padding: var(--space-5);
+  grid-column: 1 / -1;
+  padding: var(--space-6) var(--space-5);
 }
 @media (max-width: 900px) {
   .campaign-workspace__grid {
@@ -294,42 +287,20 @@
   .campaign-workspace__grid {
     grid-template-columns: 1fr;
   }
-  .campaign-workspace__new {
-    min-height: 210px;
-  }
 }
 
 /* ---- .new-campaign-room ------------------------------------------------ */
-.new-campaign-room__topbar > div {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-}
 .new-campaign-room {
   min-height: 100dvh;
   padding: var(--space-4);
   background: linear-gradient(130deg, var(--accent-soft), transparent 32%), var(--bg);
 }
-.new-campaign-room__topbar,
+.new-campaign-room > .campaign-topbar,
 .new-campaign-room__hero,
 .new-campaign-room__layout,
 .new-campaign-room > .local-session-footnote {
   width: min(1180px, 100%);
   margin-inline: auto;
-}
-.new-campaign-room__topbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--border);
-}
-.new-campaign-room__topbar a {
-  display: flex;
-  align-items: center;
-  gap: 7px;
-  color: var(--muted);
-  text-decoration: none;
 }
 .new-campaign-room__hero {
   display: flex;
@@ -381,6 +352,14 @@
 }
 .new-campaign-room__main {
   min-height: 430px;
+}
+.new-campaign-room__library {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0 6px;
+  margin: var(--space-4) 0 0;
+  color: var(--muted);
 }
 .new-campaign-room__main h2, .new-campaign-room__setup h2 {
   margin: 4px 0 var(--space-4);
@@ -524,10 +503,16 @@
 .sign-in__card button {
   justify-self: start;
 }
+/* Icon + one text column: the text and its <code> wrap inside the card instead of becoming flex columns. */
 .sign-in__dev {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
   gap: 6px;
   font: var(--type-meta);
+  overflow-wrap: anywhere;
+}
+.sign-in__dev > svg {
+  margin-top: 2px;
 }
 
 /* ---- .backups ---------------------------------------------------------- */
