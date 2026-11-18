@@ -581,4 +581,4 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 | 9 | (PR этапа 9) | 30.09.2026 |
 | 10 | SomethingOwlish/masterboard#103 | 12.10.2026 |
 | 11 | SomethingOwlish/masterboard#104 | 18.11.2026 |
-| 12 | (PR этапа 12) | 18.11.2026 |
+| 12 | SomethingOwlish/masterboard#105 | 18.11.2026 |
