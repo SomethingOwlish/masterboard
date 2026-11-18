@@ -5,6 +5,7 @@ import type { LocalSessionPlanItem, LocalSessionPlanKind } from '../../../local/
 import { SubmitField } from '../shared'
 import { DRAG_ITEM, DRAG_SOURCE, type LinkedSource, type PlanApi, type PlanTarget } from './planApi'
 import { PeekLink } from '../Peek'
+import { PlanItemMenu } from './PlanItemMenu'
 import { ENTITY_LABEL, KIND_LABEL, PLAN_KINDS, PRIORITIES, USE_STATUS, VISIBILITY_LABEL } from '../../../local/labels'
 
 type Item = LocalSessionPlanItem
@@ -64,12 +65,26 @@ export function SceneTree({ api }: { api: PlanApi }) {
             <h3 title={title}>{title}</h3>
             {scene.alternative.trim() && <Badge size="sm" tone="warning">или: {scene.alternative}</Badge>}
             {!isOpen && <span className="scene-tree__count">{members.length ? `пунктов: ${members.length}` : 'пусто'}</span>}
-            <div className="scene-tree__controls">
+            {api.compact ? <div className="scene-tree__controls">
+              <StatusSelect api={api} item={scene} />
+              <PlanItemMenu title={title}>
+                <PrioritySelect api={api} item={scene} />
+                <Button
+                  size="sm"
+                  icon="plus"
+                  aria-label={`Добавить из библиотеки в сцену ${title}`}
+                  onClick={() => api.openPicker(scene.id)}
+                >
+                  Из библиотеки
+                </Button>
+                <MoveButtons api={api} item={scene} title={title} labelled />
+              </PlanItemMenu>
+            </div> : <div className="scene-tree__controls">
               <PrioritySelect api={api} item={scene} />
               <StatusSelect api={api} item={scene} />
               <Button size="sm" icon="plus" aria-label={`Добавить из библиотеки в сцену ${title}`} title="Добавить из библиотеки в эту сцену" onClick={() => api.openPicker(scene.id)}>Библиотека</Button>
               <MoveButtons api={api} item={scene} title={title} />
-            </div>
+            </div>}
           </header>
           {isOpen && <div className="scene-tree__body">
             {scene.note && <p className="scene-tree__comment">{scene.note}</p>}
@@ -98,7 +113,43 @@ function StatusSelect({ api, item }: { api: PlanApi; item: Item }) {
   return <select className="scene-tree__select" aria-label={`Статус ${api.itemTitle(item)}`} value={item.status} onChange={(event) => api.setStatus(item.id, event.target.value as Item['status'])}>{USE_STATUS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select>
 }
 
-function MoveButtons({ api, item, title }: { api: PlanApi; item: Item; title: string }) {
+/** `labelled` — inside «…»: the buttons carry words, not only icons. */
+function MoveButtons({ api, item, title, labelled = false }: { api: PlanApi; item: Item; title: string; labelled?: boolean }) {
+  if (labelled) return <>
+    <Button
+      size="sm"
+      icon="pencil"
+      aria-label={`Редактировать: ${title}`}
+      onClick={() => api.editItem(item.id)}
+    >
+      Редактировать
+    </Button>
+    <span className="scene-tree__move">
+      <Button
+        size="sm"
+        aria-label={`Выше: ${title}`}
+        onClick={() => api.shiftAmongPeers(item.id, -1)}
+      >
+        ↑ Выше
+      </Button>
+      <Button
+        size="sm"
+        aria-label={`Ниже: ${title}`}
+        onClick={() => api.shiftAmongPeers(item.id, 1)}
+      >
+        ↓ Ниже
+      </Button>
+    </span>
+    <Button
+      size="sm"
+      tone="danger"
+      icon="trash-2"
+      aria-label={`Убрать ${title} из сессии`}
+      onClick={() => api.remove(item.id)}
+    >
+      Убрать из сессии
+    </Button>
+  </>
   return <span className="scene-tree__move"><Button size="sm" icon="pencil" aria-label={`Редактировать: ${title}`} title="Редактировать" onClick={() => api.editItem(item.id)} /><Button size="sm" aria-label={`Выше: ${title}`} onClick={() => api.shiftAmongPeers(item.id, -1)}>↑</Button><Button size="sm" aria-label={`Ниже: ${title}`} onClick={() => api.shiftAmongPeers(item.id, 1)}>↓</Button><Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать ${title} из сессии`} onClick={() => api.remove(item.id)} /></span>
 }
 
@@ -119,7 +170,13 @@ function TreeItem({ api, item, open, toggle }: { api: PlanApi; item: Item; open:
       <div className="scene-tree__row">
         <button className="scene-tree__title" aria-expanded={open} aria-label={`${open ? 'Скрыть' : 'Показать'} подробности: ${title}`} onClick={toggle}><Icon name={open ? 'chevron-down' : 'chevron-right'} size={15} /><strong title={title}>{title}</strong>{item.role && <span className="scene-tree__role">— {item.role}</span>}</button>
         <span className="scene-tree__badges"><Badge size="sm" tone="neutral">{entity ? ENTITY_LABEL[entity.type] : KIND_LABEL[item.kind]}</Badge>{secret && <Badge size="sm" tone="warning">Секрет</Badge>}{entity && <Badge size="sm" tone="accent">Библиотека</Badge>}{item.alternative.trim() && <Badge size="sm" tone="warning">или: {item.alternative}</Badge>}{item.carriedFromSessionId && <Badge size="sm" tone="neutral">перенесено</Badge>}</span>
-        <div className="scene-tree__controls"><PrioritySelect api={api} item={item} /><StatusSelect api={api} item={item} /><MoveButtons api={api} item={item} title={title} /></div>
+        {api.compact ? <div className="scene-tree__controls">
+          <StatusSelect api={api} item={item} />
+          <PlanItemMenu title={title}>
+            <PrioritySelect api={api} item={item} />
+            <MoveButtons api={api} item={item} title={title} labelled />
+          </PlanItemMenu>
+        </div> : <div className="scene-tree__controls"><PrioritySelect api={api} item={item} /><StatusSelect api={api} item={item} /><MoveButtons api={api} item={item} title={title} /></div>}
       </div>
       {!open && (item.note || entity?.description) && <p className="scene-tree__note">{item.note || entity?.description}</p>}
       {open && <div className="scene-tree__details">

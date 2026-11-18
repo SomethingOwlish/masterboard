@@ -518,6 +518,13 @@
   gap: 6px;
   justify-items: start;
 }
+.session-live-panel__log li.muted {
+  grid-template-columns: minmax(0, 1fr);
+}
+.session-live-panel__log li .row {
+  flex-wrap: wrap;
+  gap: 6px;
+}
 .session-live-panel__log li small {
   color: var(--success);
 }
@@ -567,6 +574,116 @@
   .session-live-panel__capture {
     grid-template-columns: 1fr;
   }
+}
+
+/* ---- .session-live-layout (ТЗ-3, этап 11) ------------------------------ */
+/* Play mode: the session list steps aside; plan on the left, the live panel on the right, sticky with its own scroll. */
+.sessions-workspace--live .sessions-workspace__body {
+  grid-template-columns: minmax(0, 1fr);
+}
+.sessions-workspace--live .sessions-workspace__rail {
+  display: none;
+}
+.session-live-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 440px);
+  gap: var(--space-4);
+  align-items: start;
+}
+.session-live-layout__tabs {
+  display: none;
+}
+.session-live-layout__plan {
+  min-width: 0;
+}
+/* «Добавить в план» and the table state open under the plan, not beside it: the column is narrow. */
+.session-live-layout .session-plan__workspace--with-panel {
+  grid-template-columns: minmax(0, 1fr);
+}
+.session-live-layout__live {
+  position: sticky;
+  top: calc(52px + var(--space-3));
+  min-width: 0;
+}
+.session-live-layout .session-live-panel {
+  max-height: calc(100dvh - 52px - var(--space-3) * 2);
+  margin-top: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+.session-live-layout .session-live-panel__capture {
+  grid-template-columns: auto minmax(0, 1fr);
+}
+.session-live-layout .session-live-panel__capture > button {
+  grid-column: 1 / -1;
+}
+.session-live-layout .session-live-panel .control-center__tabs {
+  flex-wrap: wrap;
+  width: auto;
+}
+.session-live-layout ol.session-live-panel__log {
+  max-height: none;
+}
+.session-live-layout .session-live-panel__list {
+  grid-template-columns: minmax(0, 1fr);
+}
+@media (max-width: 900px) {
+  .session-live-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .session-live-layout__tabs {
+    display: block;
+  }
+  .session-live-layout[data-tab="live"] .session-live-layout__plan,
+  .session-live-layout[data-tab="plan"] .session-live-layout__live {
+    display: none;
+  }
+  .session-live-layout__live {
+    position: static;
+  }
+  .session-live-layout .session-live-panel {
+    max-height: none;
+    overflow: visible;
+  }
+}
+
+/* ---- «…» of a plan item ------------------------------------------------- */
+.plan-item-menu {
+  position: relative;
+}
+.plan-item-menu__toggle {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  color: var(--text);
+  cursor: pointer;
+}
+.plan-item-menu__toggle[aria-expanded="true"] {
+  border-color: var(--accent);
+}
+.plan-item-menu__panel {
+  position: absolute;
+  top: calc(100% + 4px);
+  right: 0;
+  z-index: var(--z-dropdown);
+  display: grid;
+  gap: 6px;
+  justify-items: stretch;
+  min-width: 200px;
+  padding: 6px;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  cursor: auto;
+}
+.plan-item-menu__panel .scene-tree__move > * {
+  flex: 1;
 }
 
 /* ---- .session-review-panel --------------------------------------------- */

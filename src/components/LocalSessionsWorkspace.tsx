@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, EmptyState, Icon, Select } from '../ds'
+import { Button, EmptyState, Icon, Select, Tabs } from '../ds'
 import { sessionStatusText } from '../local/labels'
 import { newEntity, newSecret, toggleId } from '../local/domain'
 import { blankSession, withLocalSessions } from '../local/normalize'
@@ -44,12 +44,16 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
   const [selectedId, setSelectedId] = useState(initialId ?? '')
   const selected = live.find((item) => item.id === selectedId) ?? live[0]
   const [editor, setEditor] = useState<LocalSessionRecord | null>(null)
+  /** Play mode: plan on the left, live panel on the right; below 900px one of them, by these tabs (ТЗ-3, этап 11). */
+  const liveLayout = mode === 'play' && selected?.status === 'active'
+  const [liveTab, setLiveTab] = useState<'plan' | 'live'>('live')
   useEffect(() => { if (requestedId) setSelectedId(requestedId) }, [requestedId])
   // «Панель проведения» и «Разобрать» ведут сюда: показать нужную панель, а не тот же экран плана.
   useEffect(() => {
     if (mode === 'plan') return
     const target = document.querySelector<HTMLElement>(mode === 'play' ? '.session-live-panel' : '.session-review-panel')
-    target?.scrollIntoView?.({ block: 'start' })
+    // In play the panel is already beside the plan: scrolling to it would only hide the session header.
+    if (!target?.closest('.session-live-layout')) target?.scrollIntoView?.({ block: 'start' })
     target?.focus({ preventScroll: true })
   }, [mode])
   // Боковая панель у плана: «Добавить в план» или живое состояние КК9 (М4) — одна за раз.
@@ -171,20 +175,83 @@ export function LocalSessionsWorkspace({ campaign, persist, mode = 'plan' }: Pro
     openPicker: (target) => setPickerTarget(target),
     editEntity: (id) => setEditingEntityId(id),
     editItem: (id) => setEditingItemId(id),
+    compact: liveLayout,
   } : null
+  const planActions = <>
+    <Button
+      icon="plus"
+      variant={panelOpen ? 'primary' : undefined}
+      aria-pressed={panelOpen}
+      onClick={() => setPanelOpen(!panelOpen)}
+    >
+      Добавить в план
+    </Button>
+    <Button icon="library" onClick={() => setPickerTarget(null)}>Из библиотеки</Button>
+    {table && <Button
+      icon="users"
+      variant={panel === 'table' ? 'primary' : undefined}
+      aria-pressed={panel === 'table'}
+      onClick={() => setPanel(panel === 'table' ? null : 'table')}
+    >
+      {LIVE_TABLE_LABEL[table.system]}
+    </Button>}
+  </>
+  const planPanel = planApi && panel === 'add'
+    ? <PlanAddPanel api={planApi} close={() => setPanel(null)} />
+    : panel === 'table' ? <TableStatePanel campaign={campaign} close={() => setPanel(null)} /> : undefined
+  const planViews = planApi && <PlanViews
+    api={planApi}
+    actions={planActions}
+    panel={planPanel}
+  />
+  const livePanel = selected && <LivePanel
+    campaign={campaign}
+    session={selected}
+    persist={persist}
+    canClose={acting.canRun(selected)}
+    closeHint={runSessionHint(campaign, selected)}
+    onClose={() => {
+      updateSession({ ...selected, status: 'completed' })
+      navigate(`/local/campaign/${campaign.id}/review`)
+    }}
+  />
   const editingItem = editingItemId ? selected?.planItems.find((item) => item.id === editingItemId) : undefined
 
-  return <main className="sessions-workspace">
+  return <main className={`sessions-workspace${liveLayout ? ' sessions-workspace--live' : ''}`}>
     <header className="sessions-workspace__top"><Link to={`/local/campaign/${campaign.id}/overview`}><Icon name="arrow-left" size={16} /> <span>{campaign.name}</span></Link><CampaignNav campaignId={campaign.id} section={mode === 'plan' ? 'session' : mode} /><div className="row"><ActingMasterSelect campaign={campaign} /><StorageBadge campaignId={campaign.id} /></div></header>
     <div className="sessions-workspace__body">
       <aside className="sessions-workspace__rail"><div className="panel-heading"><div><span className="panel-kicker">Кампания</span><h2>Сессии</h2></div><Button size="sm" icon="plus" onClick={create}>Новая</Button></div><div className="sessions-workspace__session-list">{live.map((session) => <button key={session.id} className={session.id === selected?.id ? 'active' : ''} onClick={() => choose(session.id)}><span>{String(session.number).padStart(2, '0')}</span><div><strong>{session.title}</strong><small>{[sessionStatusText(session), formatDate(session.date), session.inGameTime || 'время не задано'].filter(Boolean).join(' · ')}</small></div></button>)}</div>{!live.length && <EmptyState icon="clapperboard" title="Сессий пока нет" hint="Создайте первую или планируйте несколько заранее." action={<Button variant="primary" onClick={create}>Создать сессию</Button>} />}{trash.length > 0 && <details className="sessions-workspace__trash"><summary>Корзина · {trash.length}</summary><ul>{trash.map((session) => <li key={session.id}><span>№{session.number} {session.title}</span><Button size="sm" icon="refresh-cw" disabled={!acting.canRun(session)} title={acting.canRun(session) ? undefined : runSessionHint(campaign, session)} onClick={() => restore(session.id)}>Восстановить</Button><Button size="sm" tone="danger" icon="trash-2" aria-label={`Удалить навсегда №${session.number} ${session.title}`} title={acting.canRun(session) ? 'Удалить навсегда' : runSessionHint(campaign, session)} disabled={!acting.canRun(session)} onClick={() => purge([session])} /></li>)}</ul>{deletable.length > 1 && <Button size="sm" tone="danger" icon="trash-2" onClick={() => purge(deletable)}>Очистить корзину</Button>}</details>}<details className="sessions-workspace__trash sessions-workspace__import"><summary>Импорт из файла</summary><p>Подготовьте сессии в JSON по шаблону — сцены, пункты плана и переходы появятся черновиками.</p><div className="row"><Button size="sm" icon="download" onClick={downloadTemplate}>Шаблон</Button><Button size="sm" icon="upload" onClick={() => importInput.current?.click()}>Импортировать JSON</Button></div><input ref={importInput} type="file" accept="application/json,.json" hidden aria-label="Файл сессий для импорта" onChange={(event) => { void readImport(event.target.files?.[0]); event.target.value = '' }} /></details></aside>
-      {selected && <section className="session-plan"><header className="session-plan__passport"><div><span className="panel-kicker">Сессия {String(selected.number).padStart(2, '0')} · {sessionStatusText(selected)}</span><h1>{selected.title}</h1><p>{selected.focus || selected.idea || 'Фокус пока не задан.'}</p></div><div className="session-plan__actions"><Button icon="pencil" onClick={() => setEditor(structuredClone(selected))}>Паспорт</Button><Button icon="copy" onClick={duplicate}>Дублировать</Button><Button icon="trash-2" disabled={Boolean(trashHint)} title={trashHint} onClick={toTrash}>В корзину</Button>{selected.status === 'active' ? <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/play`)}>Панель проведения</Button> : selected.status === 'completed' ? <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/review`)}>Разобрать</Button> : <>
+      {selected && <section className="session-plan"><header className="session-plan__passport"><div><span className="panel-kicker">Сессия {String(selected.number).padStart(2, '0')} · {sessionStatusText(selected)}</span><h1>{selected.title}</h1><p>{selected.focus || selected.idea || 'Фокус пока не задан.'}</p></div><div className="session-plan__actions"><Button icon="pencil" onClick={() => setEditor(structuredClone(selected))}>Паспорт</Button><Button icon="copy" onClick={duplicate}>Дублировать</Button><Button icon="trash-2" disabled={Boolean(trashHint)} title={trashHint} onClick={toTrash}>В корзину</Button>{selected.status === 'active' ? !liveLayout && <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/play`)}>Панель проведения</Button> : selected.status === 'completed' ? <Button variant="primary" onClick={() => navigate(`/local/campaign/${campaign.id}/review`)}>Разобрать</Button> : <>
             <Button icon={selected.status === 'ready' ? 'undo-2' : 'check'} onClick={toggleReady}>{selected.status === 'ready' ? 'Вернуть в подготовку' : 'Отметить готовой'}</Button>
             <Button variant="primary" icon="play" title={startBlocked ?? (acting.canRun(selected) ? emptyPlan : runSessionHint(campaign, selected))} disabled={Boolean(emptyPlan) || !acting.canRun(selected) || Boolean(startBlocked)} onClick={start}>Начать</Button>
           </>}</div></header>
         <dl className="session-plan__meta"><div><dt>Ответственный мастер</dt><dd>{masterName(campaign, selected.masterId)}{selected.handovers.length > 0 && <small className="session-plan__handovers">{selected.handovers.map((handover) => `${masterName(campaign, handover.fromId)} → ${masterName(campaign, handover.toId)}`).join('; ')}</small>}</dd></div><div><dt>Группа и участники</dt><dd>{[campaign.groups.find((group) => group.id === selected.groupId)?.name, sessionPlayers(campaign, selected).map((player) => player.name).join(', '), selected.participants].filter(Boolean).join(' · ') || 'Не заданы'}</dd></div><div><dt>Дата игры</dt><dd>{formatDate(selected.date) || 'Не назначена'}</dd></div><div><dt>Время и шкала</dt><dd>{[selected.inGameTime, selected.timelinePosition].filter(Boolean).join(' · ') || 'Не заданы'}</dd></div><div><dt>Стартовая ситуация</dt><dd>{selected.opening || 'Не задана'}</dd></div></dl>
-        {planApi && <PlanViews api={planApi} actions={<><Button icon="plus" variant={panelOpen ? 'primary' : undefined} aria-pressed={panelOpen} onClick={() => setPanelOpen(!panelOpen)}>Добавить в план</Button><Button icon="library" onClick={() => setPickerTarget(null)}>Из библиотеки</Button>{table && <Button icon="users" variant={panel === 'table' ? 'primary' : undefined} aria-pressed={panel === 'table'} onClick={() => setPanel(panel === 'table' ? null : 'table')}>{LIVE_TABLE_LABEL[table.system]}</Button>}</>} panel={panel === 'add' ? <PlanAddPanel api={planApi} close={() => setPanel(null)} /> : panel === 'table' ? <TableStatePanel campaign={campaign} close={() => setPanel(null)} /> : undefined} />}
-        {selected.status === 'active' && <LivePanel campaign={campaign} session={selected} persist={persist} canClose={acting.canRun(selected)} closeHint={runSessionHint(campaign, selected)} onClose={() => { updateSession({ ...selected, status: 'completed' }); navigate(`/local/campaign/${campaign.id}/review`) }} />}
+        {liveLayout ? <div
+          className="session-live-layout"
+          data-tab={liveTab}
+        >
+          <div className="session-live-layout__tabs">
+            <Tabs
+              aria-label="План или проведение"
+              style={{ display: 'flex' }}
+              tabs={[{ id: 'plan', label: 'План' }, { id: 'live', label: 'Проведение' }]}
+              activeId={liveTab}
+              onSelect={(id) => setLiveTab(id === 'plan' ? 'plan' : 'live')}
+            />
+          </div>
+          <div
+            className="session-live-layout__plan"
+            aria-label="План сессии"
+          >
+            {planViews}
+          </div>
+          <div className="session-live-layout__live">
+            {livePanel}
+          </div>
+        </div> : <>
+          {planViews}
+          {selected.status === 'active' && livePanel}
+        </>}
         {mode === 'play' && selected.status !== 'active' && <p className="session-plan__notice" role="status">Эта сессия сейчас не проводится. {selected.status === 'completed' ? 'Она уже закрыта — откройте разбор.' : 'Нажмите «Начать», чтобы открыть живую панель.'}</p>}
         {mode === 'review' && selected.status !== 'completed' && <p className="session-plan__notice" role="status">Разбор откроется, когда сессия будет закрыта.</p>}
         {selected.status === 'completed' && <ReviewWizard key={selected.id} campaign={campaign} session={selected} persist={persist} canComplete={acting.canRun(selected)} completeHint={runSessionHint(campaign, selected)} itemTitle={itemTitle} openSession={(id) => { choose(id); navigate(`/local/campaign/${campaign.id}/session`) }} />}

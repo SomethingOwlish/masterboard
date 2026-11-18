@@ -3,6 +3,7 @@ import { Badge, Button, Select } from '../../../ds'
 import type { LocalSessionPlanItem, LocalSessionPlanKind } from '../../../local/types'
 import { DRAG_ITEM, type PlanApi } from './planApi'
 import { SubmitField } from '../shared'
+import { PlanItemMenu } from './PlanItemMenu'
 import { PLAN_KINDS, USE_STATUS } from '../../../local/labels'
 
 /** One plan item, shared by the list and the scene board. Draggable. */
@@ -12,9 +13,11 @@ export function PlanItemCard({ api, item, onDropBefore }: { api: PlanApi; item: 
   const scene = item.sceneId ? api.session.planItems.find((entry) => entry.id === item.sceneId) : undefined
   const onDragStart = (event: DragEvent) => { event.dataTransfer.setData(DRAG_ITEM, item.id); event.dataTransfer.effectAllowed = 'move' }
   const onDrop = (event: DragEvent) => { const id = event.dataTransfer.getData(DRAG_ITEM); if (id) { event.preventDefault(); event.stopPropagation(); onDropBefore(id) } }
+  const kindSelect = <Select aria-label={`Тип ${title}`} value={item.kind} onChange={(event) => api.patchItem(item.id, { kind: event.target.value as LocalSessionPlanKind })}>{PLAN_KINDS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select>
+  const row = <div className="row"><Button size="sm" icon="pencil" aria-label={`Редактировать: ${title}`} title="Редактировать" onClick={() => api.editItem(item.id)} /><Button size="sm" aria-label={`Выше: ${title}`} onClick={() => api.shift(item.id, -1)}>↑</Button><Button size="sm" aria-label={`Ниже: ${title}`} onClick={() => api.shift(item.id, 1)}>↓</Button>{item.source === 'text' && !item.secretId && <Button size="sm" icon={item.kind === 'secret' ? 'shield' : 'library'} onClick={() => api.saveToLibrary(item)}>{item.kind === 'secret' ? 'В секреты' : 'В библиотеку'}</Button>}<Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать ${title} из сессии`} onClick={() => api.remove(item.id)} /></div>
   return <article draggable onDragStart={onDragStart} onDragOver={(event) => event.preventDefault()} onDrop={onDrop} aria-label={`Пункт плана: ${title}`} className={item.status === 'skipped' || item.status === 'cancelled' ? 'dimmed' : ''}>
     <div className="session-plan__item-main">
-      <div className="row"><Badge size="sm" tone={item.secretId ? 'warning' : item.source === 'library' ? 'accent' : 'neutral'}>{item.secretId ? 'Секрет' : item.source === 'library' ? 'Библиотека' : 'Текст'}</Badge>{item.alternative.trim() && <Badge size="sm" tone="warning">или: {item.alternative}</Badge>}{scene && <Badge size="sm" tone="neutral">в сцене: {api.itemTitle(scene)}</Badge>}{item.carriedFromSessionId && <Badge size="sm" tone="neutral">перенесено</Badge>}<Select aria-label={`Тип ${title}`} value={item.kind} onChange={(event) => api.patchItem(item.id, { kind: event.target.value as LocalSessionPlanKind })}>{PLAN_KINDS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select></div>
+      <div className="row"><Badge size="sm" tone={item.secretId ? 'warning' : item.source === 'library' ? 'accent' : 'neutral'}>{item.secretId ? 'Секрет' : item.source === 'library' ? 'Библиотека' : 'Текст'}</Badge>{item.alternative.trim() && <Badge size="sm" tone="warning">или: {item.alternative}</Badge>}{scene && <Badge size="sm" tone="neutral">в сцене: {api.itemTitle(scene)}</Badge>}{item.carriedFromSessionId && <Badge size="sm" tone="neutral">перенесено</Badge>}{!api.compact && kindSelect}</div>
       <h3 title={title}>{title}</h3>
       <SubmitField label={`Заметка ${title}`} value={item.note} placeholder="Локальная заметка, условие или роль…" onSubmit={(note) => api.patchItem(item.id, { note })} />
       <details className="session-plan__item-links"><summary>Связи пункта</summary><div className="row">
@@ -24,7 +27,10 @@ export function PlanItemCard({ api, item, onDropBefore }: { api: PlanApi; item: 
     </div>
     <div className="session-plan__item-controls">
       <Select aria-label={`Статус ${title}`} value={item.status} onChange={(event) => api.setStatus(item.id, event.target.value as LocalSessionPlanItem['status'])}>{USE_STATUS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select>
-      <div className="row"><Button size="sm" icon="pencil" aria-label={`Редактировать: ${title}`} title="Редактировать" onClick={() => api.editItem(item.id)} /><Button size="sm" aria-label={`Выше: ${title}`} onClick={() => api.shift(item.id, -1)}>↑</Button><Button size="sm" aria-label={`Ниже: ${title}`} onClick={() => api.shift(item.id, 1)}>↓</Button>{item.source === 'text' && !item.secretId && <Button size="sm" icon={item.kind === 'secret' ? 'shield' : 'library'} onClick={() => api.saveToLibrary(item)}>{item.kind === 'secret' ? 'В секреты' : 'В библиотеку'}</Button>}<Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать ${title} из сессии`} onClick={() => api.remove(item.id)} /></div>
+      {api.compact ? <PlanItemMenu title={title}>
+        {kindSelect}
+        {row}
+      </PlanItemMenu> : row}
     </div>
   </article>
 }
