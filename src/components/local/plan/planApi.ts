@@ -33,4 +33,6 @@ export interface PlanApi {
   editEntity: (entityId: string) => void
   /** Opens the editor of a plan item or scene: title, type, priority, notes, links. */
   editItem: (itemId: string) => void
+  /** The session is being played: rows keep the status and the title, other controls go into «…». */
+  compact?: boolean
 }
