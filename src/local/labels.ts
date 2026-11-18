@@ -75,3 +75,10 @@ export function plural(count: number, one: string, few: string, many: string): s
   if (mod10 >= 2 && mod10 <= 4) return few
   return many
 }
+
+/**
+ * Quick reasons for a clock move (ТЗ-3, этап 12). The rule is the same in
+ * play and in the review: a clock moves only with a reason; a chip fills it.
+ */
+export const CLOCK_REASONS = ['Действия героев', 'Провал броска', 'Прошло время', 'Ход противника'] as const
+export const clockReasonReady = (reason: string | undefined) => Boolean(reason?.trim())

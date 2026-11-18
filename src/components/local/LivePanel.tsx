@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Badge, Button, Select } from '../../ds'
 import { changeSecretStatus, moveClock, newEntity, resolveClockTrigger } from '../../local/domain'
-import { SECRET_STATUS, withSession, LOG_KIND, ENTITY_LABEL, ENTITY_TYPES } from '../../local/labels'
+import { SECRET_STATUS, withSession, LOG_KIND, ENTITY_LABEL, ENTITY_TYPES, clockReasonReady } from '../../local/labels'
+import { ClockReasonField } from './ClockReason'
 import { useActing } from '../../local/actingContext'
 import { applyImprov, IMPROV_KIND, improvOf } from '../../local/personal'
 import { logEntry, newTask } from '../../local/sessionFlow'
@@ -94,7 +95,30 @@ export function LivePanel({ campaign, session, persist, onClose, canClose = true
     <nav className="control-center__tabs" aria-label="Разделы живой панели">{([['log', 'Журнал', session.log.length], ['cards', 'Карточки', planEntities.length], ['clocks', 'Часы', campaign.clocks.length], ['secrets', 'Секреты', campaign.secrets.length], ['new', 'Новое', undefined], ['improv', 'Заготовки', improv.length], ...(table ? [['table', LIVE_TABLE_LABEL[table.system], undefined] as const] : [])] as const).map(([id, label, count]) => <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{label}{count !== undefined && <span>{count}</span>}</button>)}</nav>
     {tab === 'log' && <ol className="session-live-panel__log">{[...session.log].reverse().map((entry) => <li key={entry.id}><time>{new Date(entry.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</time><div><Badge size="sm" tone={entry.kind === 'moment' ? 'neutral' : 'accent'}>{LOG_KIND[entry.kind]}</Badge><span>{entry.text}</span>{sentOf(entry) ? <small>{SENT_LABEL[sentOf(entry)!]}</small> : <div className="row"><Button size="sm" onClick={() => toTask(entry)}>В задачу</Button><Button size="sm" onClick={() => toInbox(entry)}>Во входящие</Button>{entry.kind !== 'entity' && <Button size="sm" onClick={() => toLibrary(entry)}>В библиотеку</Button>}</div>}</div></li>)}{!session.log.length && <li className="muted">Журнал пуст. Записывайте, что произошло фактически.</li>}</ol>}
     {tab === 'cards' && <div className="session-live-panel__list">{planEntities.map((entity) => <article key={entity.id} aria-label={`Карточка: ${entity.name}`}><div className="row"><strong><PeekLink target={{ kind: 'entity', id: entity.id }}>{entity.name}</PeekLink></strong><Badge size="sm" tone="neutral">{ENTITY_LABEL[entity.type]}</Badge></div>{entity.description && <p>{entity.description}</p>}<EntityDetails entity={entity} className="campaign-local-library__fields" /></article>)}{!planEntities.length && <p className="muted">В плане нет сущностей из библиотеки.</p>}</div>}
-    {tab === 'clocks' && <div className="session-live-panel__list">{campaign.clocks.map((clock) => { const full = clock.value === clock.segments; return <article key={clock.id} aria-label={`Часы: ${clock.title}`}><div className="row"><strong>{clock.title}</strong><span className="mb-data">{clock.value}/{clock.segments}</span></div>{full && clock.triggerStatus !== 'fired' ? <div className="row"><span className="local-session-error">Заполнены: {clock.trigger || 'событие не описано'}</span><Button size="sm" onClick={() => resolveLiveClock(clock.id, 'deferred')}>Позже</Button><Button size="sm" variant="primary" onClick={() => resolveLiveClock(clock.id, 'fired')}>Сработало</Button></div> : null}<div className="row"><input aria-label={`Причина: ${clock.title}`} value={reasons[clock.id] ?? ''} placeholder="Причина…" onChange={(e) => setReasons({ ...reasons, [clock.id]: e.target.value })} /><Button size="sm" aria-label={`Откатить ${clock.title}`} disabled={!clock.value || !reasons[clock.id]?.trim()} onClick={() => moveLiveClock(clock.id, -1)}>−1</Button><Button size="sm" variant="primary" aria-label={`Продвинуть ${clock.title}`} disabled={full || !reasons[clock.id]?.trim()} onClick={() => moveLiveClock(clock.id, 1)}>+1</Button></div></article> })}{!campaign.clocks.length && <p className="muted">Часов нет. Их можно завести в «Пульте».</p>}</div>}
+    {tab === 'clocks' && <div className="session-live-panel__list">{campaign.clocks.map((clock) => { const full = clock.value === clock.segments; return <article key={clock.id} aria-label={`Часы: ${clock.title}`}><div className="row"><strong>{clock.title}</strong><span className="mb-data">{clock.value}/{clock.segments}</span></div>{full && clock.triggerStatus !== 'fired' ? <div className="row"><span className="local-session-error">Заполнены: {clock.trigger || 'событие не описано'}</span><Button size="sm" onClick={() => resolveLiveClock(clock.id, 'deferred')}>Позже</Button><Button size="sm" variant="primary" onClick={() => resolveLiveClock(clock.id, 'fired')}>Сработало</Button></div> : null}<ClockReasonField
+                title={clock.title}
+                value={reasons[clock.id] ?? ''}
+                onChange={(reason) => setReasons({ ...reasons, [clock.id]: reason })}
+              />
+              <div className="row">
+                <Button
+                  size="sm"
+                  aria-label={`Откатить ${clock.title}`}
+                  disabled={!clock.value || !clockReasonReady(reasons[clock.id])}
+                  onClick={() => moveLiveClock(clock.id, -1)}
+                >
+                  −1
+                </Button>
+                <Button
+                  size="sm"
+                  variant="primary"
+                  aria-label={`Продвинуть ${clock.title}`}
+                  disabled={full || !clockReasonReady(reasons[clock.id])}
+                  onClick={() => moveLiveClock(clock.id, 1)}
+                >
+                  +1
+                </Button>
+              </div></article> })}{!campaign.clocks.length && <p className="muted">Часов нет. Их можно завести в «Пульте».</p>}</div>}
     {tab === 'secrets' && <div className="session-live-panel__list">{secrets.map((secret) => <article key={secret.id}><div className="row"><strong>{secret.title}</strong>{planSecretIds.has(secret.id) && <Badge size="sm" tone="accent">В плане</Badge>}</div>{secret.revealCondition && <small>Раскрыть: {secret.revealCondition}</small>}<Select aria-label={`Состояние секрета: ${secret.title}`} value={secret.status} onChange={(e) => revealLive(secret.id, e.target.value as LocalSecretStatus)}>{Object.entries(SECRET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></article>)}{!campaign.secrets.length && <p className="muted">Секретов нет.</p>}</div>}
     {tab === 'table' && <TableStatePanel campaign={campaign} />}
     {tab === 'improv' && <div className="session-live-panel__list">{improv.map((item) => <article key={item.id}><div className="row"><strong>{item.text}</strong><Badge size="sm" tone="neutral">{IMPROV_KIND[item.kind]}</Badge></div><Button size="sm" variant="primary" aria-label={`Использовать заготовку ${item.text}`} onClick={() => persist(applyImprov(campaign, item.id, now(), session))}>Использовать</Button></article>)}{!improv.length && <p className="muted">Личный лист {acting.master.name} пуст. Заготовки пополняются в разделе «Заготовки».</p>}</div>}

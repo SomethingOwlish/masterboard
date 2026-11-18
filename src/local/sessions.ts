@@ -59,6 +59,8 @@ export function duplicateSession(campaign: LocalCampaignRecord, id: string, now:
     reviewStatus: 'draft',
     reviewDecisions: {},
     appliedDecisions: {},
+    reviewDraft: undefined,
+    reviewApplied: undefined,
     nextSessionId: undefined,
     nextGame: undefined,
     kk9Sent: undefined,

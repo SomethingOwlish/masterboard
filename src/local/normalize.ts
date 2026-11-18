@@ -3,7 +3,7 @@ import { newGroup, parseMasters } from './team'
 import { IDEA_PLACEHOLDER, TIME_PLACEHOLDER, WIDGETS } from './labels'
 import { validSessionDate } from './sessions'
 import { EXTERNAL_SYSTEMS, isExternalSystem, type ExternalSystem } from '../model/external'
-import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord, LocalDashboardLayout, LocalGroup, LocalWidgetId, LocalMaster, LocalPrintConfig, LocalReviewDecision, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
+import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord, LocalDashboardLayout, LocalGroup, LocalWidgetId, LocalMaster, LocalPrintConfig, LocalReviewChange, LocalReviewDecision, LocalReviewDraft, LocalSecretStatus, LocalSessionFlow, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionRecord } from './types'
 
 type Raw = Record<string, unknown>
 
@@ -67,6 +67,27 @@ function normalizeLayout(raw: Raw): LocalDashboardLayout {
 }
 const ids = (value: unknown): string[] => list<unknown>(value).filter((id): id is string => typeof id === 'string')
 
+const REVIEW_CHANGE_KINDS = ['clock', 'arc', 'time', 'secret'] as const
+const SECRET_STATUSES = ['hidden', 'partial', 'selected', 'everyone', 'disproved', 'obsolete'] as const
+function normalizeReviewDraft(raw: Raw): LocalReviewDraft {
+  const clocks: LocalReviewDraft['clocks'] = {}
+  if (isObject(raw.clocks)) for (const [id, move] of Object.entries(raw.clocks)) {
+    if (isObject(move) && typeof move.delta === 'number' && move.delta) clocks[id] = { delta: Math.trunc(move.delta), reason: text(move.reason) }
+  }
+  const arcs: LocalReviewDraft['arcs'] = {}
+  if (isObject(raw.arcs)) for (const [id, progress] of Object.entries(raw.arcs)) {
+    if (typeof progress === 'number') arcs[id] = Math.max(0, Math.min(100, progress))
+  }
+  const secrets: LocalReviewDraft['secrets'] = {}
+  if (isObject(raw.secrets)) for (const [id, status] of Object.entries(raw.secrets)) {
+    if ((SECRET_STATUSES as readonly unknown[]).includes(status)) secrets[id] = status as LocalSecretStatus
+  }
+  return { clocks, arcs, secrets, ...(typeof raw.time === 'string' ? { time: raw.time } : {}) }
+}
+const normalizeReviewChange = (raw: Raw): LocalReviewChange => ({
+  kind: oneOf(raw.kind, REVIEW_CHANGE_KINDS, 'clock'), title: text(raw.title), from: text(raw.from), to: text(raw.to), at: text(raw.at),
+})
+
 function normalizeSession(raw: unknown, index: number, fallbackDate: string, team: TeamContext): LocalSessionRecord | null {
   if (!isObject(raw) || typeof raw.id !== 'string') return null
   const base = blankSession(typeof raw.number === 'number' ? raw.number : index + 1, masterIdFor(team, raw.masterId, raw.master), text(raw.createdAt, fallbackDate), raw.id)
@@ -88,6 +109,8 @@ function normalizeSession(raw: unknown, index: number, fallbackDate: string, tea
     reviewDecisions: isObject(raw.reviewDecisions) ? (raw.reviewDecisions as Record<string, LocalReviewDecision>) : {},
     appliedDecisions: isObject(raw.appliedDecisions) ? (raw.appliedDecisions as Record<string, LocalReviewDecision>) : {},
     nextSessionId: typeof raw.nextSessionId === 'string' ? raw.nextSessionId : undefined,
+    ...(isObject(raw.reviewDraft) ? { reviewDraft: normalizeReviewDraft(raw.reviewDraft) } : {}),
+    ...(Array.isArray(raw.reviewApplied) ? { reviewApplied: list<unknown>(raw.reviewApplied).filter(isObject).map(normalizeReviewChange) } : {}),
     ...(isObject(raw.nextGame) ? { nextGame: { date: validSessionDate(text(raw.nextGame.date)) ? text(raw.nextGame.date) : '', time: text(raw.nextGame.time) } } : {}),
     ...(isObject(raw.kk9Sent) && typeof raw.kk9Sent.pageId === 'string' && typeof raw.kk9Sent.fingerprint === 'number'
       ? { kk9Sent: { stream: oneOf(raw.kk9Sent.stream, ['campaign', 'worldNews', 'gmPrivate'] as const, 'campaign'), pageId: raw.kk9Sent.pageId, fingerprint: raw.kk9Sent.fingerprint, sentAt: text(raw.kk9Sent.sentAt), ...(typeof raw.kk9Sent.nextSession === 'string' ? { nextSession: raw.kk9Sent.nextSession } : {}) } }
