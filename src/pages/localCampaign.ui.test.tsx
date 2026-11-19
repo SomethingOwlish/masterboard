@@ -25,7 +25,7 @@ describe('local campaign workspace', () => {
 
     const nav = await screen.findByRole('navigation', { name: 'Разделы кампании' })
     expect(within(nav).getAllByRole('button', { expanded: false }).map((button) => button.textContent?.trim())).toEqual(['ПодготовкаОбзор', 'Мир', 'Обмен'])
-    expect(within(nav).getByRole('link', { name: /Команда/ })).toBeInTheDocument()
+    expect(within(nav).queryByRole('link', { name: /Команда/ })).not.toBeInTheDocument()
     await user.click(within(nav).getByRole('button', { name: /Мир/ }))
     expect(within(nav).getAllByRole('menuitem').map((link) => link.textContent?.trim())).toEqual(['Библиотека', 'Связи', 'Заметки', 'Заготовки'])
     await user.click(within(nav).getByRole('button', { name: /Мир/ }))
