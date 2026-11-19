@@ -623,4 +623,4 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 | 13 | SomethingOwlish/masterboard#106 | 19.11.2026 |
 | 14 | SomethingOwlish/masterboard#107 | 19.11.2026 |
 | 15 | SomethingOwlish/masterboard#108 | 19.11.2026 |
-| 16а | (PR этапа 16а) | 19.11.2026 |
+| 16а | SomethingOwlish/masterboard#109 | 19.11.2026 |
