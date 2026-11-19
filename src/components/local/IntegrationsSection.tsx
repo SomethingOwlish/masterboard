@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Badge, Button, Icon } from '../../ds'
+import { Badge, Button, Checkbox, Icon } from '../../ds'
 import type { CapabilityPassport, ExternalSystem } from '../../model/external'
 import { useActing } from '../../local/actingContext'
 import { ROLE_HINT, ROLE_LABEL, ROLE_SYSTEMS, SYSTEM_IN, SYSTEM_LABEL, WRITABLE_ROLES, checkedLink, linkedRole, queuedFor, roleConnection, rulesFor, withLink, linkOf, type BaseOption, type CampaignRole, type WritableRole } from '../../local/integration'
@@ -129,7 +129,18 @@ function RulesTable({ campaign, persist, editable, only }: { campaign: LocalCamp
       <div role="row" className="integrations-rules__head"><span role="columnheader">Тип</span>{roles.map((role) => <span key={role} role="columnheader">{ROLE_LABEL[role]}{only || linkedRole(campaign, role) ? '' : ' · не подключён'}</span>)}</div>
       {ENTITY_TYPES.map((type) => <div role="row" key={type.value}><span role="cell">{type.label}</span>{roles.map((role) => {
         const on = rulesFor(campaign, type.value).includes(role as WritableRole)
-        return <span role="cell" key={role}><label className="rule-toggle"><input type="checkbox" disabled={!editable} checked={on} onChange={() => toggle(type.value, role)} aria-label={`${type.label} → ${ROLE_LABEL[role]}`} />{on ? 'да' : '—'}</label></span>
+        return (
+          <span role="cell" key={role}>
+            <Checkbox
+              label={on ? 'да' : '—'}
+              disabled={!editable}
+              checked={on}
+              onChange={() => toggle(type.value, role)}
+              aria-label={`${type.label} → ${ROLE_LABEL[role]}`}
+            />
+          </span>
+        )
+
       })}</div>)}
     </div>
   </div>

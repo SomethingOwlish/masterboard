@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Badge, Button, EmptyState } from '../../ds'
+import { Badge, Button, EmptyState, Select, TextField } from '../../ds'
 import { consumeInbox, newInboxItem, type InboxTarget } from '../../local/inbox'
 import { ENTITY_TYPES, INBOX_ACTIONS, INBOX_CAPTURE } from '../../local/labels'
 import type { LocalCampaignEntityType, LocalCampaignRecord, LocalInboxItem } from '../../local/types'
@@ -28,7 +28,7 @@ export function InboxList({ campaign, persist, limit, showAll }: {
   const shown = limit ? latest.slice(0, limit) : latest
   return <div className="inbox-panel">
     <div className="target-capture">
-      <input
+      <TextField
         aria-label="Быстрая запись"
         value={text}
         placeholder="Мысль, имя, последствие… #тег"
@@ -77,9 +77,14 @@ function InboxRow({ item, consume, remove }: { item: LocalInboxItem; consume: (t
     <div className="inbox-row__actions" role="group" aria-label={`Разобрать: ${item.text}`}>
       {INBOX_ACTIONS.map(([target, label]) => target === 'entity'
         ? <span key={target} className="inbox-row__library">
-          <select aria-label={`Тип для «${item.text}»`} value={type} onChange={(event) => setType(event.target.value as LocalCampaignEntityType)}>
+          <Select
+            aria-label={`Тип для «${item.text}»`}
+            value={type}
+            onChange={(event) => setType(event.target.value as LocalCampaignEntityType)}
+          >
             {ENTITY_TYPES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
+          </Select>
+
           <Button size="sm" onClick={() => consume(target, type)}>{label}</Button>
         </span>
         : <Button key={target} size="sm" onClick={() => consume(target)}>{label}</Button>)}

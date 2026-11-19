@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Badge, Button, EmptyState } from '../../ds'
+import { Badge, Button, EmptyState, TextField } from '../../ds'
 import { useActing } from '../../local/actingContext'
 import { newGroup, newMaster, newPlayer, ownerOf, playerCharacters, removeGroup, removeMaster, removePlayer, transferOwnership } from '../../local/team'
 import type { LocalGroup, LocalPlayer } from '../../local/types'
@@ -90,13 +90,48 @@ export function TeamSection({ campaign, persist }: SectionProps) {
 
     <section className="team-section__block" aria-label="Мастера">
       <header><h3>Мастера</h3><p className="muted">Владелец управляет составом мастеров, архивом и удалением. Запускать, закрывать и разбирать сессию может её ответственный мастер или владелец.{shared && ' Кампания общая: мастер входит по своей почте и видит её у себя.'}</p></header>
-      <ul className="team-section__list">{campaign.masters.map((master) => <li key={master.id}><div className="row team-section__master"><strong>{master.name}</strong><Badge size="sm" tone={master.role === 'owner' ? 'accent' : 'neutral'}>{master.role === 'owner' ? 'Владелец' : 'Со-мастер'}</Badge>{master.id === acting.master.id && <Badge size="sm" tone="success">это вы</Badge>}{!shared && master.email && <small>{master.email}</small>}</div>{shared && (acting.canManage && master.role !== 'owner' ? <input className="team-section__email" type="email" aria-label={`Почта мастера ${master.name}`} placeholder="почта для входа" defaultValue={master.email ?? ''} aria-invalid={Boolean(emailErrors[master.id])} onBlur={(e) => { if (e.target.value.trim().toLowerCase() !== (master.email ?? '')) setEmail(master.id, e.target.value) }} /> : <small>{master.email ?? 'почта не указана'}</small>)}
+      <ul className="team-section__list">{campaign.masters.map((master) => <li key={master.id}><div className="row team-section__master"><strong>{master.name}</strong><Badge size="sm" tone={master.role === 'owner' ? 'accent' : 'neutral'}>{master.role === 'owner' ? 'Владелец' : 'Со-мастер'}</Badge>{master.id === acting.master.id && <Badge size="sm" tone="success">это вы</Badge>}{!shared && master.email && <small>{master.email}</small>}</div>{shared && (acting.canManage && master.role !== 'owner' ? (
+          <TextField
+            className="team-section__email"
+            containerStyle={{ flex: '1 1 12rem', maxWidth: '22rem' }}
+            type="email"
+            aria-label={`Почта мастера ${master.name}`}
+            placeholder="почта для входа"
+            defaultValue={master.email ?? ''}
+            aria-invalid={Boolean(emailErrors[master.id])}
+            invalid={Boolean(emailErrors[master.id])}
+            onBlur={(e) => {
+              if (e.target.value.trim().toLowerCase() !== (master.email ?? '')) setEmail(master.id, e.target.value)
+            }}
+          />
+        ) : <small>{master.email ?? 'почта не указана'}</small>)}
         {emailErrors[master.id] && (
           <small className="local-session-error" role="alert">
             {emailErrors[master.id]} Сохранена прежняя: {master.email ?? 'не указана'}.
           </small>
         )}{acting.canManage && master.role !== 'owner' && <div className="row"><Button size="sm" onClick={() => confirm({ title: `Передать владение ${master.name}?`, message: 'Вы останетесь со-мастером и потеряете права владельца.', confirmLabel: 'Передать', cancelLabel: 'Отмена', tone: 'accent', onConfirm: () => persist(transferOwnership(campaign, master.id)) })}>Сделать владельцем</Button><Button size="sm" tone="danger" icon="trash-2" aria-label={`Убрать мастера ${master.name}`} onClick={() => confirm({ title: `Убрать ${master.name} из мастеров?`, message: 'Сессии, за которые он отвечал, перейдут владельцу.', confirmLabel: 'Убрать', cancelLabel: 'Отмена', onConfirm: () => persist(removeMaster(campaign, master.id)) })} /></div>}</li>)}</ul>
-      {acting.canManage ? <div className="control-capture"><input aria-label="Имя нового мастера" value={masterName} placeholder="Имя со-мастера" onChange={(e) => setMasterName(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') addMaster() }} />{shared && <input type="email" aria-label="Почта нового мастера" value={masterEmail} placeholder="Почта для входа" aria-invalid={Boolean(newEmailError)} onChange={(e) => { setMasterEmail(e.target.value); setNewEmailError(null) }} onBlur={() => setNewEmailError(emailOk(masterEmail) ? null : badEmail(masterEmail))} onKeyDown={(e) => { if (e.key === 'Enter') addMaster() }} />}<Button icon="plus" disabled={!masterName.trim() || (shared && !masterEmail.trim())} onClick={addMaster}>Добавить мастера</Button></div> : <p className="muted" role="note">{lockedHint}</p>}
+      {acting.canManage ? <div className="control-capture">
+        <TextField
+          aria-label="Имя нового мастера"
+          value={masterName}
+          placeholder="Имя со-мастера"
+          onChange={(e) => setMasterName(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') addMaster() }}
+        />
+        {shared && (
+          <TextField
+            type="email"
+            aria-label="Почта нового мастера"
+            value={masterEmail}
+            placeholder="Почта для входа"
+            aria-invalid={Boolean(newEmailError)}
+            invalid={Boolean(newEmailError)}
+            onChange={(e) => { setMasterEmail(e.target.value); setNewEmailError(null) }}
+            onBlur={() => setNewEmailError(emailOk(masterEmail) ? null : badEmail(masterEmail))}
+            onKeyDown={(e) => { if (e.key === 'Enter') addMaster() }}
+          />
+        )}
+        <Button icon="plus" disabled={!masterName.trim() || (shared && !masterEmail.trim())} onClick={addMaster}>Добавить мастера</Button></div> : <p className="muted" role="note">{lockedHint}</p>}
       {newEmailError && (
         <small className="local-session-error" role="alert">
           {newEmailError}
@@ -138,13 +173,31 @@ export function TeamSection({ campaign, persist }: SectionProps) {
 
     {picking && <DirectoryPicker campaign={campaign} persist={persist} close={() => setPicking(false)} />}
     {playerEditor && <Editor title={campaign.players.some((item) => item.id === playerEditor.id) ? 'Игрок' : 'Новый игрок'} close={() => setPlayerEditor(null)} draft={playerEditor}>
-      <label htmlFor="player-name">Имя<input id="player-name" autoFocus value={playerEditor.name} onChange={(e) => setPlayerEditor({ ...playerEditor, name: e.target.value })} /></label>
+      <TextField
+        label="Имя"
+        id="player-name"
+        autoFocus
+        value={playerEditor.name}
+        onChange={(e) => setPlayerEditor({ ...playerEditor, name: e.target.value })}
+      />
       <Checklist legend="Персонажи игрока" options={characters.map((entity) => ({ id: entity.id, label: entity.name }))} value={playerEditor.characterIds} onChange={(characterIds) => setPlayerEditor({ ...playerEditor, characterIds })} empty="В библиотеке нет сущностей типа «Персонаж»." />
-      <label htmlFor="player-note">Заметка<input id="player-note" value={playerEditor.note} onChange={(e) => setPlayerEditor({ ...playerEditor, note: e.target.value })} /></label>
+      <TextField
+        label="Заметка"
+        id="player-note"
+        value={playerEditor.note}
+        onChange={(e) => setPlayerEditor({ ...playerEditor, note: e.target.value })}
+      />
       <footer><Button onClick={() => setPlayerEditor(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={!playerEditor.name.trim()} onClick={savePlayer}>Сохранить</Button></footer>
     </Editor>}
     {groupEditor && <Editor title={campaign.groups.some((item) => item.id === groupEditor.id) ? 'Группа' : 'Новая группа'} close={() => setGroupEditor(null)} draft={groupEditor}>
-      <label htmlFor="group-name">Название<input id="group-name" autoFocus value={groupEditor.name} onChange={(e) => setGroupEditor({ ...groupEditor, name: e.target.value })} /></label>
+      <TextField
+        label="Название"
+        id="group-name"
+        autoFocus
+        value={groupEditor.name}
+        onChange={(e) => setGroupEditor({ ...groupEditor, name: e.target.value })}
+      />
+
       <Checklist legend="Участники" options={campaign.players.map((player) => ({ id: player.id, label: player.name }))} value={groupEditor.playerIds} onChange={(playerIds) => setGroupEditor({ ...groupEditor, playerIds })} />
       <footer><Button onClick={() => setGroupEditor(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={!groupEditor.name.trim()} onClick={saveGroup}>Сохранить</Button></footer>
     </Editor>}

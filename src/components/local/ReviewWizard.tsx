@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Badge, Button, Select } from '../../ds'
+import { Badge, Button, Select, TextField } from '../../ds'
 import { applyReviewDraft, completeReview, missingDecisions, reviewDraftOf, reviewItems } from '../../local/sessionFlow'
 import type { LocalCampaignRecord, LocalReviewChange, LocalReviewDecision, LocalReviewDraft, LocalSecretStatus, LocalSessionPlanItem, LocalSessionRecord } from '../../local/types'
 import { withSession, clockReasonReady, LOG_KIND, REVIEW_DECISION, SECRET_STATUS, TIME_PLACEHOLDER } from '../../local/labels'
@@ -92,11 +92,32 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
 
     {step === 0 && <div className="session-review-wizard__body">
       {session.log.length ? <ol className="session-live-panel__log">{session.log.map((entry) => <li key={entry.id}><time>{new Date(entry.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</time><div><Badge size="sm" tone={entry.kind === 'moment' ? 'neutral' : 'accent'}>{LOG_KIND[entry.kind]}</Badge><span>{entry.text}</span></div></li>)}</ol> : <p className="muted">Журнал сессии пуст.</p>}
-      <label htmlFor="review-notes">Итоги сессии<textarea id="review-notes" rows={4} value={session.reviewNotes} placeholder="Что изменилось в истории и у героев" onChange={(e) => update({ ...session, reviewNotes: e.target.value })} /></label>
+      <TextField
+        label="Итоги сессии"
+        id="review-notes"
+        multiline
+        rows={4}
+        value={session.reviewNotes}
+        placeholder="Что изменилось в истории и у героев"
+        onChange={(e) => update({ ...session, reviewNotes: e.target.value })}
+      />
     </div>}
 
     {step === 1 && <div className="session-review-wizard__body">
-      {items.length ? <div className="session-review-panel__unused">{items.map((item) => <label key={item.id}><span><strong>{itemTitle(item)}</strong><small>{item.priority === 'required' ? 'Обязательно' : 'Желательно'}{session.appliedDecisions[item.id] ? ' · уже применено' : ''}</small></span><Select aria-label={`Решение: ${itemTitle(item)}`} value={session.reviewDecisions[item.id] ?? ''} onChange={(e) => update({ ...session, reviewDecisions: { ...session.reviewDecisions, [item.id]: e.target.value as LocalReviewDecision } })}><option value="">Нужно решение</option>{Object.entries(REVIEW_DECISION).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select></label>)}</div> : <p className="muted">Все обязательные и желательные пункты сыграны. Решений не требуется.</p>}
+      {items.length ? <div className="session-review-panel__unused">{items.map((item) => <div key={item.id}>
+        <span>
+          <strong>{itemTitle(item)}</strong>
+          <small>{item.priority === 'required' ? 'Обязательно' : 'Желательно'}{session.appliedDecisions[item.id] ? ' · уже применено' : ''}</small>
+        </span>
+        <Select
+          aria-label={`Решение: ${itemTitle(item)}`}
+          value={session.reviewDecisions[item.id] ?? ''}
+          onChange={(e) => update({ ...session, reviewDecisions: { ...session.reviewDecisions, [item.id]: e.target.value as LocalReviewDecision } })}
+        >
+          <option value="">Нужно решение</option>
+          {Object.entries(REVIEW_DECISION).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </Select>
+      </div>)}</div> : <p className="muted">Все обязательные и желательные пункты сыграны. Решений не требуется.</p>}
       {missing.length > 0 && <p className="local-session-error">Осталось решить: {missing.length}.</p>}
     </div>}
 
@@ -180,21 +201,32 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
     </div>}
 
     {step === 3 && <div className="session-review-wizard__body">
-      <label htmlFor="review-time">
-        Текущее время кампании после сессии
-        <input
-          id="review-time"
-          value={draft.time ?? campaign.activeTime}
-          placeholder={TIME_PLACEHOLDER}
-          onChange={(e) => setDraft({ ...draft, time: e.target.value })}
-        />
-      </label>
+      <TextField
+        label="Текущее время кампании после сессии"
+        id="review-time"
+        value={draft.time ?? campaign.activeTime}
+        placeholder={TIME_PLACEHOLDER}
+        onChange={(e) => setDraft({ ...draft, time: e.target.value })}
+      />
       {draft.time !== undefined && draft.time.trim() !== campaign.activeTime && <small className="muted">Сейчас: {campaign.activeTime || 'не задано'}. Новое время применится по «Завершить разбор».</small>}
     </div>}
 
     {step === 4 && <div className="session-review-wizard__body">
       <fieldset className="session-review-wizard__next-game"><legend>Когда следующая игра</legend>
-        <div className="row"><input type="date" aria-label="Дата следующей игры" value={session.nextGame?.date ?? ''} onChange={(e) => update({ ...session, nextGame: { date: e.target.value, time: session.nextGame?.time ?? '' } })} /><input aria-label="Время следующей игры" value={session.nextGame?.time ?? ''} placeholder="19:00" onChange={(e) => update({ ...session, nextGame: { date: session.nextGame?.date ?? '', time: e.target.value } })} /></div>
+        <div className="row">
+          <TextField
+            type="date"
+            aria-label="Дата следующей игры"
+            value={session.nextGame?.date ?? ''}
+            onChange={(e) => update({ ...session, nextGame: { date: e.target.value, time: session.nextGame?.time ?? '' } })}
+          />
+          <TextField
+            aria-label="Время следующей игры"
+            value={session.nextGame?.time ?? ''}
+            placeholder="19:00"
+            onChange={(e) => update({ ...session, nextGame: { date: session.nextGame?.date ?? '', time: e.target.value } })}
+          />
+        </div>
         <small className="muted">
           Дата ляжет в выбранную ниже сессию, если у неё ещё нет своей.
           {table ? ` Итоги и дату в ${LIVE_TABLE_LABEL[table.system]} можно отправить после завершения разбора.` : ''}
@@ -205,14 +237,16 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
         <p>Применится по «Завершить разбор»:</p>
         <ChangeList changes={pendingChanges} />
       </div>}
-      <label htmlFor="review-target">
-        {carried.length ? 'Куда перенести' : 'Следующая сессия'}
-        <select id="review-target" value={chosenTarget} onChange={(e) => setTarget(e.target.value)}>
-          <option value="new">Новая сессия №{nextSessionNumber(campaign)}</option>
-          {drafts.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}
-          {!carried.length && <option value="none">Пока не создавать</option>}
-        </select>
-      </label>
+      <Select
+        label={carried.length ? 'Куда перенести' : 'Следующая сессия'}
+        id="review-target"
+        value={chosenTarget}
+        onChange={(e) => setTarget(e.target.value)}
+      >
+        <option value="new">Новая сессия №{nextSessionNumber(campaign)}</option>
+        {drafts.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}
+        {!carried.length && <option value="none">Пока не создавать</option>}
+      </Select>
       {error && <p className="local-session-error">{error}</p>}
       <Button variant="primary" icon="check" disabled={missing.length > 0 || !canComplete} onClick={finish}>Завершить разбор</Button>{!canComplete && <p className="muted" role="note">{completeHint}</p>}
     </div>}

@@ -395,7 +395,7 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 - Убрать группу «Команда» из `NAV_GROUPS`; пункт «Команда» — в меню кампании (кнопка у «Вы: …» / названия кампании) вместе с «Экспорт», «Редактировать кампанию».
 - Подсказка поиска `⌘K` на macOS.
 
-### Этап 16 — Переход на DS (В7) ⛔ (может потребовать 2 чата: 16а формы, 16б вкладки и чистка)
+### Этап 16 — Переход на DS (В7) 🟡 16а ✅, 16б ⛔ (может потребовать 2 чата: 16а формы, 16б вкладки и чистка)
 - 16а: `<input>/<textarea>/<select>` → DS `TextField`/`Select`, чекбоксы → DS `Checkbox`/`Switch`; убрать `!important` в `.local-checkbox`, `.local-checklist label` и т. п.
 - 16б: вкладки Пульта, панели проведения, видов плана, «Карточки/Таблица» → DS `Tabs` (`role="tablist"`, стрелки); удалить неиспользуемые компоненты DS (`GlassPanel`, `EntityCard`, `StatBlock`, `RelationNode`, `ChronoEvent`, `RecapItem`, `SyncBadge`, `SidebarNav` — сверить перед удалением).
 
@@ -591,6 +591,18 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
   оставлены). В шапке сессий, где название уже в ссылке «назад», — то же меню иконкой «…» рядом с «Вы: …».
 - **Этап 15:** подсказки «в разделе «Команда»» (окно кампании, секреты, список кампаний) → «в «Команде» (меню
   кампании)». Подпись `⌘K` на macOS была сделана в этапе 2.
+- **Этап 16а (решения):** поля, списки и чекбоксы переведены на DS `TextField`/`Select`/`Checkbox` (~150 мест в
+  34 файлах); доступные имена не менялись, тесты не правились. Сырыми оставлены намеренно: `type="file"`, `range`,
+  `radio` (в DS нет), чипы-пилюли `home-chip` (теги в фильтрах, «Где хранится» в редакторе, роли в массовой отправке,
+  дни в карточке игрока), строки-чекбоксы с богатой подписью (импорт из источника, справочник игроков, переключатель
+  основы — DS `Checkbox` принимает только строку), поле поиска ⌘K (нужен `ref`, DS `TextField` его не пробрасывает).
+- **Этап 16а:** `!important` сняты у `.local-checkbox` (класс удалён), `.local-checklist label`,
+  `.session-passport-form__arcs label`. Зачёркивание сделанной задачи на Обзоре — через `li:has(input:checked)`.
+  Компактные списки дерева сцен держат высоту и цвет приоритета инлайном (у DS `Select` инлайновые стили сильнее класса).
+  Удалены мёртвые стили (`.campaign-local-library__search`, `.players-page__search`, `.rule-toggle`, `.chosen`).
+- **Этап 16а → 16б:** часть правил вида `.x label` / `.x input` теперь попадает на внутренние элементы DS и
+  перебивается инлайном (`.dialog-form label` добавляет отступ сверху подписи DS-полей в окнах, `.scene-tree__select`,
+  `.players-page__name input`, `.team-section__list li:has(> .team-section__email)` и др.) — разобрать вместе с чисткой.
 
 ## Журнал
 
@@ -611,3 +623,4 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 | 13 | SomethingOwlish/masterboard#106 | 19.11.2026 |
 | 14 | SomethingOwlish/masterboard#107 | 19.11.2026 |
 | 15 | SomethingOwlish/masterboard#108 | 19.11.2026 |
+| 16а | SomethingOwlish/masterboard#109 | 19.11.2026 |

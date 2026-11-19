@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Badge, Button, Icon, Select } from '../../ds'
+import { Badge, Button, Checkbox, Icon, Select, TextField } from '../../ds'
 import { addTags, addToPlan, exportEntities, relateTo, removeTags, sendTo, setField, setStatus, setType, setVisibility } from '../../local/bulk'
 import { ENTITY_FIELDS, entityUsages, usageCount, type EntityFilter } from '../../local/domain'
 import { downloadText } from '../../local/download'
@@ -26,12 +26,24 @@ export function LibraryTable({ campaign, persist, entities, sort, setSort }: { c
   const head = (label: string, by?: Sort) => <th scope="col" aria-sort={by && sort === by ? 'ascending' : undefined}>{by ? <button type="button" className={sort === by ? 'active' : ''} onClick={() => setSort(sort === by ? 'added' : by)}>{label}{sort === by && <Icon name="chevron-down" size={12} />}</button> : label}</th>
   return <>
     <div className="library-table__wrap"><table className="library-table" aria-label="Библиотека таблицей">
-      <thead><tr><th scope="col" className="library-table__pick"><input type="checkbox" aria-label="Выбрать все найденные" checked={all} onChange={() => setPicked(all ? picked.filter((id) => !shown.has(id)) : [...new Set([...picked, ...shown])])} /></th>{head('Название', 'name')}{head('Тип', 'type')}{head('Теги')}{head('Видимость')}{head('Состояние')}{head('Источник')}{head('Куда отправлять')}{head('Используется', 'used')}</tr></thead>
+      <thead><tr><th scope="col" className="library-table__pick">
+        <Checkbox
+          aria-label="Выбрать все найденные"
+          checked={all}
+          onChange={() => setPicked(all ? picked.filter((id) => !shown.has(id)) : [...new Set([...picked, ...shown])])}
+        />
+      </th>{head('Название', 'name')}{head('Тип', 'type')}{head('Теги')}{head('Видимость')}{head('Состояние')}{head('Источник')}{head('Куда отправлять')}{head('Используется', 'used')}</tr></thead>
       <tbody>{entities.map((entity) => {
         const places = entityRoles(campaign, entity).map((role) => SYSTEM_LABEL[linkedRole(campaign, role)!.system])
         const from = [...new Set(entity.sources.map((source) => SYSTEM_LABEL[source.system]))]
         return <tr key={entity.id} className={chosen.includes(entity.id) ? 'picked' : entity.status === 'archived' ? 'archived' : ''}>
-          <td className="library-table__pick"><input type="checkbox" aria-label={`Выбрать: ${entity.name}`} checked={chosen.includes(entity.id)} onChange={() => toggle(entity.id)} /></td>
+          <td className="library-table__pick">
+            <Checkbox
+              aria-label={`Выбрать: ${entity.name}`}
+              checked={chosen.includes(entity.id)}
+              onChange={() => toggle(entity.id)}
+            />
+          </td>
           <td><PeekLink target={{ kind: 'entity', id: entity.id }}>{entity.name}</PeekLink>{entity.dead && <small> · погиб</small>}</td>
           <td>{ENTITY_LABEL[entity.type]}</td>
           <td>{entity.tags.map((tag) => `#${tag}`).join(' ') || <span className="muted">—</span>}</td>
@@ -104,7 +116,14 @@ function BulkBar({ campaign, persist, ids, clear }: { campaign: LocalCampaignRec
       <Button size="sm" icon="download" onClick={() => downloadText(`${campaign.name.replace(/[^\p{L}\p{N}]+/gu, '-')}-сущности.json`, exportEntities(campaign, ids, now()))}>Экспорт</Button>
       <button type="button" className="bulk-bar__clear" onClick={clear} aria-label="Снять выбор"><Icon name="x" size={16} /></button>
     </div>
-    {action === 'tags' && <form className="bulk-bar__form" onSubmit={(event) => event.preventDefault()}><input aria-label="Теги для выбранных" value={text} placeholder="важное, порт" onChange={(event) => setText(event.target.value)} /><Button size="sm" disabled={!text.trim()} onClick={() => apply(addTags(campaign, ids, text.split(',')), `Теги добавлены: ${ids.length}`)}>Добавить</Button><Button size="sm" disabled={!text.trim()} onClick={() => apply(removeTags(campaign, ids, text.split(',')), `Теги убраны: ${ids.length}`)}>Убрать</Button></form>}
+    {action === 'tags' && <form className="bulk-bar__form" onSubmit={(event) => event.preventDefault()}>
+      <TextField
+        aria-label="Теги для выбранных"
+        value={text}
+        placeholder="важное, порт"
+        onChange={(event) => setText(event.target.value)}
+      />
+      <Button size="sm" disabled={!text.trim()} onClick={() => apply(addTags(campaign, ids, text.split(',')), `Теги добавлены: ${ids.length}`)}>Добавить</Button><Button size="sm" disabled={!text.trim()} onClick={() => apply(removeTags(campaign, ids, text.split(',')), `Теги убраны: ${ids.length}`)}>Убрать</Button></form>}
     {action === 'visibility' && <div className="bulk-bar__form"><Button size="sm" onClick={() => apply(setVisibility(campaign, ids, 'master'), 'Теперь только мастерам')}>{VISIBILITY_LABEL.master}</Button><Button size="sm" onClick={() => apply(setVisibility(campaign, ids, 'public'), 'Теперь для игроков')}>{VISIBILITY_LABEL.public}</Button></div>}
     {action === 'status' && <div className="bulk-bar__form"><Button size="sm" onClick={() => apply(setStatus(campaign, ids, 'archived'), `В архиве: ${ids.length}`)}>В архив</Button><Button size="sm" onClick={() => apply(setStatus(campaign, ids, 'active'), `Возвращены: ${ids.length}`)}>Из архива</Button><Button size="sm" onClick={() => apply(setStatus(campaign, ids, 'inactive'), `Неактивны: ${ids.length}`)}>Неактивные</Button></div>}
     {action === 'field' && (
@@ -120,7 +139,12 @@ function BulkBar({ campaign, persist, ids, clear }: { campaign: LocalCampaignRec
           </Select>
         )}
         {value && value !== '__type' && (
-          <input aria-label="Значение поля" value={text} placeholder="Пусто — очистить" onChange={(event) => setText(event.target.value)} />
+          <TextField
+            aria-label="Значение поля"
+            value={text}
+            placeholder="Пусто — очистить"
+            onChange={(event) => setText(event.target.value)}
+          />
         )}
         <Button size="sm" type="submit" disabled={!value || (value === '__type' && !text)}>
           Применить к {ids.length}
@@ -129,7 +153,14 @@ function BulkBar({ campaign, persist, ids, clear }: { campaign: LocalCampaignRec
     )}
     {action === 'send' && (linkedRoles.length ? <div className="bulk-bar__form">{linkedRoles.map((role) => <label key={role} className={`home-chip${roles.includes(role) ? ' on' : ''}`}><input type="checkbox" checked={roles.includes(role)} onChange={() => setRoles(roles.includes(role) ? roles.filter((item) => item !== role) : [...roles, role])} />{ROLE_LABEL[role]} · {SYSTEM_LABEL[linkedRole(campaign, role)!.system]}</label>)}<Button size="sm" onClick={() => apply(sendTo(campaign, ids, null, now()), 'В очереди «Публикации» по правилам')}>По правилам</Button><Button size="sm" variant="primary" disabled={!roles.length} onClick={() => apply(sendTo(campaign, ids, roles, now()), 'В очереди «Публикации»')}>В выбранные</Button></div> : <p className="muted bulk-bar__form">Кампания не подключена к миру или столу — это делается в «Интеграциях».</p>)}
     {action === 'plan' && (sessions.length ? <div className="bulk-bar__form"><Select aria-label="В какую сессию" value={value} onChange={(event) => setValue(event.target.value)}>{sessions.map((session) => <option key={session.id} value={session.id}>№{session.number} {session.title}</option>)}</Select><Button size="sm" onClick={() => apply(addToPlan(campaign, ids, value), 'Добавлено в план')}>Добавить в план</Button></div> : <p className="muted bulk-bar__form">Нет сессий в подготовке.</p>)}
-    {action === 'relate' && (others.length ? <form className="bulk-bar__form" onSubmit={(event) => event.preventDefault()}><Select aria-label="С кем связать" value={value} onChange={(event) => setValue(event.target.value)}>{others.map((entity) => <option key={entity.id} value={entity.id}>{entity.name} · {ENTITY_LABEL[entity.type]}</option>)}</Select><Select aria-label="Вид связи" value={relType} onChange={(event) => setRelType(event.target.value as LocalRelationType)}>{Object.entries(RELATION_TYPE).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</Select><input aria-label="Подпись связи" value={text} placeholder="Подпись" onChange={(event) => setText(event.target.value)} /><Button size="sm" onClick={() => apply(relateTo(campaign, ids, value, relType, text), 'Связи добавлены')}>Связать</Button></form> : <p className="muted bulk-bar__form">Не с чем связать.</p>)}
+    {action === 'relate' && (others.length ? <form className="bulk-bar__form" onSubmit={(event) => event.preventDefault()}><Select aria-label="С кем связать" value={value} onChange={(event) => setValue(event.target.value)}>{others.map((entity) => <option key={entity.id} value={entity.id}>{entity.name} · {ENTITY_LABEL[entity.type]}</option>)}</Select><Select aria-label="Вид связи" value={relType} onChange={(event) => setRelType(event.target.value as LocalRelationType)}>{Object.entries(RELATION_TYPE).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</Select>
+      <TextField
+        aria-label="Подпись связи"
+        value={text}
+        placeholder="Подпись"
+        onChange={(event) => setText(event.target.value)}
+      />
+      <Button size="sm" onClick={() => apply(relateTo(campaign, ids, value, relType, text), 'Связи добавлены')}>Связать</Button></form> : <p className="muted bulk-bar__form">Не с чем связать.</p>)}
     {done && <p className="bulk-bar__done" role="status"><Badge size="sm" tone="success">{done}</Badge></p>}
   </div>
 }

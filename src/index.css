@@ -187,18 +187,6 @@ button.ghost {
   color: var(--text);
   cursor: pointer;
 }
-.dialog-form .library-picker__list label.chosen {
-  border-color: var(--accent);
-  background: var(--accent-soft);
-}
-.dialog-form .rule-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  color: var(--text);
-  cursor: pointer;
-}
 .dialog-form .wizard-choice label {
   display: flex;
   align-items: flex-start;
@@ -331,12 +319,6 @@ button.ghost {
   background: var(--accent-soft);
 }
 
-/* ---- .local-checkbox --------------------------------------------------- */
-.local-checkbox {
-  display: flex !important;
-  align-items: center;
-  gap: 8px;
-}
 
 /* ---- .submit-field ----------------------------------------------------- */
 /* Submit-only text field: saves on Enter / «Сохранить», never per keystroke. */

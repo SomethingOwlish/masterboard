@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Icon, Select } from '../../ds'
+import { Button, Checkbox, Icon, Select, TextField } from '../../ds'
 import { EMPTY_FILTER, activeFilterCount, type EntityFilter, type SavedFilter } from '../../local/domain'
 import { EXTERNAL_SYSTEMS } from '../../model/external'
 import { useActing } from '../../local/actingContext'
@@ -40,7 +40,14 @@ export function LibraryFilters({ campaign, persist, filter, setFilter, total, sh
   const saveCurrent = () => { const name = naming?.trim(); if (!name) return; setSaved([...saved, { id: `filter-${crypto.randomUUID()}`, name, filter }]); setNaming(null) }
   return <div className="library-filters">
     <div className="library-filters__row">
-      <div className="campaign-local-library__search"><Icon name="search" size={17} /><input value={filter.query} aria-label="Поиск по библиотеке" placeholder="Найти по названию, описанию, тегу или полю…" onChange={(event) => setFilter({ ...filter, query: event.target.value })} /></div>
+      <TextField
+        icon="search"
+        containerStyle={{ flex: '1 1 280px' }}
+        value={filter.query}
+        aria-label="Поиск по библиотеке"
+        placeholder="Найти по названию, описанию, тегу или полю…"
+        onChange={(event) => setFilter({ ...filter, query: event.target.value })}
+      />
       {!lockType && <Select aria-label="Тип сущности" value={filter.type} onChange={(event) => setFilter({ ...filter, type: event.target.value as EntityFilter['type'], fate: 'all' })}><option value="all">Все типы</option>{ENTITY_TYPES.filter((item) => typeCounts[item.value]).map((item) => <option key={item.value} value={item.value}>{item.label} · {typeCounts[item.value]}</option>)}</Select>}
       <Button icon="list-filter" aria-expanded={open} onClick={() => setOpen(!open)}>Фильтры{count ? ` · ${count}` : ''}</Button>
       <Select aria-label="Сортировка" value={filter.sort ?? 'added'} onChange={(event) => setFilter({ ...filter, sort: event.target.value as EntityFilter['sort'] })}>{Object.entries(SORT_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>
@@ -48,11 +55,52 @@ export function LibraryFilters({ campaign, persist, filter, setFilter, total, sh
     </div>
     {open && <div className="library-filters__panel" role="group" aria-label="Фильтры библиотеки">
       <fieldset><legend>Теги</legend>{tags.length ? <div className="library-filters__tags">{tags.map((tag) => { const on = filter.tags?.includes(tag); return <label key={tag} className={`home-chip${on ? ' on' : ''}`}><input type="checkbox" checked={Boolean(on)} onChange={() => setFilter({ ...filter, tags: on ? filter.tags!.filter((item) => item !== tag) : [...(filter.tags ?? []), tag] })} />#{tag}</label> })}</div> : <small className="muted">Тегов пока нет</small>}</fieldset>
-      <label>Видимость<Select value={filter.visibility ?? 'all'} onChange={(event) => setFilter({ ...filter, visibility: event.target.value as EntityFilter['visibility'] })}><option value="all">Любая</option><option value="master">{VISIBILITY_LABEL.master}</option><option value="public">{VISIBILITY_LABEL.public}</option></Select></label>
-      <label>Состояние<Select value={filter.status ?? 'all'} onChange={(event) => setFilter({ ...filter, status: event.target.value as EntityFilter['status'] })}><option value="all">Любое</option><option value="active">Активные</option><option value="inactive">Неактивные</option></Select></label>
-      <label>Источник<Select value={filter.source ?? 'all'} onChange={(event) => setFilter({ ...filter, source: event.target.value as EntityFilter['source'] })}><option value="all">Любой</option><option value="none">Только здесь</option>{systems.map((system) => <option key={system} value={system}>{SYSTEM_LABEL[system]}</option>)}</Select></label>
-      {filter.type === 'npc' && <label>Судьба<Select aria-label="Судьба NPC" value={filter.fate ?? 'all'} onChange={(event) => setFilter({ ...filter, fate: event.target.value as NonNullable<EntityFilter['fate']> })}><option value="all">Живые и погибшие</option><option value="alive">Только живые</option><option value="dead">Только погибшие</option></Select></label>}
-      <label className="library-filters__check"><input type="checkbox" checked={filter.showArchived} onChange={(event) => setFilter({ ...filter, showArchived: event.target.checked })} /> Показать архив ({campaign.entities.filter((entity) => entity.status === 'archived').length})</label>
+      <Select
+        label="Видимость"
+        value={filter.visibility ?? 'all'}
+        onChange={(event) => setFilter({ ...filter, visibility: event.target.value as EntityFilter['visibility'] })}
+      >
+        <option value="all">Любая</option>
+        <option value="master">{VISIBILITY_LABEL.master}</option>
+        <option value="public">{VISIBILITY_LABEL.public}</option>
+      </Select>
+      <Select
+        label="Состояние"
+        value={filter.status ?? 'all'}
+        onChange={(event) => setFilter({ ...filter, status: event.target.value as EntityFilter['status'] })}
+      >
+        <option value="all">Любое</option>
+        <option value="active">Активные</option>
+        <option value="inactive">Неактивные</option>
+      </Select>
+      <Select
+        label="Источник"
+        value={filter.source ?? 'all'}
+        onChange={(event) => setFilter({ ...filter, source: event.target.value as EntityFilter['source'] })}
+      >
+        <option value="all">Любой</option>
+        <option value="none">Только здесь</option>
+        {systems.map((system) => <option key={system} value={system}>{SYSTEM_LABEL[system]}</option>)}
+      </Select>
+      {filter.type === 'npc' && (
+        <Select
+          label="Судьба"
+          aria-label="Судьба NPC"
+          value={filter.fate ?? 'all'}
+          onChange={(event) => setFilter({ ...filter, fate: event.target.value as NonNullable<EntityFilter['fate']> })}
+        >
+          <option value="all">Живые и погибшие</option>
+          <option value="alive">Только живые</option>
+          <option value="dead">Только погибшие</option>
+        </Select>
+      )}
+      <div className="library-filters__check">
+        <Checkbox
+          label={`Показать архив (${campaign.entities.filter((entity) => entity.status === 'archived').length})`}
+          checked={filter.showArchived}
+          onChange={(event) => setFilter({ ...filter, showArchived: event.target.checked })}
+        />
+      </div>
     </div>}
     <div className="library-filters__status">
       <span className="muted">{shown === total ? `Записей: ${total}` : `Показано ${shown} из ${total}`}{filter.type !== 'all' && !lockType ? ` · ${ENTITY_LABEL[filter.type]}` : ''}</span>
@@ -60,7 +108,17 @@ export function LibraryFilters({ campaign, persist, filter, setFilter, total, sh
       {(chips.length > 0 || filter.query || (filter.type !== 'all' && !lockType)) && <button type="button" className="home-chips__reset" onClick={() => setFilter({ ...EMPTY_FILTER, sort: filter.sort })}>Сбросить</button>}
       <span className="library-filters__saved" role="group" aria-label="Мои подборки">
         {saved.map((item) => <span key={item.id} className="library-filters__preset"><button type="button" onClick={() => setFilter({ ...EMPTY_FILTER, ...item.filter })}><Icon name="bookmark" size={13} /> {item.name}</button><button type="button" aria-label={`Удалить подборку: ${item.name}`} onClick={() => setSaved(saved.filter((entry) => entry.id !== item.id))}><Icon name="x" size={12} /></button></span>)}
-        {naming === null ? <button type="button" className="home-chips__reset" onClick={() => setNaming('')}>Сохранить подборку</button> : <form className="library-filters__name" onSubmit={(event) => { event.preventDefault(); saveCurrent() }}><input autoFocus aria-label="Название подборки" value={naming} placeholder="NPC для сессии 3" onChange={(event) => setNaming(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') setNaming(null) }} /><Button size="sm" type="submit" disabled={!naming.trim()}>Сохранить</Button></form>}
+        {naming === null ? <button type="button" className="home-chips__reset" onClick={() => setNaming('')}>Сохранить подборку</button> : <form className="library-filters__name" onSubmit={(event) => { event.preventDefault(); saveCurrent() }}>
+          <TextField
+            autoFocus
+            aria-label="Название подборки"
+            containerStyle={{ width: 180 }}
+            value={naming}
+            placeholder="NPC для сессии 3"
+            onChange={(event) => setNaming(event.target.value)}
+            onKeyDown={(event) => { if (event.key === 'Escape') setNaming(null) }}
+          />
+          <Button size="sm" type="submit" disabled={!naming.trim()}>Сохранить</Button></form>}
       </span>
     </div>
   </div>

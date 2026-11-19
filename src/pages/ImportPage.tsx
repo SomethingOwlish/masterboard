@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Button, Icon } from '../ds'
+import { Button, Icon, Select } from '../ds'
 import { HomeHeader } from '../components/HomeHeader'
 import { useLocalCatalog } from '../local/useLocalCampaign'
 import { useDocumentTitle } from '../components/useDocumentTitle'
@@ -45,13 +45,15 @@ export function ImportPage() {
             className="import-tile__target"
             onSubmit={(event) => { event.preventDefault(); if (chosen) navigate(`/local/campaign/${chosen}/import`) }}
           >
-            <select
+            <Select
               aria-label="Кампания для импорта"
               value={chosen}
+              containerStyle={{ flex: '1 1 10rem', minWidth: 0 }}
               onChange={(event) => setTarget(event.target.value)}
             >
               {campaigns.map((campaign) => <option key={campaign.id} value={campaign.id}>{campaign.name}</option>)}
-            </select>
+            </Select>
+
             <Button type="submit" icon="arrow-right">Открыть импорт</Button>
           </form>
           : <p className="muted">{campaigns ? 'Кампаний пока нет — сначала создайте или импортируйте кампанию.' : 'Загружаем кампании…'}</p>}

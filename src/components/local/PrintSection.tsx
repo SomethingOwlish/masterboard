@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, EmptyState, Select } from '../../ds'
+import { Button, Checkbox, EmptyState, Select } from '../../ds'
 import { ARC_STATUS, SECRET_STATUS, withSession, PRIORITIES, USE_STATUS, ENTITY_LABEL } from '../../local/labels'
 import { directorSheet, playerHandouts } from '../../local/printSheet'
 import { masterName, sessionPlayers } from '../../local/team'
@@ -30,8 +30,33 @@ export function PrintSection({ campaign, persist }: SectionProps) {
   return <section className="campaign-section print-section">
     <div className="print-controls">
       <div className="panel-heading"><div><span className="panel-kicker">Печать и PDF</span><h2>Материалы к сессии</h2><p>Настройте лист и нажмите «Печать» — в диалоге браузера можно выбрать «Сохранить как PDF».</p></div><Button variant="primary" icon="printer" onClick={() => window.print()}>Печать</Button></div>
-      <div className="print-controls__row"><label htmlFor="print-session">Сессия<Select id="print-session" value={session.id} onChange={(e) => setSessionId(e.target.value)}>{sessions.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}</Select></label><div className="campaign-relation-map__filters" role="group" aria-label="Что печатать"><button className={sheet === 'director' ? 'active' : ''} aria-pressed={sheet === 'director'} onClick={() => setSheet('director')}>Режиссёрский лист</button><button className={sheet === 'players' ? 'active' : ''} aria-pressed={sheet === 'players'} onClick={() => setSheet('players')}>Материалы игроков</button></div></div>
-      {sheet === 'director' && <fieldset className="local-checklist print-controls__config"><legend>Что включить в лист</legend>{PRIORITIES.map(([priority, label]) => <label key={priority}><input type="checkbox" checked={config.priorities.includes(priority)} onChange={() => setConfig({ priorities: config.priorities.includes(priority) ? config.priorities.filter((item) => item !== priority) : PRIORITIES.map(([value]) => value).filter((value) => value === priority || config.priorities.includes(value)) })} /> {label}</label>)}{TOGGLES.map(([key, label]) => <label key={key}><input type="checkbox" checked={config[key]} onChange={() => setConfig({ [key]: !config[key] })} /> {label}</label>)}</fieldset>}
+      <div className="print-controls__row">
+        <Select
+          label="Сессия"
+          id="print-session"
+          value={session.id}
+          containerStyle={{ minWidth: 260 }}
+          onChange={(e) => setSessionId(e.target.value)}
+        >
+          {sessions.map((item) => <option key={item.id} value={item.id}>№{item.number} {item.title}</option>)}
+        </Select>
+        <div className="campaign-relation-map__filters" role="group" aria-label="Что печатать"><button className={sheet === 'director' ? 'active' : ''} aria-pressed={sheet === 'director'} onClick={() => setSheet('director')}>Режиссёрский лист</button><button className={sheet === 'players' ? 'active' : ''} aria-pressed={sheet === 'players'} onClick={() => setSheet('players')}>Материалы игроков</button></div>
+      </div>
+      {sheet === 'director' && <fieldset className="local-checklist print-controls__config">
+        <legend>Что включить в лист</legend>
+        {PRIORITIES.map(([priority, label]) => <Checkbox
+          key={priority}
+          label={label}
+          checked={config.priorities.includes(priority)}
+          onChange={() => setConfig({ priorities: config.priorities.includes(priority) ? config.priorities.filter((item) => item !== priority) : PRIORITIES.map(([value]) => value).filter((value) => value === priority || config.priorities.includes(value)) })}
+        />)}
+        {TOGGLES.map(([key, label]) => <Checkbox
+          key={key}
+          label={label}
+          checked={config[key]}
+          onChange={() => setConfig({ [key]: !config[key] })}
+        />)}
+      </fieldset>}
     </div>
 
     {sheet === 'director' ? <article className="print-sheet" aria-label="Режиссёрский лист">

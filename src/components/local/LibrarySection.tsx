@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Badge, Button, EmptyState, Icon } from '../../ds'
+import { Badge, Button, EmptyState, Icon, TextField } from '../../ds'
 import { LibraryTable } from './LibraryTable'
 import { EMPTY_FILTER, entityUsages, newNote, filterEntities, originLabel, usageCount, type EntityFilter } from '../../local/domain'
 import { LibraryFilters } from './LibraryFilters'
@@ -45,7 +45,7 @@ export function LibrarySection({ campaign, persist, notes = false }: SectionProp
       {notes && <>
         <p className="muted">Заметки — записи библиотеки типа «Заметка»: их можно связывать, отправлять и находить поиском.</p>
         <div className="target-capture">
-          <input
+          <TextField
             aria-label="Новая заметка"
             value={quick}
             placeholder="Факт, слух, место — коротко…"

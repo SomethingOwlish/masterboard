@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Select } from '../../ds'
+import { Button, Checkbox, Select, TextField } from '../../ds'
 import { ENTITY_FIELDS, blockingPlans, entityUsages, newEntity, removeEntity, retypeEntity } from '../../local/domain'
 import { extraFields } from './EntityDetails'
 import type { LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
@@ -51,14 +51,83 @@ export function EntityEditor({ campaign, persist, entity, defaultType = 'npc', c
     })
   }
   return <Editor title={entity === 'new' ? 'Новая сущность' : 'Редактировать сущность'} close={close} draft={draft} size="xl">
-      <div className="control-form__row"><label htmlFor="local-entity-type">Тип<Select id="local-entity-type" value={draft.type} onChange={(event) => setDraft(retypeEntity(draft, event.target.value as LocalCampaignEntityType))}>{ENTITY_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</Select></label><label htmlFor="local-entity-name">Название<input id="local-entity-name" autoFocus value={draft.name} onChange={(event) => setDraft({ ...draft, name: event.target.value })} /></label></div>
-      <label htmlFor="local-entity-description">Рабочее описание<textarea className="auto-grow" id="local-entity-description" rows={3} value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} /></label>
-      {ENTITY_FIELDS[draft.type].length > 0 && <div className="entity-fields">{ENTITY_FIELDS[draft.type].map((field) => <label key={field.id} htmlFor={`local-entity-field-${field.id}`}>{field.label}<textarea className="auto-grow" rows={1} id={`local-entity-field-${field.id}`} value={draft.fields[field.id] ?? ''} onChange={(event) => setDraft({ ...draft, fields: { ...draft.fields, [field.id]: event.target.value } })} /></label>)}</div>}
+      <div className="control-form__row">
+        <Select
+          label="Тип"
+          id="local-entity-type"
+          value={draft.type}
+          onChange={(event) => setDraft(retypeEntity(draft, event.target.value as LocalCampaignEntityType))}
+        >
+          {ENTITY_TYPES.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}
+        </Select>
+        <TextField
+          label="Название"
+          id="local-entity-name"
+          autoFocus
+          value={draft.name}
+          onChange={(event) => setDraft({ ...draft, name: event.target.value })}
+        />
+      </div>
+      <TextField
+        label="Рабочее описание"
+        multiline
+        rows={3}
+        className="auto-grow"
+        id="local-entity-description"
+        value={draft.description}
+        onChange={(event) => setDraft({ ...draft, description: event.target.value })}
+      />
+      {ENTITY_FIELDS[draft.type].length > 0 && (
+        <div className="entity-fields">
+          {ENTITY_FIELDS[draft.type].map((field) => (
+            <TextField
+              key={field.id}
+              label={field.label}
+              multiline
+              rows={1}
+              className="auto-grow"
+              id={`local-entity-field-${field.id}`}
+              value={draft.fields[field.id] ?? ''}
+              onChange={(event) => setDraft({ ...draft, fields: { ...draft.fields, [field.id]: event.target.value } })}
+            />
+          ))}
+        </div>
+      )}
       <BaseFieldsBlock campaign={campaign} draft={draft} setDraft={setDraft} />
-      <label htmlFor="local-entity-tags">Теги<input id="local-entity-tags" value={draft.tags.join(', ')} placeholder="важное, первая сессия" onChange={(event) => setDraft({ ...draft, tags: event.target.value.split(',') })} /></label>
-      <div className="control-form__row"><label htmlFor="local-entity-visibility">Видимость<select id="local-entity-visibility" value={draft.visibility} onChange={(event) => setDraft({ ...draft, visibility: event.target.value as LocalCampaignEntity['visibility'] })}><option value="master">{VISIBILITY_LABEL.master}</option><option value="public">{VISIBILITY_LABEL.public}</option></select></label><label htmlFor="local-entity-status">Состояние<select id="local-entity-status" value={draft.status} onChange={(event) => setDraft({ ...draft, status: event.target.value as LocalCampaignEntity['status'] })}>{Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label></div>
+      <TextField
+        label="Теги"
+        id="local-entity-tags"
+        value={draft.tags.join(', ')}
+        placeholder="важное, первая сессия"
+        onChange={(event) => setDraft({ ...draft, tags: event.target.value.split(',') })}
+      />
+      <div className="control-form__row">
+        <Select
+          label="Видимость"
+          id="local-entity-visibility"
+          value={draft.visibility}
+          onChange={(event) => setDraft({ ...draft, visibility: event.target.value as LocalCampaignEntity['visibility'] })}
+        >
+          <option value="master">{VISIBILITY_LABEL.master}</option>
+          <option value="public">{VISIBILITY_LABEL.public}</option>
+        </Select>
+        <Select
+          label="Состояние"
+          id="local-entity-status"
+          value={draft.status}
+          onChange={(event) => setDraft({ ...draft, status: event.target.value as LocalCampaignEntity['status'] })}
+        >
+          {Object.entries(STATUS_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </Select>
+      </div>
       <HomeChips campaign={campaign} draft={draft} setDraft={setDraft} />
-      {draft.type === 'npc' && <label className="campaign-local-library__dead"><input type="checkbox" checked={Boolean(draft.dead)} onChange={(event) => setDraft({ ...draft, dead: event.target.checked })} /> Персонаж погиб</label>}
+      {draft.type === 'npc' && (
+        <Checkbox
+          label="Персонаж погиб"
+          checked={Boolean(draft.dead)}
+          onChange={(event) => setDraft({ ...draft, dead: event.target.checked })}
+        />
+      )}
       <footer>
         {entity !== 'new' && (
           <Button
@@ -105,6 +174,18 @@ function BaseFieldsBlock({ campaign, draft, setDraft }: { campaign: LocalCampaig
   if (!fields.length) return null
   const from = [...new Set(declared.map((field) => field.from).filter(Boolean))].map((system) => SYSTEM_LABEL[system as keyof typeof SYSTEM_LABEL] ?? system)
   return <fieldset className="entity-fields entity-fields--base"><legend>Из основы{from.length ? ` · ${from.join(', ')}` : ''}</legend>
-    {fields.map((field, index) => <label key={field.key} htmlFor={`local-entity-base-${index}`} className={field.long ? 'wide' : ''}>{field.label}<textarea className="auto-grow" rows={field.long ? 3 : 1} id={`local-entity-base-${index}`} value={draft.fields[field.key] ?? ''} onChange={(event) => setDraft({ ...draft, fields: { ...draft.fields, [field.key]: event.target.value } })} /></label>)}
+    {fields.map((field, index) => (
+      <TextField
+        key={field.key}
+        label={field.label}
+        multiline
+        rows={field.long ? 3 : 1}
+        className="auto-grow"
+        id={`local-entity-base-${index}`}
+        containerStyle={field.long ? { gridColumn: '1 / -1' } : undefined}
+        value={draft.fields[field.key] ?? ''}
+        onChange={(event) => setDraft({ ...draft, fields: { ...draft.fields, [field.key]: event.target.value } })}
+      />
+    ))}
   </fieldset>
 }

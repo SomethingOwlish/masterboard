@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Button, EmptyState, Icon } from '../../ds'
+import { Button, EmptyState, Icon, TextField } from '../../ds'
 import { blankSession, withLocalSessions, worldStarted } from '../../local/normalize'
 import { newNote } from '../../local/domain'
 import { ownerOf } from '../../local/team'
@@ -95,16 +95,15 @@ export function OnboardingRoom({ campaign, persist }: SectionProps) {
         )}
         <span className="panel-kicker">Быстрый старт</span>
         <h2>Подготовьте первую игру</h2>
-        <label htmlFor="first-session">
-          Название первой сессии
-          <input
-            id="first-session"
-            value={title}
-            placeholder="Встреча у старых ворот"
-            onChange={(e) => setTitle(e.target.value)}
-            onKeyDown={(e) => { if (e.key === 'Enter') createSession() }}
-          />
-        </label>
+        <TextField
+          label="Название первой сессии"
+          id="first-session"
+          value={title}
+          placeholder="Встреча у старых ворот"
+          onChange={(e) => setTitle(e.target.value)}
+          onKeyDown={(e) => { if (e.key === 'Enter') createSession() }}
+        />
+
         <Button variant="primary" block disabled={!title.trim()} onClick={createSession}>Создать сессию и открыть дашборд</Button>
         <div className="new-campaign-room__steps">
           <span className={started ? 'done' : ''}>

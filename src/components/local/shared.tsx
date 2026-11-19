@@ -1,6 +1,6 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { Badge, Button, Icon, Modal } from '../../ds'
+import { Badge, Button, Checkbox, Icon, Modal, TextField } from '../../ds'
 import { LocalThemeControl } from '../LocalThemeControl'
 import { ActingMasterSelect } from './ActingMasterSelect'
 import { useLocalCatalog } from '../../local/useLocalCampaign'
@@ -265,7 +265,16 @@ export function SubmitField({ label, value, onSubmit, placeholder, className }: 
   useEffect(() => setDraft(value), [value])
   const dirty = draft.trim() !== value.trim()
   return <form className={`submit-field${className ? ` ${className}` : ''}`} onSubmit={(event) => { event.preventDefault(); if (dirty) onSubmit(draft.trim()) }}>
-    <input aria-label={label} value={draft} placeholder={placeholder} onChange={(event) => setDraft(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') { event.stopPropagation(); setDraft(value) } }} />
+    <TextField
+      aria-label={label}
+      value={draft}
+      placeholder={placeholder}
+      containerStyle={{ flex: '1 1 auto', minWidth: 0 }}
+      onChange={(event) => setDraft(event.target.value)}
+      onKeyDown={(event) => {
+        if (event.key === 'Escape') { event.stopPropagation(); setDraft(value) }
+      }}
+    />
     <Button type="submit" size="sm" icon="check" disabled={!dirty} aria-label={`Сохранить: ${label}`}>Сохранить</Button>
   </form>
 }
@@ -293,11 +302,36 @@ export function SessionModal({ title, close, children, draft }: { title: string;
 }
 
 export function Capture({ value, setValue, add, label = 'Добавить' }: { value: string; setValue: (value: string) => void; add: () => void; label?: string }) {
-  return <div className="new-campaign-room__capture"><input value={value} aria-label="Новая опорная точка" placeholder="Добавить опорную точку…" onChange={(e) => setValue(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter') add() }} /><Button icon={label === 'Добавить' ? 'plus' : 'check'} disabled={!value.trim()} onClick={add}>{label}</Button></div>
+  return (
+    <div className="new-campaign-room__capture">
+      <TextField
+        value={value}
+        aria-label="Новая опорная точка"
+        placeholder="Добавить опорную точку…"
+        containerStyle={{ flex: '1 1 auto', minWidth: 0 }}
+        onChange={(e) => setValue(e.target.value)}
+        onKeyDown={(e) => { if (e.key === 'Enter') add() }}
+      />
+      <Button icon={label === 'Добавить' ? 'plus' : 'check'} disabled={!value.trim()} onClick={add}>{label}</Button>
+    </div>
+  )
 }
 
 
 /** Compact multi-select made of checkboxes, for linking records to each other. */
 export function Checklist({ legend, options, value, onChange, empty }: { legend: string; options: Array<{ id: string; label: string }>; value: string[]; onChange: (next: string[]) => void; empty?: string }) {
-  return <fieldset className="local-checklist"><legend>{legend}</legend>{options.length ? options.map((option) => <label key={option.id}><input type="checkbox" checked={value.includes(option.id)} onChange={() => onChange(value.includes(option.id) ? value.filter((id) => id !== option.id) : [...value, option.id])} /> {option.label}</label>) : <small>{empty ?? 'Пока нечего выбрать.'}</small>}</fieldset>
+  return (
+    <fieldset className="local-checklist">
+      <legend>{legend}</legend>
+      {options.length ? options.map((option) => (
+        <Checkbox
+          key={option.id}
+          label={option.label}
+          checked={value.includes(option.id)}
+          onChange={() => onChange(value.includes(option.id) ? value.filter((id) => id !== option.id) : [...value, option.id])}
+        />
+      )) : <small>{empty ?? 'Пока нечего выбрать.'}</small>}
+    </fieldset>
+  )
+
 }
