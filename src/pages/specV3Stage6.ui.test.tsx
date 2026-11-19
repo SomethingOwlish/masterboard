@@ -73,7 +73,7 @@ describe('ТЗ-3, этап 6: глоссарий и тексты', () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign({ entities: [newEntity({ type: 'npc', name: 'Олан' })] })
     renderApp(`/local/campaign/${id}/library`, catalog)
-    await user.click(await screen.findByRole('button', { name: /Таблица/ }))
+    await user.click(await screen.findByRole('tab', { name: /Таблица/ }))
     const table = await screen.findByRole('table')
     expect(within(table).getByRole('columnheader', { name: /Источник/ })).toBeInTheDocument()
     expect(within(table).getByRole('columnheader', { name: /Куда отправлять/ })).toBeInTheDocument()

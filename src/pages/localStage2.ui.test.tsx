@@ -54,12 +54,12 @@ describe('stage 2: live session', () => {
     const panel = await screen.findByLabelText('Живая панель')
     await user.selectOptions(within(panel).getByLabelText('Вид записи'), 'decision')
     await user.type(within(panel).getByLabelText('Запись живого журнала'), 'Герои пошли в порт{Enter}')
-    await user.click(within(panel).getByRole('button', { name: /Часы/ }))
+    await user.click(within(panel).getByRole('tab', { name: /Часы/ }))
     await user.type(within(panel).getByLabelText('Причина: Прилив'), 'Шторм')
     await user.click(within(panel).getByRole('button', { name: 'Продвинуть Прилив' }))
-    await user.click(within(panel).getByRole('button', { name: /Секреты/ }))
+    await user.click(within(panel).getByRole('tab', { name: /Секреты/ }))
     await user.selectOptions(within(panel).getByLabelText('Состояние секрета: Цена'), 'partial')
-    await user.click(within(panel).getByRole('button', { name: 'Новое' }))
+    await user.click(within(panel).getByRole('tab', { name: 'Новое' }))
     await user.type(within(panel).getByLabelText('Имя новой сущности'), 'Трактирщик Бран')
     await user.click(within(panel).getByRole('button', { name: 'Создать в библиотеке' }))
     await waitFor(async () => {
@@ -82,7 +82,7 @@ describe('stage 2: live session', () => {
     expect(within(panel).getByText('В задачах')).toBeInTheDocument()
     await waitFor(async () => expect((await catalog.find(id))?.tasks[0]).toMatchObject({ text: 'Нужна карта порта', source: 'session', origin: { sessionId: 'session-1' } }))
     await goToSection(user, 'Пульт')
-    await user.click(await screen.findByRole('button', { name: /Задачи/ }))
+    await user.click(await screen.findByRole('tab', { name: /Задачи/ }))
     expect(screen.getByText('Из сессии №1')).toBeInTheDocument()
   })
 
@@ -134,7 +134,7 @@ describe('stage 2: inbox', () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign({ inbox: [{ id: 'i1', text: 'Капитан врёт', tags: [], createdAt: '2026-09-26T08:00:00.000Z' }] })
     renderApp(`/local/campaign/${id}/control`, catalog)
-    await user.click(await screen.findByRole('button', { name: /Входящие/ }))
+    await user.click(await screen.findByRole('tab', { name: /Входящие/ }))
     await user.click(screen.getByRole('button', { name: 'В секрет' }))
     await waitFor(async () => {
       const saved = (await catalog.find(id))!

@@ -141,7 +141,7 @@ describe('ТЗ-3, этап 5: удаление — подтверждение и
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign({ entities: [newEntity({ id: 'e', type: 'npc', name: 'Олан', fields: { motive: 'долг' } }), newEntity({ id: 'f', type: 'location', name: 'Порт' })] })
     renderApp(`/local/campaign/${id}/library`, catalog)
-    await user.click(await screen.findByRole('button', { name: /Таблица/ }))
+    await user.click(await screen.findByRole('tab', { name: /Таблица/ }))
     await user.click(await screen.findByRole('checkbox', { name: 'Выбрать: Олан' }))
     const bar = screen.getByRole('region', { name: 'Действия с выбранными' })
     await user.click(within(bar).getByRole('button', { name: 'Поле' }))

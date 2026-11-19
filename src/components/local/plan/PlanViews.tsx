@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, type DragEvent, type ReactNode } from 'react'
-import { Badge, Button, Checkbox, Select, TextField } from '../../../ds'
+import { Badge, Button, Checkbox, Select, Tabs, TextField } from '../../../ds'
 import { AUTOMATIC_LOG, TIMELINE_DEFAULT, addFlow, alternativeGroups, filterTimeline, timeline, type TimelineOptions } from '../../../local/plan'
 import { PeekLink } from '../Peek'
 import type { LocalSessionPlanItem } from '../../../local/types'
@@ -25,7 +25,14 @@ export function PlanViews({ api, actions, panel }: { api: PlanApi; actions?: Rea
   const groups = alternativeGroups(api.session)
   return <>
     <datalist id={`alt-groups-${api.session.id}`}>{groups.map((group) => <option key={group} value={group} />)}</datalist>
-    <div className="session-plan__toolbar"><div className="campaign-relation-map__filters session-plan__views" role="group" aria-label="Вид плана">{VIEWS.map(([id, label]) => <button key={id} className={view === id ? 'active' : ''} aria-pressed={view === id} onClick={() => setView(id)}>{label}</button>)}</div>{actions && <div className="session-plan__toolbar-actions">{actions}</div>}</div>
+    <div className="session-plan__toolbar"><Tabs
+      className="campaign-tabs session-plan__views"
+      aria-label="Вид плана"
+      idPrefix={`plan-view-${api.session.id}`}
+      activeId={view}
+      onSelect={(id) => setView(id as View)}
+      tabs={VIEWS.map(([id, label]) => ({ id, label }))}
+    />{actions && <div className="session-plan__toolbar-actions">{actions}</div>}</div>
     <div className={`session-plan__workspace${panel ? ' session-plan__workspace--with-panel' : ''}`}>
       <div className="session-plan__canvas">
         {view === 'tree' && <SceneTree api={api} />}

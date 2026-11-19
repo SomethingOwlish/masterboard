@@ -186,7 +186,7 @@ describe('live table cards', () => {
     const running = session('s1', 1, 'Идёт', { status: 'active', planItems: [{ ...planItem('p', 'Олан'), source: 'library', entityId: 'olan', kind: 'npc' }] })
     const { catalog, id } = await readyCampaign({ sessionRecords: [running], activeSessionId: 's1', entities: [newEntity({ id: 'olan', type: 'npc', name: 'Олан', dead: true, fields: { motive: 'Искупление' } }), newEntity({ id: 'other', type: 'npc', name: 'Чужой' })] })
     renderApp(`/local/campaign/${id}/play`, catalog)
-    await user.click(await screen.findByRole('button', { name: /Карточки/ }))
+    await user.click(await screen.findByRole('tab', { name: /Карточки/ }))
     const card = screen.getByRole('article', { name: 'Карточка: Олан' })
     expect(within(card).getByText('Искупление')).toBeInTheDocument()
     expect(within(card).getByText('Погиб')).toBeInTheDocument()

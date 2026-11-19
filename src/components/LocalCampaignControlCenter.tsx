@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Button, EmptyState, Icon, TextField } from '../ds'
+import { Button, EmptyState, Icon, Tabs, TextField } from '../ds'
 import { newTask, taskOriginLabel } from '../local/sessionFlow'
 import type { LocalCampaignRecord, LocalCampaignTask } from '../local/types'
 import { ClocksPanel } from './local/ClocksPanel'
@@ -23,7 +23,21 @@ export function LocalCampaignControlCenter({ campaign, persist }: Props) {
   const saveTask = () => { if (!taskText.trim()) return; const tasks = editingTaskId ? campaign.tasks.map((item) => item.id === editingTaskId ? { ...item, text: taskText.trim() } : item) : [...campaign.tasks, newTask(taskText, 'masterboard')]; persist({ ...campaign, tasks }); setTaskText(''); setEditingTaskId(null) }
   const removeTask = (id: string) => removeWithUndo(persist, campaign, { ...campaign, tasks: campaign.tasks.filter((item) => item.id !== id) }, `Задача «${campaign.tasks.find((item) => item.id === id)?.text ?? ''}»`)
 
-  return <section className="campaign-section control-center"><header className="panel-heading"><div><span className="panel-kicker">Оперативный слой</span><h2>Пульт кампании</h2><p>Давление мира, закрытые знания и то, что мастеру нельзя потерять.</p></div></header><nav className="control-center__tabs" aria-label="Разделы пульта">{([['clocks', 'Часы', campaign.clocks.length], ['secrets', 'Секреты', campaign.secrets.length], ['tasks', 'Задачи', campaign.tasks.filter((item) => !item.done).length], ['inbox', 'Входящие', campaign.inbox.length]] as const).map(([id, label, count]) => <button key={id} className={panel === id ? 'active' : ''} onClick={() => setPanel(id)}>{label}<span>{count}</span></button>)}</nav>
+  return <section className="campaign-section control-center"><header className="panel-heading"><div><span className="panel-kicker">Оперативный слой</span><h2>Пульт кампании</h2><p>Давление мира, закрытые знания и то, что мастеру нельзя потерять.</p></div></header>
+    <Tabs
+      className="campaign-tabs"
+      aria-label="Разделы пульта"
+      idPrefix="control-tab"
+      activeId={panel}
+      onSelect={(id) => setPanel(id as Panel)}
+      tabs={[
+        { id: 'clocks', label: 'Часы', count: campaign.clocks.length },
+        { id: 'secrets', label: 'Секреты', count: campaign.secrets.length },
+        { id: 'tasks', label: 'Задачи', count: campaign.tasks.filter((item) => !item.done).length },
+        { id: 'inbox', label: 'Входящие', count: campaign.inbox.length },
+      ]}
+    />
+
     {panel === 'clocks' && <ClocksPanel campaign={campaign} persist={persist} />}
     {panel === 'secrets' && <SecretsPanel campaign={campaign} persist={persist} />}
     {panel === 'tasks' && <Tasks originOf={(task) => taskOriginLabel(task, campaign)} tasks={campaign.tasks} text={taskText} editing={Boolean(editingTaskId)} setText={setTaskText} save={saveTask} edit={(task) => { setEditingTaskId(task.id); setTaskText(task.text) }} cancel={() => { setEditingTaskId(null); setTaskText('') }} toggle={(id) => persist({ ...campaign, tasks: campaign.tasks.map((item) => item.id === id ? { ...item, done: !item.done } : item) })} remove={removeTask} />}

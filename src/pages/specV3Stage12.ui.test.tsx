@@ -82,7 +82,7 @@ describe('ТЗ-3, этап 12: разбор с применением в кон�
     const { catalog, id } = await readyCampaign({ ...world(), sessionRecords: [active], activeSessionId: 's1' })
     renderApp(`/local/campaign/${id}/play`, catalog)
     const panel = await screen.findByRole('complementary', { name: 'Живая панель' })
-    await user.click(within(panel).getByRole('button', { name: /^Часы/ }))
+    await user.click(within(panel).getByRole('tab', { name: /^Часы/ }))
     const clock = within(panel).getByRole('article', { name: 'Часы: Прилив' })
     expect(within(clock).getByRole('button', { name: 'Продвинуть Прилив' })).toBeDisabled()
     await user.click(within(clock).getByRole('button', { name: 'Провал броска' }))

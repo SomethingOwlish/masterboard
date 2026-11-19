@@ -641,54 +641,6 @@
   display: grid;
   gap: var(--space-3);
 }
-.control-center__tabs {
-  display: flex;
-  gap: 4px;
-  overflow-x: auto;
-  background: var(--surface-2);
-  width: fit-content;
-  max-width: 100%;
-  padding: 3px;
-  border-radius: var(--radius);
-}
-.control-center__tabs button {
-  display: flex;
-  gap: var(--space-2);
-  align-items: center;
-  justify-content: center;
-  flex: 1 0 auto;
-  padding: 10px var(--space-3);
-  border: 0;
-  border-radius: calc(var(--radius-lg) - 4px);
-  background: transparent;
-  color: var(--muted);
-  min-height: 36px;
-  padding-block: 7px;
-}
-.control-center__tabs button:hover {
-  color: var(--text);
-}
-.control-center__tabs button.active {
-  background: var(--surface);
-  color: var(--text);
-  box-shadow: var(--shadow-sm);
-}
-.control-center__tabs button span {
-  display: grid;
-  place-items: center;
-  min-width: 22px;
-  height: 22px;
-  padding: 0 6px;
-  border-radius: 999px;
-  background: var(--surface-3);
-  color: var(--muted);
-  font: var(--type-data);
-}
-@media (max-width: 600px) {
-  .control-center__tabs button {
-    flex: 0 0 auto;
-  }
-}
 
 /* ---- .control-panel ---------------------------------------------------- */
 .control-panel {
@@ -2280,32 +2232,6 @@
   letter-spacing: .06em;
 }
 
-/* ---- .view-toggle ------------------------------------------------------ */
-.view-toggle {
-  display: inline-flex;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  overflow: hidden;
-}
-.view-toggle button {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 7px 12px;
-  border: 0;
-  background: var(--surface);
-  color: var(--muted);
-  font: inherit;
-  cursor: pointer;
-}
-.view-toggle button + button {
-  border-left: 1px solid var(--border);
-}
-.view-toggle button[aria-pressed="true"] {
-  background: var(--accent-soft);
-  color: var(--accent);
-  font-weight: 700;
-}
 
 /* ---- .library-table ---------------------------------------------------- */
 .library-table__wrap {
@@ -2646,4 +2572,10 @@
 .sessions-workspace__top .campaign-menu__list {
   right: 0;
   left: auto;
+}
+
+/* ---- .campaign-tabs (ТЗ-3, этап 16б): DS Tabs in sections ------------- */
+.campaign-tabs {
+  max-width: 100%;
+  margin: var(--space-3) 0;
 }

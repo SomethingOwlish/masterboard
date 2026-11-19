@@ -50,7 +50,7 @@ describe('stage 4: improv sheet', () => {
 
     await router.navigate(`/local/campaign/${id}/play`)
     const panel = await screen.findByLabelText('Живая панель')
-    await user.click(within(panel).getByRole('button', { name: /Заготовки/ }))
+    await user.click(within(panel).getByRole('tab', { name: /Заготовки/ }))
     await user.click(within(panel).getByRole('button', { name: 'Использовать заготовку Мирта Солеварка' }))
     await waitFor(async () => {
       const saved = (await catalog.find(id))!
@@ -59,7 +59,7 @@ describe('stage 4: improv sheet', () => {
       expect(saved.improv[0].usedSessionId).toBe('s1')
     })
     await user.selectOptions(screen.getByLabelText('Кто работает в этом браузере'), FOX.id)
-    await user.click(within(screen.getByLabelText('Живая панель')).getByRole('button', { name: /Заготовки/ }))
+    await user.click(within(screen.getByLabelText('Живая панель')).getByRole('tab', { name: /Заготовки/ }))
     expect(within(screen.getByLabelText('Живая панель')).getByText(/Личный лист Лис пуст/)).toBeInTheDocument()
   })
 })
