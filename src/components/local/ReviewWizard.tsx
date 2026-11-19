@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { Badge, Button, Select } from '../../ds'
-import { moveClock } from '../../local/domain'
-import { completeReview, missingDecisions, reviewItems } from '../../local/sessionFlow'
-import type { LocalCampaignRecord, LocalReviewDecision, LocalSessionPlanItem, LocalSessionRecord } from '../../local/types'
-import { withSession, LOG_KIND, REVIEW_DECISION, TIME_PLACEHOLDER } from '../../local/labels'
+import { applyReviewDraft, completeReview, missingDecisions, reviewDraftOf, reviewItems } from '../../local/sessionFlow'
+import type { LocalCampaignRecord, LocalReviewChange, LocalReviewDecision, LocalReviewDraft, LocalSecretStatus, LocalSessionPlanItem, LocalSessionRecord } from '../../local/types'
+import { withSession, clockReasonReady, LOG_KIND, REVIEW_DECISION, SECRET_STATUS, TIME_PLACEHOLDER } from '../../local/labels'
+import { ClockReasonField } from './ClockReason'
 import type { Persist } from './shared'
 import { liveSessions, nextSessionNumber } from '../../local/sessions'
 import { TableSendPanel } from './TablePanels'
@@ -42,6 +42,7 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
     return <section className="session-review-panel" aria-label="Разбор сессии" tabIndex={-1}><header><div><span className="panel-kicker">Разбор завершён</span><h2>Итоги сессии №{session.number}</h2></div><Button disabled={!canComplete} title={canComplete ? undefined : completeHint} onClick={() => { update({ ...session, reviewStatus: 'draft' }); setStep(0) }}>Открыть разбор заново</Button></header>
       {session.reviewNotes && <p>{session.reviewNotes}</p>}
       <ul className="session-review-panel__summary">{items.map((item) => <li key={item.id}><strong>{itemTitle(item)}</strong> — {REVIEW_DECISION[session.reviewDecisions[item.id]]}</li>)}</ul>
+      <AppliedChanges changes={session.reviewApplied} open />
       {nextSession && <Button variant="primary" onClick={() => openSession(nextSession.id)}>Открыть сессию №{nextSession.number}: {nextSession.title}</Button>}
       <TableSendPanel campaign={campaign} session={session} persist={persist} itemTitle={itemTitle} canSend={canComplete} hint={completeHint} />
     </section>
@@ -56,11 +57,33 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
       setError(failure instanceof Error ? failure.message : 'Не удалось завершить разбор')
     }
   }
-  const moveReviewClock = (clockId: string, delta: number) => {
+  // Steps 3–4 write only to the draft; «Завершить разбор» applies it (ТЗ-3, этап 12).
+  const draft = reviewDraftOf(session)
+  const setDraft = (next: LocalReviewDraft) => update({ ...session, reviewDraft: next })
+  const reasonOf = (clockId: string) => reasons[clockId] ?? draft.clocks[clockId]?.reason ?? ''
+  const moveReviewClock = (clockId: string, step: -1 | 1) => {
     const clock = campaign.clocks.find((item) => item.id === clockId)
-    const result = clock && moveClock(clock, delta, reasons[clockId]?.trim() || defaultReason, new Date().toISOString())
-    if (result) persist({ ...campaign, clocks: campaign.clocks.map((item) => item.id === clockId ? result.clock : item) })
+    const reason = reasonOf(clockId).trim()
+    if (!clock || !clockReasonReady(reason)) return
+    const delta = (draft.clocks[clockId]?.delta ?? 0) + step
+    if (clock.value + delta < 0 || clock.value + delta > clock.segments) return
+    const { [clockId]: _dropped, ...rest } = draft.clocks
+    setDraft({ ...draft, clocks: delta ? { ...rest, [clockId]: { delta, reason } } : rest })
   }
+  const setArc = (arcId: string, progress: number) => {
+    const arc = campaign.storyArcs.find((item) => item.id === arcId)
+    const { [arcId]: _dropped, ...rest } = draft.arcs
+    setDraft({ ...draft, arcs: arc && arc.progress === progress ? rest : { ...rest, [arcId]: progress } })
+  }
+  const setSecret = (secretId: string, status: LocalSecretStatus) => {
+    const secret = campaign.secrets.find((item) => item.id === secretId)
+    const { [secretId]: _dropped, ...rest } = draft.secrets
+    setDraft({ ...draft, secrets: secret && secret.status === status ? rest : { ...rest, [secretId]: status } })
+  }
+  const planSecretIds = new Set(session.planItems.flatMap((item) => item.secretId ? [item.secretId] : []))
+  const secrets = [...campaign.secrets].sort((a, b) => Number(planSecretIds.has(b.id)) - Number(planSecretIds.has(a.id)))
+  const pendingChanges = applyReviewDraft(campaign, session, '').changes
+  const reviewArcs = campaign.storyArcs.filter((arc) => arc.status === 'active' || arc.id === session.arcId)
   const canNext = step !== 1 || missing.length === 0
 
   return <section className="session-review-panel session-review-wizard" aria-label="Разбор сессии" tabIndex={-1}>
@@ -78,15 +101,95 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
     </div>}
 
     {step === 2 && <div className="session-review-wizard__body">
+      <p className="session-plan__notice">Изменения копятся черновиком и применятся по «Завершить разбор». До этого часы, линии и секреты в кампании не меняются.</p>
+      <AppliedChanges changes={session.reviewApplied} />
       <h3>Часы</h3>
-      {campaign.clocks.length ? <div className="session-live-panel__list">{campaign.clocks.map((clock) => <article key={clock.id}><div className="row"><strong>{clock.title}</strong><span className="mb-data">{clock.value}/{clock.segments}</span></div><div className="row"><input aria-label={`Причина: ${clock.title}`} value={reasons[clock.id] ?? ''} placeholder={defaultReason} onChange={(e) => setReasons({ ...reasons, [clock.id]: e.target.value })} /><Button size="sm" aria-label={`Откатить ${clock.title}`} disabled={!clock.value} onClick={() => moveReviewClock(clock.id, -1)}>−1</Button><Button size="sm" variant="primary" aria-label={`Продвинуть ${clock.title}`} disabled={clock.value === clock.segments} onClick={() => moveReviewClock(clock.id, 1)}>+1</Button></div></article>)}</div> : <p className="muted">Часов нет.</p>}
+      {campaign.clocks.length ? <div className="session-live-panel__list">{campaign.clocks.map((clock) => {
+        const delta = draft.clocks[clock.id]?.delta ?? 0
+        const value = clock.value + delta
+        return <article key={clock.id} aria-label={`Часы: ${clock.title}`}>
+          <div className="row">
+            <strong>{clock.title}</strong>
+            <span className="mb-data">{delta ? `${clock.value}/${clock.segments} → ${value}/${clock.segments}` : `${clock.value}/${clock.segments}`}</span>
+          </div>
+          <ClockReasonField
+            title={clock.title}
+            value={reasonOf(clock.id)}
+            extra={[defaultReason]}
+            onChange={(reason) => setReasons({ ...reasons, [clock.id]: reason })}
+          />
+          <div className="row">
+            <Button
+              size="sm"
+              aria-label={`Откатить ${clock.title}`}
+              disabled={value <= 0 || !clockReasonReady(reasonOf(clock.id))}
+              onClick={() => moveReviewClock(clock.id, -1)}
+            >
+              −1
+            </Button>
+            <Button
+              size="sm"
+              variant="primary"
+              aria-label={`Продвинуть ${clock.title}`}
+              disabled={value >= clock.segments || !clockReasonReady(reasonOf(clock.id))}
+              onClick={() => moveReviewClock(clock.id, 1)}
+            >
+              +1
+            </Button>
+          </div>
+        </article>
+      })}</div> : <p className="muted">Часов нет.</p>}
       <h3>Сюжетные линии</h3>
-      {campaign.storyArcs.filter((arc) => arc.status === 'active' || arc.id === session.arcId).map((arc) => <label key={arc.id} className="session-review-wizard__arc">{arc.title} · {arc.progress}%<input type="range" min="0" max="100" step="10" aria-label={`Прогресс линии: ${arc.title}`} value={arc.progress} onChange={(e) => persist({ ...campaign, storyArcs: campaign.storyArcs.map((item) => item.id === arc.id ? { ...item, progress: Number(e.target.value) } : item) })} /></label>)}
-      <p className="muted">Раскрытия секретов записываются в «Пульте» или в живой панели во время игры.</p>
+      {!reviewArcs.length && <p className="muted">Активных линий нет.</p>}
+      {reviewArcs.map((arc) => {
+        const progress = draft.arcs[arc.id] ?? arc.progress
+        return <label
+          key={arc.id}
+          className="session-review-wizard__arc"
+        >
+          {arc.title} · {progress !== arc.progress ? `${arc.progress}% → ${progress}%` : `${progress}%`}
+          <input
+            type="range"
+            min="0"
+            max="100"
+            step="10"
+            aria-label={`Прогресс линии: ${arc.title}`}
+            value={progress}
+            onChange={(e) => setArc(arc.id, Number(e.target.value))}
+          />
+        </label>
+      })}
+      <h3>Секреты</h3>
+      {secrets.length ? <div className="session-live-panel__list">{secrets.map((secret) => {
+        const status = draft.secrets[secret.id] ?? secret.status
+        return <article key={secret.id}>
+          <div className="row">
+            <strong>{secret.title}</strong>
+            {planSecretIds.has(secret.id) && <Badge size="sm" tone="accent">В плане</Badge>}
+          </div>
+          {status !== secret.status && <small>Было: {SECRET_STATUS[secret.status]}</small>}
+          <Select
+            aria-label={`Состояние секрета: ${secret.title}`}
+            value={status}
+            onChange={(e) => setSecret(secret.id, e.target.value as LocalSecretStatus)}
+          >
+            {Object.entries(SECRET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+          </Select>
+        </article>
+      })}</div> : <p className="muted">Секретов нет.</p>}
     </div>}
 
     {step === 3 && <div className="session-review-wizard__body">
-      <label htmlFor="review-time">Текущее время кампании после сессии<input id="review-time" value={campaign.activeTime} placeholder={TIME_PLACEHOLDER} onChange={(e) => persist({ ...campaign, activeTime: e.target.value })} /></label>
+      <label htmlFor="review-time">
+        Текущее время кампании после сессии
+        <input
+          id="review-time"
+          value={draft.time ?? campaign.activeTime}
+          placeholder={TIME_PLACEHOLDER}
+          onChange={(e) => setDraft({ ...draft, time: e.target.value })}
+        />
+      </label>
+      {draft.time !== undefined && draft.time.trim() !== campaign.activeTime && <small className="muted">Сейчас: {campaign.activeTime || 'не задано'}. Новое время применится по «Завершить разбор».</small>}
     </div>}
 
     {step === 4 && <div className="session-review-wizard__body">
@@ -98,6 +201,10 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
         </small>
       </fieldset>
       {carried.length > 0 && <p>Переносятся пункты: {carried.map(itemTitle).join(', ')}.</p>}
+      {pendingChanges.length > 0 && <div className="session-review-wizard__pending">
+        <p>Применится по «Завершить разбор»:</p>
+        <ChangeList changes={pendingChanges} />
+      </div>}
       <label htmlFor="review-target">
         {carried.length ? 'Куда перенести' : 'Следующая сессия'}
         <select id="review-target" value={chosenTarget} onChange={(e) => setTarget(e.target.value)}>
@@ -112,4 +219,30 @@ export function ReviewWizard({ campaign, session, persist, itemTitle, openSessio
 
     <footer className="session-review-wizard__nav"><Button disabled={step === 0} onClick={() => setStep(step - 1)}>Назад</Button>{step < STEPS.length - 1 && <Button variant="primary" disabled={!canNext} onClick={() => setStep(step + 1)}>Далее</Button>}</footer>
   </section>
+}
+
+
+const CHANGE_KIND: Record<LocalReviewChange['kind'], string> = { clock: 'Часы', arc: 'Линия', time: 'Время', secret: 'Секрет' }
+
+function ChangeList({ changes }: { changes: LocalReviewChange[] }) {
+  return <ul className="session-review-wizard__changes">
+    {changes.map((change, index) => <li key={`${change.kind}-${change.title}-${index}`}>
+      <Badge size="sm" tone="neutral">{CHANGE_KIND[change.kind]}</Badge>
+      {' '}
+      <strong>{change.title}</strong>
+      {`: ${change.from} → ${change.to}`}
+    </li>)}
+  </ul>
+}
+
+/** What earlier completions of this review applied. */
+function AppliedChanges({ changes, open = false }: { changes?: LocalReviewChange[]; open?: boolean }) {
+  if (!changes?.length) return null
+  return <details
+    className="session-review-wizard__applied"
+    open={open}
+  >
+    <summary>Уже применено · {changes.length}</summary>
+    <ChangeList changes={changes} />
+  </details>
 }

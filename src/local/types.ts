@@ -141,6 +141,15 @@ export interface LocalCampaignSecret {
   reveals: LocalSecretReveal[]
 }
 
+/** Review consequences not yet applied: clock moves (net, with one reason), arc progress, campaign time, secret states. */
+export interface LocalReviewDraft {
+  clocks: Record<string, { delta: number; reason: string }>
+  arcs: Record<string, number>
+  time?: string
+  secrets: Record<string, LocalSecretStatus>
+}
+/** One consequence a completed review applied, as text to show later. */
+export interface LocalReviewChange { kind: 'clock' | 'arc' | 'time' | 'secret'; title: string; from: string; to: string; at: string }
 export type LocalSecretStatus = 'hidden' | 'partial' | 'selected' | 'everyone' | 'disproved' | 'obsolete'
 export interface LocalSecretReveal { id: string; status: LocalSecretStatus; recipients: string; recipientIds: string[]; sessionId?: string; note: string; createdAt: string }
 
@@ -234,6 +243,13 @@ export interface LocalSessionRecord {
   reviewDecisions: Record<string, LocalReviewDecision>
   /** Decisions already applied, so reopening and re-closing a review is safe. */
   appliedDecisions: Record<string, LocalReviewDecision>
+  /**
+   * Consequences gathered in the review (ТЗ-3, этап 12): nothing reaches the
+   * campaign until «Завершить разбор» applies the draft in one write.
+   */
+  reviewDraft?: LocalReviewDraft
+  /** What earlier completions of this review applied, shown when it is reopened. */
+  reviewApplied?: LocalReviewChange[]
   nextSessionId?: string
   /** When the next game is, set in the review: real date `YYYY-MM-DD` and free-text time. */
   nextGame?: { date: string; time: string }

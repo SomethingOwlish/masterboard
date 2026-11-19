@@ -1,8 +1,9 @@
-import { newEntity } from './domain'
+import { changeSecretStatus, moveClock, newEntity } from './domain'
+import { SECRET_STATUS } from './labels'
 import { blankSession } from './normalize'
 import type {
   LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord, LocalCampaignRelation, LocalCampaignTask, LocalLogKind, LocalRelationType,
-  LocalReviewDecision, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionPlanKind, LocalSessionRecord, LocalTaskOrigin,
+  LocalReviewChange, LocalReviewDecision, LocalReviewDraft, LocalSessionLogEntry, LocalSessionPlanItem, LocalSessionPlanKind, LocalSessionRecord, LocalTaskOrigin,
 } from './types'
 
 // ─── Relations ──────────────────────────────────────────────────────────────
@@ -80,6 +81,45 @@ export interface ApplyReviewOptions {
  * Decisions applied earlier are skipped, so reopening a review is safe; a carry
  * that was changed to something else takes its unplayed copy back.
  */
+export const emptyReviewDraft = (): LocalReviewDraft => ({ clocks: {}, arcs: {}, secrets: {} })
+export const reviewDraftOf = (session: LocalSessionRecord): LocalReviewDraft => session.reviewDraft ?? emptyReviewDraft()
+export const reviewDraftIsEmpty = (draft: LocalReviewDraft) =>
+  !Object.keys(draft.clocks).length && !Object.keys(draft.arcs).length && !Object.keys(draft.secrets).length && draft.time === undefined
+
+/**
+ * Applies the review draft (ТЗ-3, этап 12): clocks move once by the net delta
+ * with the draft reason, arcs and time take the drafted values, secrets change
+ * state with a reveal record of this session. Returns the campaign parts and
+ * what changed, to show when the review is reopened.
+ */
+export function applyReviewDraft(campaign: LocalCampaignRecord, session: LocalSessionRecord, now: string) {
+  const draft = reviewDraftOf(session)
+  const changes: LocalReviewChange[] = []
+  const clocks = campaign.clocks.map((clock) => {
+    const move = draft.clocks[clock.id]
+    const result = move && moveClock(clock, move.delta, move.reason, now)
+    if (!result) return clock
+    changes.push({ kind: 'clock', title: clock.title, from: `${clock.value}/${clock.segments}`, to: `${result.clock.value}/${clock.segments} — ${move.reason.trim()}`, at: now })
+    return result.clock
+  })
+  const storyArcs = campaign.storyArcs.map((arc) => {
+    const progress = draft.arcs[arc.id]
+    if (progress === undefined || progress === arc.progress) return arc
+    changes.push({ kind: 'arc', title: arc.title, from: `${arc.progress}%`, to: `${progress}%`, at: now })
+    return { ...arc, progress }
+  })
+  const secrets = campaign.secrets.map((secret) => {
+    const status = draft.secrets[secret.id]
+    if (!status || status === secret.status) return secret
+    changes.push({ kind: 'secret', title: secret.title, from: SECRET_STATUS[secret.status], to: SECRET_STATUS[status], at: now })
+    return changeSecretStatus(secret, { status, recipients: secret.recipients, sessionId: session.id, note: `Разбор сессии №${session.number}` }, now)
+  })
+  const time = draft.time?.trim()
+  const activeTime = time !== undefined && time !== campaign.activeTime ? time : campaign.activeTime
+  if (activeTime !== campaign.activeTime) changes.push({ kind: 'time', title: 'Время кампании', from: campaign.activeTime || '—', to: activeTime || '—', at: now })
+  return { clocks, storyArcs, secrets, activeTime, changes }
+}
+
 export function completeReview(campaign: LocalCampaignRecord, sessionId: string, options: ApplyReviewOptions): LocalCampaignRecord {
   const session = campaign.sessionRecords.find((item) => item.id === sessionId)
   if (!session) throw new Error('Сессия не найдена')
@@ -124,6 +164,13 @@ export function completeReview(campaign: LocalCampaignRecord, sessionId: string,
     }
     return { ...item, status: 'skipped' as const }
   })
-  sessions = sessions.map((item) => item.id === session.id ? { ...item, planItems, appliedDecisions: applied, reviewStatus: 'completed' as const, nextSessionId } : item)
-  return { ...campaign, entities, sessionRecords: sessions, activeSessionId: nextSessionId ?? campaign.activeSessionId }
+  const consequences = applyReviewDraft(campaign, session, options.now)
+  const reviewApplied = [...(session.reviewApplied ?? []), ...consequences.changes]
+  sessions = sessions.map((item) => item.id === session.id
+    ? { ...item, planItems, appliedDecisions: applied, reviewStatus: 'completed' as const, nextSessionId, reviewDraft: undefined, reviewApplied: reviewApplied.length ? reviewApplied : undefined }
+    : item)
+  return {
+    ...campaign, entities, sessionRecords: sessions, activeSessionId: nextSessionId ?? campaign.activeSessionId,
+    clocks: consequences.clocks, storyArcs: consequences.storyArcs, secrets: consequences.secrets, activeTime: consequences.activeTime,
+  }
 }
