@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Badge, Button, EmptyState, Select } from '../../ds'
+import { Badge, Button, Checkbox, EmptyState, Select } from '../../ds'
 import type { PublicationOperation, PublicationQueueItem } from '../../model/external'
 import { Link } from 'react-router-dom'
 import { ROLE_LABEL, SYSTEM_LABEL, WRITABLE_ROLES, linkedRole, parseConnectionKey, roleConnection, targetTypes } from '../../local/integration'
@@ -166,9 +166,9 @@ export function PublishSection({ campaign, persist }: SectionProps) {
       const itemEntity = campaign.entities.find((candidate) => candidate.id === item.entityId)
       const editableType = item.operation === 'create' && (item.state === 'draft' || item.state === 'blocked') && itemEntity
       return <li key={item.id} className={`publish-item publish-item--${item.state}`}>
-        <input
-          type="checkbox"
+        <Checkbox
           aria-label={`Выбрать: ${entityName(item.entityId)} → ${connectionName(item.connectionId)}`}
+
           title={pickHint(item)}
           checked={selected.includes(item.id)}
           disabled={Boolean(pickHint(item))}

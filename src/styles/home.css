@@ -598,30 +598,6 @@
 .players-page__list small {
   color: var(--muted);
 }
-.players-page__search {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 10px;
-  border: 1px solid var(--border-strong);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-  color: var(--muted);
-}
-.players-page__search:focus-within {
-  border-color: var(--accent);
-  box-shadow: 0 0 0 3px var(--ring);
-}
-.players-page__search input {
-  flex: 1;
-  min-width: 0;
-  padding: 8px 0;
-  border: 0;
-  background: transparent;
-  color: var(--text);
-  font: inherit;
-  outline: none;
-}
 .players-page__name input {
   width: 100%;
   min-width: 220px;

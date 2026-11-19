@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Button, Select } from '../../../ds'
+import { Button, Select, TextField } from '../../../ds'
 import { moveItemTo } from '../../../local/plan'
 import type { LocalSessionPlanItem, LocalSessionPlanKind } from '../../../local/types'
 import { SessionModal } from '../shared'
@@ -29,20 +29,69 @@ export function PlanItemEditor({ api, item, close }: { api: PlanApi; item: Item;
   }
   return <SessionModal title={isScene ? 'Сцена' : 'Пункт плана'} close={close} draft={draft}>
     <form className="session-passport-form plan-item-editor" onSubmit={(event) => { event.preventDefault(); save() }}>
-      <label>Название{linked
-        ? <span className="plan-item-editor__linked"><input value={title} disabled aria-describedby="plan-item-linked-hint" /><small id="plan-item-linked-hint">{item.secretId ? 'Название секрета меняется в «Пульт → Секреты».' : 'Название записи меняется в библиотеке.'}</small></span>
-        : <input autoFocus value={draft.text} onChange={(event) => set({ text: event.target.value })} />}
-      </label>
+      {linked
+        ? <div className="plan-item-editor__linked">
+          <TextField
+            label="Название"
+            value={title}
+            disabled
+            aria-describedby="plan-item-linked-hint"
+          />
+          <small id="plan-item-linked-hint">{item.secretId ? 'Название секрета меняется в «Пульт → Секреты».' : 'Название записи меняется в библиотеке.'}</small>
+        </div>
+        : <TextField
+          label="Название"
+          autoFocus
+          value={draft.text}
+          onChange={(event) => set({ text: event.target.value })}
+        />}
       {item.entityId && <Button type="button" size="sm" icon="pencil" onClick={() => { close(); api.editEntity(item.entityId!) }}>Редактировать запись</Button>}
       <div className="control-form__row">
-        {!isScene && <label>Тип<Select value={draft.kind} onChange={(event) => set({ kind: event.target.value as LocalSessionPlanKind })}>{PLAN_KINDS.filter(([value]) => value !== 'scene').map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select></label>}
-        <label>Приоритет<Select value={draft.priority} onChange={(event) => set({ priority: event.target.value as Item['priority'] })}>{PRIORITIES.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select></label>
-        {!isScene && <label>Сцена<Select value={draft.sceneId && scenes.some((scene) => scene.id === draft.sceneId) ? draft.sceneId : ''} onChange={(event) => set({ sceneId: event.target.value || undefined })}><option value="">Вне сцен</option>{scenes.map((scene) => <option key={scene.id} value={scene.id}>{api.itemTitle(scene)}</option>)}</Select></label>}
+        {!isScene && <Select
+          label="Тип"
+          value={draft.kind}
+          onChange={(event) => set({ kind: event.target.value as LocalSessionPlanKind })}
+        >
+          {PLAN_KINDS.filter(([value]) => value !== 'scene').map(([value, name]) => <option key={value} value={value}>{name}</option>)}
+        </Select>}
+        <Select
+          label="Приоритет"
+          value={draft.priority}
+          onChange={(event) => set({ priority: event.target.value as Item['priority'] })}
+        >
+          {PRIORITIES.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
+        </Select>
+        {!isScene && <Select
+          label="Сцена"
+          value={draft.sceneId && scenes.some((scene) => scene.id === draft.sceneId) ? draft.sceneId : ''}
+          onChange={(event) => set({ sceneId: event.target.value || undefined })}
+        >
+          <option value="">Вне сцен</option>
+          {scenes.map((scene) => <option key={scene.id} value={scene.id}>{api.itemTitle(scene)}</option>)}
+        </Select>}
       </div>
-      <label>{isScene ? 'Комментарий к сцене' : 'Заметка'}<textarea rows={3} value={draft.note} placeholder={isScene ? 'Условие входа, настроение, что должно случиться…' : 'Заметка для этой сессии: условие, реплика…'} onChange={(event) => set({ note: event.target.value })} /></label>
+      <TextField
+        label={isScene ? 'Комментарий к сцене' : 'Заметка'}
+        multiline
+        rows={3}
+        value={draft.note}
+        placeholder={isScene ? 'Условие входа, настроение, что должно случиться…' : 'Заметка для этой сессии: условие, реплика…'}
+        onChange={(event) => set({ note: event.target.value })}
+      />
       <div className="control-form__row">
-        {!isScene && <label>Роль в сессии<input value={draft.role} placeholder="Проводник, помеха, свидетель…" onChange={(event) => set({ role: event.target.value })} /></label>}
-        <label>Группа «или-или»<input value={draft.alternative} list={`alt-groups-${api.session.id}`} placeholder="Например «вход в порт»" onChange={(event) => set({ alternative: event.target.value })} /></label>
+        {!isScene && <TextField
+          label="Роль в сессии"
+          value={draft.role}
+          placeholder="Проводник, помеха, свидетель…"
+          onChange={(event) => set({ role: event.target.value })}
+        />}
+        <TextField
+          label="Группа «или-или»"
+          value={draft.alternative}
+          list={`alt-groups-${api.session.id}`}
+          placeholder="Например «вход в порт»"
+          onChange={(event) => set({ alternative: event.target.value })}
+        />
       </div>
       <footer><Button type="button" onClick={close}>Отмена</Button><Button type="submit" variant="primary" icon="check" disabled={!linked && !draft.text.trim()}>Сохранить</Button></footer>
     </form>

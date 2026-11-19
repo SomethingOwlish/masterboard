@@ -1,7 +1,7 @@
 import { PeekLink } from './Peek'
 import type { PeekTarget } from '../../local/search'
 import { useState } from 'react'
-import { Badge, Button, EmptyState } from '../../ds'
+import { Badge, Button, EmptyState, Select, TextField } from '../../ds'
 import { changeSecretStatus, newSecret, secretSessions, type RevealInput } from '../../local/domain'
 import { SECRET_STATUS } from '../../local/labels'
 import type { LocalCampaignSecret, LocalSecretStatus } from '../../local/types'
@@ -53,19 +53,93 @@ export function SecretsPanel({ campaign, persist }: SectionProps) {
     </article> })}</div> : <EmptyState icon="shield" title="Секретов пока нет" hint="Зафиксируйте истину мастера отдельно от того, что знают герои." action={<Button variant="primary" icon="plus" onClick={() => openEditor('new')}>Создать секрет</Button>} />}
 
     {revealing && <Editor title={`Раскрытие: ${revealing.title}`} close={() => setRevealing(null)} draft={reveal}>
-      <div className="control-form__row"><label htmlFor="reveal-status">Новое состояние<select id="reveal-status" value={reveal.status} onChange={(e) => setReveal({ ...reveal, status: e.target.value as LocalSecretStatus })}>{Object.entries(SECRET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label htmlFor="reveal-recipients">Кому ещё известно<input id="reveal-recipients" value={reveal.recipients} placeholder="Все, группа, имена героев" onChange={(e) => setReveal({ ...reveal, recipients: e.target.value })} /></label></div>
+      <div className="control-form__row">
+        <Select
+          label="Новое состояние"
+          id="reveal-status"
+          value={reveal.status}
+          onChange={(e) => setReveal({ ...reveal, status: e.target.value as LocalSecretStatus })}
+        >
+          {Object.entries(SECRET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </Select>
+        <TextField
+          label="Кому ещё известно"
+          id="reveal-recipients"
+          value={reveal.recipients}
+          placeholder="Все, группа, имена героев"
+          onChange={(e) => setReveal({ ...reveal, recipients: e.target.value })}
+        />
+      </div>
       <Checklist legend="Кому известно: группы и игроки" options={[...campaign.groups.map((group) => ({ id: group.id, label: `Группа «${group.name}»` })), ...campaign.players.map((player) => ({ id: player.id, label: player.name }))]} value={reveal.recipientIds} onChange={(recipientIds) => setReveal({ ...reveal, recipientIds })} empty="Игроков и групп пока нет — их можно завести в «Команде» (меню кампании)." />
-      <label htmlFor="reveal-session">В какой сессии<select id="reveal-session" value={reveal.sessionId} onChange={(e) => setReveal({ ...reveal, sessionId: e.target.value })}><option value="">Вне сессии</option>{liveSessions(campaign).map((session) => <option key={session.id} value={session.id}>№{session.number} {session.title}</option>)}</select></label>
-      <label htmlFor="reveal-note">Как это произошло<textarea id="reveal-note" rows={2} value={reveal.note} onChange={(e) => setReveal({ ...reveal, note: e.target.value })} /></label>
+      <Select
+        label="В какой сессии"
+        id="reveal-session"
+        value={reveal.sessionId}
+        onChange={(e) => setReveal({ ...reveal, sessionId: e.target.value })}
+      >
+        <option value="">Вне сессии</option>
+        {liveSessions(campaign).map((session) => <option key={session.id} value={session.id}>№{session.number} {session.title}</option>)}
+      </Select>
+      <TextField
+        label="Как это произошло"
+        multiline
+        id="reveal-note"
+        rows={2}
+        value={reveal.note}
+        onChange={(e) => setReveal({ ...reveal, note: e.target.value })}
+      />
       <footer><Button onClick={() => setRevealing(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={reveal.status === revealing.status && reveal.recipients.trim() === revealing.recipients && reveal.recipientIds.join() === revealing.recipientIds.join()} onClick={saveReveal}>Записать</Button></footer>
     </Editor>}
 
     {editor && <Editor title={editor === 'new' ? 'Новый секрет' : 'Редактировать секрет'} close={() => setEditor(null)} draft={draft}>
-      <label htmlFor="secret-title">Название<input id="secret-title" autoFocus value={draft.title} onChange={(e) => setDraft({ ...draft, title: e.target.value })} /></label>
-      <label htmlFor="secret-truth">Мастерская истина<textarea id="secret-truth" rows={3} value={draft.truth} onChange={(e) => setDraft({ ...draft, truth: e.target.value })} /></label>
-      <label htmlFor="secret-public">Публичная формулировка<textarea id="secret-public" rows={2} value={draft.publicVersion} placeholder="То, что можно сообщить игрокам" onChange={(e) => setDraft({ ...draft, publicVersion: e.target.value })} /></label>
-      <label htmlFor="secret-condition">Условие раскрытия<input id="secret-condition" value={draft.revealCondition} placeholder="Когда герои могут это узнать" onChange={(e) => setDraft({ ...draft, revealCondition: e.target.value })} /></label>
-      {editor === 'new' && <div className="control-form__row"><label htmlFor="secret-status">Состояние<select id="secret-status" value={draft.status} onChange={(e) => setDraft({ ...draft, status: e.target.value as LocalSecretStatus })}>{Object.entries(SECRET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label htmlFor="secret-recipients">Кому ещё известно<input id="secret-recipients" value={draft.recipients} placeholder="Все, группа, имена героев" onChange={(e) => setDraft({ ...draft, recipients: e.target.value })} /></label></div>}
+      <TextField
+        label="Название"
+        id="secret-title"
+        autoFocus
+        value={draft.title}
+        onChange={(e) => setDraft({ ...draft, title: e.target.value })}
+      />
+      <TextField
+        label="Мастерская истина"
+        multiline
+        id="secret-truth"
+        rows={3}
+        value={draft.truth}
+        onChange={(e) => setDraft({ ...draft, truth: e.target.value })}
+      />
+      <TextField
+        label="Публичная формулировка"
+        multiline
+        id="secret-public"
+        rows={2}
+        value={draft.publicVersion}
+        placeholder="То, что можно сообщить игрокам"
+        onChange={(e) => setDraft({ ...draft, publicVersion: e.target.value })}
+      />
+      <TextField
+        label="Условие раскрытия"
+        id="secret-condition"
+        value={draft.revealCondition}
+        placeholder="Когда герои могут это узнать"
+        onChange={(e) => setDraft({ ...draft, revealCondition: e.target.value })}
+      />
+      {editor === 'new' && <div className="control-form__row">
+        <Select
+          label="Состояние"
+          id="secret-status"
+          value={draft.status}
+          onChange={(e) => setDraft({ ...draft, status: e.target.value as LocalSecretStatus })}
+        >
+          {Object.entries(SECRET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </Select>
+        <TextField
+          label="Кому ещё известно"
+          id="secret-recipients"
+          value={draft.recipients}
+          placeholder="Все, группа, имена героев"
+          onChange={(e) => setDraft({ ...draft, recipients: e.target.value })}
+        />
+      </div>}
       {editor === 'new' && <Checklist legend="Кому известно: группы и игроки" options={[...campaign.groups.map((group) => ({ id: group.id, label: `Группа «${group.name}»` })), ...campaign.players.map((player) => ({ id: player.id, label: player.name }))]} value={draft.recipientIds} onChange={(recipientIds) => setDraft({ ...draft, recipientIds })} empty="Игроков и групп пока нет — их можно завести в «Команде» (меню кампании)." />}
       <Checklist legend="Связанные сущности" options={campaign.entities.filter((entity) => entity.status !== 'archived').map((entity) => ({ id: entity.id, label: entity.name }))} value={draft.entityIds} onChange={(entityIds) => setDraft({ ...draft, entityIds })} empty="Библиотека пуста." />
       <Checklist legend="Связанные часы" options={campaign.clocks.map((clock) => ({ id: clock.id, label: clock.title }))} value={draft.clockIds} onChange={(clockIds) => setDraft({ ...draft, clockIds })} empty="Часов пока нет." />

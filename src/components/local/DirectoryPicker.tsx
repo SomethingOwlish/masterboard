@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Button } from '../../ds'
+import { Button, TextField } from '../../ds'
 import { newPlayer } from '../../local/team'
 import { usePlayerDirectory } from '../../local/usePlayerDirectory'
 import { Editor, type SectionProps } from './shared'
@@ -22,7 +22,12 @@ export function DirectoryPicker({ campaign, persist, close }: SectionProps & { c
     {directory.state.status === 'loading' && <p className="muted" role="status">Загружаем справочник…</p>}
     {directory.state.status === 'error' && <p className="local-session-error" role="alert">Справочник недоступен: {directory.state.message}</p>}
     {directory.state.status === 'ready' && (entries.length ? <>
-      <label htmlFor="directory-query">Поиск<input id="directory-query" value={query} onChange={(event) => setQuery(event.target.value)} /></label>
+      <TextField
+        label="Поиск"
+        id="directory-query"
+        value={query}
+        onChange={(event) => setQuery(event.target.value)}
+      />
       <ul className="source-import__list" aria-label="Игроки справочника">{visible.map((entry) => <li key={entry.profile.id}><label><input type="checkbox" checked={chosen.includes(entry.profile.id)} onChange={() => setChosen(chosen.includes(entry.profile.id) ? chosen.filter((id) => id !== entry.profile.id) : [...chosen, entry.profile.id])} /><span className="source-import__text"><strong>{entry.profile.name}</strong>{(entry.profile.limits || entry.profile.preferences) && <small>{[entry.profile.preferences, entry.profile.limits && `табу: ${entry.profile.limits}`].filter(Boolean).join(' · ')}</small>}</span></label></li>)}</ul>
     </> : <p className="muted">В справочнике нет игроков, которых ещё нет в кампании. <Link to="/players">Открыть справочник</Link></p>)}
     <footer><Button onClick={close}>Отмена</Button><Button variant="primary" icon="plus" disabled={!chosen.length} onClick={add}>{chosen.length ? `Добавить ${chosen.length}` : 'Добавить'}</Button></footer>

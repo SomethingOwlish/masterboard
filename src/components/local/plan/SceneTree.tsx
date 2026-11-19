@@ -104,13 +104,40 @@ export function SceneTree({ api }: { api: PlanApi }) {
   </div>
 }
 
+/** Compact DS select for dense tree rows; the priority tints the border. */
+const COMPACT_SELECT = { height: 30, padding: '0 30px 0 8px', fontSize: '.82rem' }
+const PRIORITY_BORDER: Record<Item['priority'], string> = {
+  required: 'var(--accent)',
+  desired: 'var(--warning)',
+  useful: 'var(--success)',
+  backup: 'var(--border)',
+}
+
 function PrioritySelect({ api, item }: { api: PlanApi; item: Item }) {
   const title = api.itemTitle(item)
-  return <select className={`scene-tree__select scene-tree__select--${item.priority}`} aria-label={`Приоритет ${title}`} value={item.priority} onChange={(event) => api.patchItem(item.id, { priority: event.target.value as Item['priority'] })}>{PRIORITIES.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select>
+  return <Select
+    className={`scene-tree__select scene-tree__select--${item.priority}`}
+    aria-label={`Приоритет ${title}`}
+    value={item.priority}
+    style={{ ...COMPACT_SELECT, borderColor: PRIORITY_BORDER[item.priority] }}
+    containerStyle={{ minWidth: 0 }}
+    onChange={(event) => api.patchItem(item.id, { priority: event.target.value as Item['priority'] })}
+  >
+    {PRIORITIES.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
+  </Select>
 }
 
 function StatusSelect({ api, item }: { api: PlanApi; item: Item }) {
-  return <select className="scene-tree__select" aria-label={`Статус ${api.itemTitle(item)}`} value={item.status} onChange={(event) => api.setStatus(item.id, event.target.value as Item['status'])}>{USE_STATUS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}</select>
+  return <Select
+    className="scene-tree__select"
+    aria-label={`Статус ${api.itemTitle(item)}`}
+    value={item.status}
+    style={COMPACT_SELECT}
+    containerStyle={{ minWidth: 0 }}
+    onChange={(event) => api.setStatus(item.id, event.target.value as Item['status'])}
+  >
+    {USE_STATUS.map(([value, name]) => <option key={value} value={value}>{name}</option>)}
+  </Select>
 }
 
 /** `labelled` — inside «…»: the buttons carry words, not only icons. */
@@ -188,8 +215,23 @@ function TreeItem({ api, item, open, toggle }: { api: PlanApi; item: Item; open:
         {secret && <div className="scene-tree__record"><dl><div><dt>Правда</dt><dd>{secret.truth || '—'}</dd></div>{secret.revealCondition && <div><dt>Раскрыть, когда</dt><dd>{secret.revealCondition}</dd></div>}</dl></div>}
         <SubmitField label={`Заметка ${title}`} value={item.note} placeholder="Заметка для этой сессии: условие, роль, реплика…" onSubmit={(note) => api.patchItem(item.id, { note })} />
         <div className="scene-tree__links">
-          <label>Сцена<Select aria-label={`Сцена: ${title}`} value={item.sceneId && scenes.some((scene) => scene.id === item.sceneId) ? item.sceneId : ''} onChange={(event) => api.move(item.id, { sceneId: event.target.value || null })}><option value="">Вне сцен</option>{scenes.map((scene) => <option key={scene.id} value={scene.id}>{api.itemTitle(scene)}</option>)}</Select></label>
-          {!entity && !secret && <label>Тип<Select aria-label={`Тип ${title}`} value={item.kind} onChange={(event) => api.patchItem(item.id, { kind: event.target.value as LocalSessionPlanKind })}>{PLAN_KINDS.filter(([value]) => value !== 'scene').map(([value, name]) => <option key={value} value={value}>{name}</option>)}</Select></label>}
+          <Select
+            label="Сцена"
+            aria-label={`Сцена: ${title}`}
+            value={item.sceneId && scenes.some((scene) => scene.id === item.sceneId) ? item.sceneId : ''}
+            onChange={(event) => api.move(item.id, { sceneId: event.target.value || null })}
+          >
+            <option value="">Вне сцен</option>
+            {scenes.map((scene) => <option key={scene.id} value={scene.id}>{api.itemTitle(scene)}</option>)}
+          </Select>
+          {!entity && !secret && <Select
+            label="Тип"
+            aria-label={`Тип ${title}`}
+            value={item.kind}
+            onChange={(event) => api.patchItem(item.id, { kind: event.target.value as LocalSessionPlanKind })}
+          >
+            {PLAN_KINDS.filter(([value]) => value !== 'scene').map(([value, name]) => <option key={value} value={value}>{name}</option>)}
+          </Select>}
           <SubmitField label={`Группа «или-или»: ${title}`} value={item.alternative} placeholder="Группа «или-или»" onSubmit={(alternative) => api.patchItem(item.id, { alternative })} />
         </div>
         {item.source === 'text' && !item.secretId && <Button size="sm" icon={item.kind === 'secret' ? 'shield' : 'library'} onClick={() => api.saveToLibrary(item)}>{item.kind === 'secret' ? 'В секреты' : 'В библиотеку'}</Button>}

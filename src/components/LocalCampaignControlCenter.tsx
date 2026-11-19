@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { Button, EmptyState, Icon } from '../ds'
+import { Button, EmptyState, Icon, TextField } from '../ds'
 import { newTask, taskOriginLabel } from '../local/sessionFlow'
 import type { LocalCampaignRecord, LocalCampaignTask } from '../local/types'
 import { ClocksPanel } from './local/ClocksPanel'
@@ -34,4 +34,12 @@ export function LocalCampaignControlCenter({ campaign, persist }: Props) {
   </section>
 }
 
-function Tasks({ originOf, tasks, text, editing, setText, save, edit, cancel, toggle, remove }: { originOf: (task: LocalCampaignTask) => string; tasks: LocalCampaignTask[]; text: string; editing: boolean; setText: (value: string) => void; save: () => void; edit: (task: LocalCampaignTask) => void; cancel: () => void; toggle: (id: string) => void; remove: (id: string) => void }) { return <div className="control-panel"><header><div><h3>Задачи</h3><p>Короткий список подготовки с видимым источником.</p></div></header><div className="control-capture"><input value={text} placeholder="Что нужно подготовить…" onChange={(event) => setText(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') save() }} />{editing && <Button onClick={cancel}>Отмена</Button>}<Button variant="primary" icon={editing ? 'check' : 'plus'} disabled={!text.trim()} onClick={save}>{editing ? 'Сохранить' : 'Добавить'}</Button></div>{tasks.length ? <ol className="task-list">{tasks.map((task) => <li key={task.id} className={task.done ? 'done' : ''}><button aria-label={task.done ? `Вернуть задачу: ${task.text}` : `Выполнить задачу: ${task.text}`} onClick={() => toggle(task.id)}><Icon name={task.done ? 'check' : 'circle'} size={18} /></button><div><span>{task.text}</span><small>{originOf(task)}</small></div><div className="task-list__actions"><Button size="sm" icon="pencil" aria-label={`Редактировать задачу: ${task.text}`} onClick={() => edit(task)} /><Button size="sm" tone="danger" icon="trash-2" aria-label={`Удалить задачу: ${task.text}`} onClick={() => remove(task.id)} /></div></li>)}</ol> : <EmptyState icon="list-checks" title="Открытых задач нет" hint="Добавьте короткое действие подготовки или превратите входящую запись в задачу." />}</div> }
+function Tasks({ originOf, tasks, text, editing, setText, save, edit, cancel, toggle, remove }: { originOf: (task: LocalCampaignTask) => string; tasks: LocalCampaignTask[]; text: string; editing: boolean; setText: (value: string) => void; save: () => void; edit: (task: LocalCampaignTask) => void; cancel: () => void; toggle: (id: string) => void; remove: (id: string) => void }) { return <div className="control-panel"><header><div><h3>Задачи</h3><p>Короткий список подготовки с видимым источником.</p></div></header><div className="control-capture">
+      <TextField
+        value={text}
+        placeholder="Что нужно подготовить…"
+        onChange={(event) => setText(event.target.value)}
+        onKeyDown={(event) => { if (event.key === 'Enter') save() }}
+      />
+      {editing
+ && <Button onClick={cancel}>Отмена</Button>}<Button variant="primary" icon={editing ? 'check' : 'plus'} disabled={!text.trim()} onClick={save}>{editing ? 'Сохранить' : 'Добавить'}</Button></div>{tasks.length ? <ol className="task-list">{tasks.map((task) => <li key={task.id} className={task.done ? 'done' : ''}><button aria-label={task.done ? `Вернуть задачу: ${task.text}` : `Выполнить задачу: ${task.text}`} onClick={() => toggle(task.id)}><Icon name={task.done ? 'check' : 'circle'} size={18} /></button><div><span>{task.text}</span><small>{originOf(task)}</small></div><div className="task-list__actions"><Button size="sm" icon="pencil" aria-label={`Редактировать задачу: ${task.text}`} onClick={() => edit(task)} /><Button size="sm" tone="danger" icon="trash-2" aria-label={`Удалить задачу: ${task.text}`} onClick={() => remove(task.id)} /></div></li>)}</ol> : <EmptyState icon="list-checks" title="Открытых задач нет" hint="Добавьте короткое действие подготовки или превратите входящую запись в задачу." />}</div> }

@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Badge, Button, Icon, Select } from '../../ds'
+import { Badge, Button, Checkbox, Icon, Select, TextField } from '../../ds'
 import { REMOVED_HINT, ROLE_LABEL, SYSTEM_IN, SYSTEM_LABEL, connectionKey, linkedRole, parseConnectionKey, roleConnection, statusBadge, type CampaignRole, importItems, importType, planRefresh, resolveRefresh, type ExternalItem, type RefreshPlan } from '../../local/integration'
 import type { EntitySource, LocalCampaignEntity, LocalCampaignRecord } from '../../local/types'
 import { useConnections, useExternal } from '../../local/useExternal'
@@ -62,10 +62,36 @@ export function ImportDialog({ campaign, persist, close, stay = false }: { campa
     {(state.status === 'unconfigured' || state.status === 'error') && <p className="local-session-error" role="alert">{state.status === 'unconfigured' ? 'Связь с внешними системами ещё не настроена на сервере Мастерборда.' : state.message}</p>}
     {state.status === 'ready' && !sources.length && <p className="muted">Кампания пока ни с чем не связана. Владелец подключает мир, стол и систему в разделе «Интеграции».</p>}
     {source && <>
-      <div className="control-form__row"><label htmlFor="import-source">Откуда<Select id="import-source" value={source.id} onChange={(e) => setSourceId(e.target.value)}>{sources.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}</Select></label><label htmlFor="import-query">Поиск<input id="import-query" value={query} placeholder="Название" onChange={(e) => setQuery(e.target.value)} /></label></div>
+      <div className="control-form__row">
+        <Select
+          label="Откуда"
+          id="import-source"
+          value={source.id}
+          onChange={(e) => setSourceId(e.target.value)}
+        >
+          {sources.map((item) => <option key={item.id} value={item.id}>{item.label}</option>)}
+        </Select>
+        <TextField
+          label="Поиск"
+          id="import-query"
+          value={query}
+          placeholder="Название"
+          onChange={(e) => setQuery(e.target.value)}
+        />
+      </div>
       {error && <p className="local-session-error" role="alert">{error}</p>}
       {added && <p className="muted" role="status">{added}</p>}
-      {items && items.length > 1 && <label className="source-import__all"><input type="checkbox" checked={visible.every((item) => linked.has(item.id) || chosen.includes(item.id))} onChange={(event) => setChosen(event.target.checked ? [...new Set([...chosen, ...visible.filter((item) => !linked.has(item.id)).map((item) => item.id)])] : chosen.filter((id) => !visible.some((item) => item.id === id)))} /> Выбрать все{query.trim() ? ' найденные' : ''}</label>}
+      {items && items.length > 1 && (
+        <div className="source-import__all">
+          <Checkbox
+            label={`Выбрать все${query.trim() ? ' найденные' : ''}`}
+            checked={visible.every((item) => linked.has(item.id) || chosen.includes(item.id))}
+            onChange={(event) => setChosen(event.target.checked
+              ? [...new Set([...chosen, ...visible.filter((item) => !linked.has(item.id)).map((item) => item.id)])]
+              : chosen.filter((id) => !visible.some((item) => item.id === id)))}
+          />
+        </div>
+      )}
       {items === null ? <p className="muted" role="status">Читаем записи…</p> : visible.length ? <ul className="source-import__list" aria-label="Записи источника">{visible.map((item) => {
         const already = linked.has(item.id)
         return <li key={item.id}><label><input type="checkbox" disabled={already} checked={already || chosen.includes(item.id)} onChange={() => setChosen(chosen.includes(item.id) ? chosen.filter((id) => id !== item.id) : [...chosen, item.id])} /><span className="source-import__text"><strong>{item.name}</strong><small>{item.type} → {ENTITY_LABEL[importType(source.system, item.type)]}{item.visibility === 'master' ? ' · только мастерам' : ''}{item.archived ? ' · в архиве' : ''}</small></span><SourceMarks status={item.archived ? undefined : item.status} fromSystemsetup={item.source?.app === 'systemsetup'} />{already && <Badge size="sm" tone="neutral">уже в библиотеке</Badge>}</label></li>

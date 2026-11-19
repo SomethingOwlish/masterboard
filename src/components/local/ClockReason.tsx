@@ -1,3 +1,4 @@
+import { TextField } from '../../ds'
 import { CLOCK_REASONS } from '../../local/labels'
 
 /**
@@ -11,7 +12,7 @@ export function ClockReasonField({ title, value, onChange, extra = [] }: {
   extra?: string[]
 }) {
   return <div className="clock-reason">
-    <input
+    <TextField
       aria-label={`Причина: ${title}`}
       value={value}
       placeholder="Причина…"

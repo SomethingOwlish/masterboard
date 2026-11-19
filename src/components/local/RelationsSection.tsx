@@ -1,6 +1,6 @@
 import { lazy, Suspense, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Badge, Button, EmptyState, Select } from '../../ds'
+import { Badge, Button, EmptyState, Select, TextField } from '../../ds'
 import { filterRelations, relationEntities, type RelationFilter } from '../../local/sessionFlow'
 import type { LocalCampaignRelation, LocalRelationType } from '../../local/types'
 import { Editor, type SectionProps } from './shared'
@@ -46,21 +46,59 @@ export function RelationsSection({ campaign, persist }: SectionProps) {
       </>}</section>
     {editor && <Editor title={editor === 'new' ? 'Новая связь' : 'Редактировать связь'} close={() => setEditor(null)} draft={draft}>
       <div className="campaign-relation-form">
-        <label htmlFor="relation-from">
-          От
-          <select id="relation-from" value={draft.fromId} onChange={(e) => setDraft({ ...draft, fromId: e.target.value })}>
-            {endOptions}
-          </select>
-        </label>
-        <label htmlFor="relation-to">
-          К кому
-          <select id="relation-to" value={draft.toId} onChange={(e) => setDraft({ ...draft, toId: e.target.value })}>
-            {endOptions}
-          </select>
-        </label>
+        <Select
+          label="От"
+          id="relation-from"
+          value={draft.fromId}
+          onChange={(e) => setDraft({ ...draft, fromId: e.target.value })}
+        >
+          {endOptions}
+        </Select>
+        <Select
+          label="К кому"
+          id="relation-to"
+          value={draft.toId}
+          onChange={(e) => setDraft({ ...draft, toId: e.target.value })}
+        >
+          {endOptions}
+        </Select>
       </div>
-      <label htmlFor="relation-label">Смысл связи<input id="relation-label" autoFocus value={draft.label} placeholder="доверяет, преследует, хранит тайну…" onChange={(e) => setDraft({ ...draft, label: e.target.value })} /></label>
-      <div className="control-form__row"><label htmlFor="relation-type">Тип<select id="relation-type" value={draft.type} onChange={(e) => setDraft({ ...draft, type: e.target.value as LocalRelationType })}>{Object.entries(RELATION_TYPE).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</select></label><label htmlFor="relation-direction">Направление<select id="relation-direction" value={draft.direction} onChange={(e) => setDraft({ ...draft, direction: e.target.value as Draft['direction'] })}><option value="directed">От первого ко второму</option><option value="mutual">Взаимная</option></select></label><label htmlFor="relation-visibility">Видимость<select id="relation-visibility" value={draft.visibility} onChange={(e) => setDraft({ ...draft, visibility: e.target.value as 'master' | 'public' })}><option value="master">{VISIBILITY_LABEL.master}</option><option value="public">{VISIBILITY_LABEL.public}</option></select></label></div>
+      <TextField
+        label="Смысл связи"
+        id="relation-label"
+        autoFocus
+        value={draft.label}
+        placeholder="доверяет, преследует, хранит тайну…"
+        onChange={(e) => setDraft({ ...draft, label: e.target.value })}
+      />
+      <div className="control-form__row">
+        <Select
+          label="Тип"
+          id="relation-type"
+          value={draft.type}
+          onChange={(e) => setDraft({ ...draft, type: e.target.value as LocalRelationType })}
+        >
+          {Object.entries(RELATION_TYPE).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
+        </Select>
+        <Select
+          label="Направление"
+          id="relation-direction"
+          value={draft.direction}
+          onChange={(e) => setDraft({ ...draft, direction: e.target.value as Draft['direction'] })}
+        >
+          <option value="directed">От первого ко второму</option>
+          <option value="mutual">Взаимная</option>
+        </Select>
+        <Select
+          label="Видимость"
+          id="relation-visibility"
+          value={draft.visibility}
+          onChange={(e) => setDraft({ ...draft, visibility: e.target.value as 'master' | 'public' })}
+        >
+          <option value="master">{VISIBILITY_LABEL.master}</option>
+          <option value="public">{VISIBILITY_LABEL.public}</option>
+        </Select>
+      </div>
       {draft.fromId === draft.toId && <p className="local-session-error">Выберите две разные сущности.</p>}
       <footer>
         {editor !== 'new' && (

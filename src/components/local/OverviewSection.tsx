@@ -1,7 +1,7 @@
 import { InboxList } from './InboxList'
 import { useEffect, useState } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Badge, Button, Card, Icon } from '../../ds'
+import { Badge, Button, Card, Checkbox, Icon, TextField } from '../../ds'
 import { downloadText } from '../../local/download'
 import { mastersLabel } from '../../local/team'
 import { useActing } from '../../local/actingContext'
@@ -48,7 +48,15 @@ export function OverviewSection({ campaign, persist }: SectionProps) {
     arcs: <Card className="target-panel"><div className="panel-heading"><div><span className="panel-kicker">Движение кампании</span><h2 className="section-title">Активные линии</h2></div><Button onClick={() => go('arcs')}>{activeArcs.length} в игре</Button></div><div className="target-lines">{activeArcs.length ? activeArcs.map((arc) => <article key={arc.id}><div><Badge tone="accent" size="sm">В игре · {arc.progress}%</Badge><h3><PeekLink target={{ kind: 'arc', id: arc.id }}>{arc.title}</PeekLink></h3><p>{arc.direction || 'Направление пока не задано.'}</p></div><strong>{arc.stakes || 'Ставки не определены'}</strong></article>) : <button className="local-dashboard-empty" onClick={() => go('arcs')}><Icon name="plus" size={18} /> Добавить первую активную линию</button>}</div></Card>,
     clocks: <Card className="target-panel"><div className="panel-heading"><div><span className="panel-kicker">Давление</span><h2 className="section-title">Часы</h2></div><Button size="sm" onClick={() => go('control')}>Все</Button></div>{campaign.clocks.length ? campaign.clocks.slice(0, 3).map((clock) => <div className="target-clock" key={clock.id}><div className="row"><strong><PeekLink target={{ kind: 'clock', id: clock.id }}>{clock.title}</PeekLink></strong><span className="mb-data">{clock.value}/{clock.segments}</span></div><div className="target-clock__track"><span style={{ width: `${(clock.value / clock.segments) * 100}%` }} /></div><small>{VISIBILITY_LABEL[clock.visibility]}</small></div>) : <button className="local-dashboard-empty" onClick={() => go('control')}><Icon name="plus" size={18} /> Создать часы</button>}</Card>,
     secrets: <Card className="target-panel"><div className="panel-heading"><div><span className="panel-kicker">Знание</span><h2 className="section-title">Секреты</h2></div><span className="panel-state">{SECRET_STATUS.hidden}: {campaign.secrets.filter((secret) => secret.status === 'hidden').length}</span></div>{campaign.secrets.length ? campaign.secrets.slice(0, 2).map((secret) => <article className="target-secret" key={secret.id}><Badge tone={secret.status === 'hidden' ? 'warning' : 'neutral'} icon="shield" size="sm">{SECRET_STATUS[secret.status]}</Badge><h3><PeekLink target={{ kind: 'secret', id: secret.id }}>{secret.title}</PeekLink></h3><p>{secret.truth}</p><small>{secret.publicVersion ? `Для игроков: ${secret.publicVersion}` : 'Публичная версия не подготовлена'}</small></article>) : <button className="local-dashboard-empty" onClick={() => go('control')}><Icon name="plus" size={18} /> Добавить секрет</button>}</Card>,
-    tasks: <Card className="target-panel"><div className="panel-heading"><div><span className="panel-kicker">Личное</span><h2 className="section-title">Задачи</h2></div><span className="panel-state">{campaign.tasks.filter((task) => !task.done).length} открыто</span></div>{campaign.tasks.length ? <ul className="target-checklist">{campaign.tasks.slice(0, 5).map((task) => <li key={task.id}><input id={`overview-${task.id}`} type="checkbox" checked={task.done} onChange={() => toggleTask(task.id)} /><label htmlFor={`overview-${task.id}`}>{task.text}</label><Badge tone={task.done ? 'neutral' : 'accent'} size="sm">{task.done ? 'готово' : task.source === 'inbox' ? 'входящие' : 'дело'}</Badge></li>)}</ul> : <button className="local-dashboard-empty" onClick={() => go('control')}><Icon name="plus" size={18} /> Добавить задачу</button>}</Card>,
+    tasks: <Card className="target-panel"><div className="panel-heading"><div><span className="panel-kicker">Личное</span><h2 className="section-title">Задачи</h2></div><span className="panel-state">{campaign.tasks.filter((task) => !task.done).length} открыто</span></div>{campaign.tasks.length ? <ul className="target-checklist">{campaign.tasks.slice(0, 5).map((task) => <li key={task.id}>
+            <Checkbox
+              id={`overview-${task.id}`}
+              label={task.text}
+              checked={task.done}
+              style={{ gridColumn: '1 / 3', minWidth: 0 }}
+              onChange={() => toggleTask(task.id)}
+            />
+            <Badge tone={task.done ? 'neutral' : 'accent'} size="sm">{task.done ? 'готово' : task.source === 'inbox' ? 'входящие' : 'дело'}</Badge></li>)}</ul> : <button className="local-dashboard-empty" onClick={() => go('control')}><Icon name="plus" size={18} /> Добавить задачу</button>}</Card>,
     inbox: <Card className="target-panel">
       <div className="panel-heading">
         <div><span className="panel-kicker">Быстрая запись</span><h2 className="section-title">Входящие</h2></div>
@@ -72,7 +80,33 @@ export function OverviewSection({ campaign, persist }: SectionProps) {
     {customizing && <div className="overview-customize" role="region" aria-label="Настройка обзора"><p>Раскладка своя у каждого мастера ({acting.master.name}). Скрытые блоки:</p><div className="row">{layout.hidden.length ? layout.hidden.map((id) => <Button key={id} size="sm" icon="eye" onClick={() => saveLayout(toggleHidden(layout, id))}>Показать «{WIDGET_LABEL[id]}»</Button>) : <span className="muted">нет</span>}<Button size="sm" onClick={() => persist(withLayout(campaign, acting.master.id, null))}>Сбросить раскладку</Button></div></div>}
     <div className="target-dashboard__grid local-dashboard-grid">{visible.map((id, index) => <div key={id} className={`overview-widget${layout.wide.includes(id) ? ' target-panel--wide' : ''}`} data-widget={id}>{customizing && <div className="overview-widget__controls" role="toolbar" aria-label={`Блок «${WIDGET_LABEL[id]}»`}><strong>{WIDGET_LABEL[id]}</strong><Button size="sm" aria-label={`Выше: ${WIDGET_LABEL[id]}`} disabled={index === 0} onClick={() => saveLayout(moveWidget(layout, id, -1))}>↑</Button><Button size="sm" aria-label={`Ниже: ${WIDGET_LABEL[id]}`} disabled={index === visible.length - 1} onClick={() => saveLayout(moveWidget(layout, id, 1))}>↓</Button><Button size="sm" onClick={() => saveLayout(toggleWide(layout, id))}>{layout.wide.includes(id) ? 'Уже' : 'Шире'}</Button><Button size="sm" icon="eye-off" onClick={() => saveLayout(toggleHidden(layout, id))}>Скрыть</Button></div>}{widgets[id]}</div>)}</div>
     <p className="local-session-footnote"><Icon name="cloud" size={14} /> Кампания хранится на сервере и видна её мастерам. {links.length ? `Подключено: ${links.join(', ')}.` : 'Мир, стол и система не подключены.'}</p>
-    {editing && <Editor title="Редактировать кампанию" close={() => setEditing(false)} draft={details}><label htmlFor="local-edit-name">Название<input id="local-edit-name" autoFocus value={details.name} onChange={(e) => setDetails({ ...details, name: e.target.value })} /></label><label htmlFor="local-edit-idea">Короткая идея<textarea id="local-edit-idea" rows={4} value={details.idea} placeholder={IDEA_PLACEHOLDER} onChange={(e) => setDetails({ ...details, idea: e.target.value })} /></label><div className="control-form__row"><label htmlFor="local-edit-time">Текущее время<input id="local-edit-time" value={details.activeTime} placeholder={TIME_PLACEHOLDER} onChange={(e) => setDetails({ ...details, activeTime: e.target.value })} /></label><p className="muted">Мастера и игроки настраиваются в «Команде» (меню кампании).</p></div><footer><Button onClick={() => setEditing(false)}>Отмена</Button><Button variant="primary" icon="check" disabled={!details.name.trim()} onClick={saveCampaign}>Сохранить</Button></footer></Editor>}
+    {editing && <Editor title="Редактировать кампанию" close={() => setEditing(false)} draft={details}>
+      <TextField
+        label="Название"
+        id="local-edit-name"
+        autoFocus
+        value={details.name}
+        onChange={(e) => setDetails({ ...details, name: e.target.value })}
+      />
+      <TextField
+        multiline
+        rows={4}
+        label="Короткая идея"
+        id="local-edit-idea"
+        value={details.idea}
+        placeholder={IDEA_PLACEHOLDER}
+        onChange={(e) => setDetails({ ...details, idea: e.target.value })}
+      />
+      <div className="control-form__row">
+        <TextField
+          label="Текущее время"
+          id="local-edit-time"
+          value={details.activeTime}
+          placeholder={TIME_PLACEHOLDER}
+          onChange={(e) => setDetails({ ...details, activeTime: e.target.value })}
+        />
+        <p
+ className="muted">Мастера и игроки настраиваются в «Команде» (меню кампании).</p></div><footer><Button onClick={() => setEditing(false)}>Отмена</Button><Button variant="primary" icon="check" disabled={!details.name.trim()} onClick={saveCampaign}>Сохранить</Button></footer></Editor>}
   </>
 }
 

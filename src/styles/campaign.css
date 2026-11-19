@@ -194,23 +194,6 @@
 }
 
 /* ---- .campaign-local-library ------------------------------------------- */
-.campaign-local-library__search {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  margin: var(--space-4) 0;
-  padding: 0 var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-  background: var(--bg);
-  color: var(--muted);
-}
-.campaign-local-library__search input {
-  flex: 1;
-  border: 0;
-  background: transparent;
-  box-shadow: none;
-}
 .campaign-local-library__grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -1080,12 +1063,8 @@
   padding: var(--space-2) 0;
   border-bottom: 1px solid var(--border);
 }
-.target-checklist input {
-  width: 18px;
-  height: 18px;
-  accent-color: var(--accent);
-}
-.target-checklist input:checked + label {
+/* A done task: the DS checkbox keeps its box, the text is struck through. */
+.target-checklist li:has(input:checked) label > span:last-child {
   color: var(--muted);
   text-decoration: line-through;
 }
@@ -1175,10 +1154,6 @@
   font-size: .84rem;
 }
 .local-checklist label {
-  display: inline-flex !important;
-  align-items: center;
-  gap: 6px;
-  color: var(--text) !important;
   font-size: .88rem;
 }
 .local-checklist small {
@@ -1762,15 +1737,6 @@
   letter-spacing: .06em;
 }
 
-/* ---- .rule-toggle ------------------------------------------------------ */
-.rule-toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  margin: 0;
-  color: var(--text);
-  cursor: pointer;
-}
 
 /* ---- .wizard-steps ----------------------------------------------------- */
 .wizard-steps {
@@ -2176,10 +2142,6 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-}
-.library-filters__row .campaign-local-library__search {
-  flex: 1 1 280px;
-  margin: 0;
 }
 .library-filters__row select {
   width: auto;

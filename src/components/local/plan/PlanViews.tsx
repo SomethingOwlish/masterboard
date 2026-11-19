@@ -1,5 +1,5 @@
 import { lazy, Suspense, useState, type DragEvent, type ReactNode } from 'react'
-import { Badge, Button, Select } from '../../../ds'
+import { Badge, Button, Checkbox, Select, TextField } from '../../../ds'
 import { AUTOMATIC_LOG, TIMELINE_DEFAULT, addFlow, alternativeGroups, filterTimeline, timeline, type TimelineOptions } from '../../../local/plan'
 import { PeekLink } from '../Peek'
 import type { LocalSessionPlanItem } from '../../../local/types'
@@ -60,7 +60,14 @@ function PlanTimeline({ api }: { api: PlanApi }) {
   const hiddenLog = options.journal && !options.automatic ? api.session.log.length - log.length : 0
   const card = (item: LocalSessionPlanItem, children: LocalSessionPlanItem[]) => <div className={`plan-timeline__card plan-timeline__card--${item.status}`}><strong>{item.entityId ? <PeekLink target={{ kind: 'entity', id: item.entityId }}>{api.itemTitle(item)}</PeekLink> : api.itemTitle(item)}</strong><small>{USE_STATUS_LABEL[item.status]}</small>{children.length > 0 && <ul>{children.map((child) => <li key={child.id}>{api.itemTitle(child)}</li>)}</ul>}</div>
   return <div className="plan-timeline" aria-label="Временная линия">
-    <div className="plan-timeline__filters" role="group" aria-label="Что показывать">{TIMELINE_TOGGLES.map(([key, label]) => <label key={key} className={`home-chip${options[key] ? ' on' : ''}`}><input type="checkbox" checked={options[key]} disabled={key === 'automatic' && !options.journal} onChange={() => setOptions({ ...options, [key]: !options[key] })} />{label}</label>)}</div>
+    <div className="plan-timeline__filters" role="group" aria-label="Что показывать">{TIMELINE_TOGGLES.map(([key, label]) => <div key={key} className={`home-chip${options[key] ? ' on' : ''}`}>
+      <Checkbox
+        label={label}
+        checked={options[key]}
+        disabled={key === 'automatic' && !options.journal}
+        onChange={() => setOptions({ ...options, [key]: !options[key] })}
+      />
+    </div>)}</div>
     {steps.length ? <ol className="plan-timeline__plan">{steps.map((step, index) => <li key={step.kind === 'single' ? step.item.id : `fork-${step.group}`} aria-label={step.kind === 'fork' ? `Развилка: ${step.group}` : undefined}><span className="plan-timeline__index">{index + 1}</span>{step.kind === 'single' ? card(step.item, step.children) : <div className="plan-timeline__fork"><Badge size="sm" tone="warning">или: {step.group}</Badge>{step.branches.map((branch) => <div key={branch.item.id}>{card(branch.item, branch.children)}</div>)}</div>}</li>)}</ol> : <p className="session-plan__notice">{all.length ? 'Сцен и событий в плане нет — включите «Прочие пункты», чтобы увидеть остальное.' : 'План пуст.'}</p>}
     {log.length > 0 && <><h3>Как было на самом деле</h3><ol className="plan-timeline__log">{log.map((entry) => <li key={entry.id}><time>{new Date(entry.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</time><span>{entry.text}</span></li>)}</ol></>}
     {hiddenLog > 0 && <p className="muted">Скрыто автозаписей журнала: {hiddenLog}.</p>}
@@ -78,6 +85,13 @@ function FlowsEditor({ api }: { api: PlanApi }) {
   return <section className="plan-flows" aria-label="Переходы">
     <header><h3>Переходы</h3><p className="muted">Куда ведёт сцена и при каком условии. В графе переход можно протянуть мышью.</p></header>
     {api.session.flows.length > 0 && <ul>{api.session.flows.map((flow) => <li key={flow.id}><span>{title(flow.fromItemId)} → {title(flow.toItemId)}{flow.condition && <em> — если {flow.condition}</em>}</span><Button size="sm" tone="danger" icon="trash-2" aria-label={`Удалить переход ${title(flow.fromItemId)} → ${title(flow.toItemId)}`} onClick={() => api.update({ ...api.session, flows: api.session.flows.filter((entry) => entry.id !== flow.id) })} /></li>)}</ul>}
-    <div className="plan-flows__form"><Select aria-label="Переход из" value={from} onChange={(event) => setFrom(event.target.value)}><option value="">Откуда…</option>{items.map((item) => <option key={item.id} value={item.id}>{api.itemTitle(item)}</option>)}</Select><Select aria-label="Переход в" value={to} onChange={(event) => setTo(event.target.value)}><option value="">Куда…</option>{items.filter((item) => item.id !== from).map((item) => <option key={item.id} value={item.id}>{api.itemTitle(item)}</option>)}</Select><input aria-label="Условие перехода" value={condition} placeholder="Условие (необязательно)" onChange={(event) => setCondition(event.target.value)} /><Button icon="plus" disabled={!from || !to || from === to} onClick={add}>Добавить переход</Button></div>
+    <div className="plan-flows__form"><Select aria-label="Переход из" value={from} onChange={(event) => setFrom(event.target.value)}><option value="">Откуда…</option>{items.map((item) => <option key={item.id} value={item.id}>{api.itemTitle(item)}</option>)}</Select><Select aria-label="Переход в" value={to} onChange={(event) => setTo(event.target.value)}><option value="">Куда…</option>{items.filter((item) => item.id !== from).map((item) => <option key={item.id} value={item.id}>{api.itemTitle(item)}</option>)}</Select>
+      <TextField
+        aria-label="Условие перехода"
+        value={condition}
+        placeholder="Условие (необязательно)"
+        onChange={(event) => setCondition(event.target.value)}
+      />
+      <Button icon="plus" disabled={!from || !to || from === to} onClick={add}>Добавить переход</Button></div>
   </section>
 }

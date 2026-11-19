@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { Button, Icon, Modal } from '../ds'
+import { Button, Icon, Modal, TextField } from '../ds'
 import type { QuarantinedRecord } from '../local/catalog'
 import { mastersLabel } from '../local/team'
 import type { LocalCampaignRecord } from '../local/types'
@@ -168,28 +168,26 @@ export function LocalCampaignsPage() {
         <form
           onSubmit={(event) => { event.preventDefault(); void create() }}
         >
-          <label htmlFor="campaign-name">
-            Название
-            <input
-              autoFocus
-              id="campaign-name"
-              name="campaign-name"
-              value={name}
-              placeholder={baseName(base) || 'Например, Город под стеклом'}
-              onChange={(event) => setName(event.target.value)}
-            />
-          </label>
-          <label htmlFor="campaign-idea">
-            Короткая идея
-            <textarea
-              id="campaign-idea"
-              name="campaign-idea"
-              rows={3}
-              value={idea}
-              placeholder="О чём эта кампания?"
-              onChange={(event) => setIdea(event.target.value)}
-            />
-          </label>
+          <TextField
+            label="Название"
+            autoFocus
+            id="campaign-name"
+            name="campaign-name"
+            value={name}
+            placeholder={baseName(base) || 'Например, Город под стеклом'}
+            onChange={(event) => setName(event.target.value)}
+          />
+          <TextField
+            multiline
+            rows={3}
+            label="Короткая идея"
+            id="campaign-idea"
+            name="campaign-idea"
+            value={idea}
+            placeholder="О чём эта кампания?"
+            onChange={(event) => setIdea(event.target.value)}
+          />
+
           <BaseChooser value={base} onChange={setBase} />
           {shared ? <p><Icon name="cloud" size={15} /> Кампания сохранится на сервере, вы — её владелец.</p> : null}
           <footer>

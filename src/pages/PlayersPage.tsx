@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Button, EmptyState, Icon } from '../ds'
+import { Button, EmptyState, Icon, TextField } from '../ds'
 import { HomeHeader } from '../components/HomeHeader'
 import { useConfirm } from '../components/useConfirm'
 import { WEEKDAYS, charactersByCampaign, newProfile, type PlayerEntry, type PlayerProfile } from '../local/players'
@@ -36,7 +36,13 @@ export function PlayersPage() {
     {directory.notice && <div className="campaign-workspace__recovery" role="status"><Icon name="git-merge" size={18} /><span>{directory.notice}</span></div>}
     <div className="players-page">
       <aside className="players-page__list" aria-label="Список игроков">
-        <div className="players-page__search"><Icon name="search" size={16} /><input aria-label="Найти игрока" value={query} placeholder="Имя, контакт…" onChange={(event) => setQuery(event.target.value)} /></div>
+        <TextField
+          icon="search"
+          aria-label="Найти игрока"
+          value={query}
+          placeholder="Имя, контакт…"
+          onChange={(event) => setQuery(event.target.value)}
+        />
         <Button variant="primary" icon="plus" block onClick={() => void create()}>{query.trim() ? `Добавить «${query.trim()}»` : 'Новый игрок'}</Button>
         {directory.state.status === 'loading' ? <p className="muted">Загружаем…</p> : visible.length ? <ul>{visible.map((entry) => <li key={entry.profile.id}><button type="button" className={entry.profile.id === openId ? 'active' : ''} onClick={() => setParams({ open: entry.profile.id })}><strong>{entry.profile.name || 'Без имени'}</strong><small>{charactersByCampaign(campaigns, entry.profile.id).map((item) => item.campaign).join(', ') || 'ни в одной кампании'}</small></button></li>)}</ul> : <p className="muted">{entries.length ? 'Никого не нашли.' : 'Справочник пуст.'}</p>}
       </aside>
@@ -52,16 +58,60 @@ function ProfileEditor({ entry, draft, setDraft, campaigns, directory, close }: 
   const set = (patch: Partial<PlayerProfile>) => setDraft({ ...draft, profile: { ...profile, ...patch } })
   const dirty = JSON.stringify(profile) !== JSON.stringify(entry.profile)
   const played = charactersByCampaign(campaigns, profile.id)
-  const field = (key: 'contacts' | 'preferences' | 'limits' | 'notes', label: string, hint: string) => <label htmlFor={`player-${key}`}>{label}<textarea className="auto-grow" id={`player-${key}`} rows={2} value={profile[key]} placeholder={hint} onChange={(event) => set({ [key]: event.target.value })} /></label>
+  const field = (key: 'contacts' | 'preferences' | 'limits' | 'notes', label: string, hint: string) => (
+    <TextField
+      multiline
+      rows={2}
+      label={label}
+      className="auto-grow"
+      id={`player-${key}`}
+      value={profile[key]}
+      placeholder={hint}
+      onChange={(event) => set({ [key]: event.target.value })}
+    />
+  )
   return <section className="players-page__profile campaign-section" aria-label={`Профиль: ${entry.profile.name}`}>
-    <div className="section-bar"><label htmlFor="player-name" className="players-page__name"><span className="sr-only">Имя</span><input id="player-name" value={profile.name} onChange={(event) => set({ name: event.target.value })} /></label><div className="row"><Button tone="danger" icon="trash-2" onClick={() => confirm({ title: `Удалить профиль «${entry.profile.name}»?`, message: 'Профиль исчезнет у всех мастеров. Игроки в кампаниях останутся, но без связи со справочником.', confirmLabel: 'Удалить', cancelLabel: 'Отмена', tone: 'danger', onConfirm: () => { void directory.remove(entry.profile.id).then(close) } })}>Удалить</Button><Button variant="primary" icon="check" disabled={!dirty || !profile.name.trim()} onClick={() => void directory.save(profile, draft.revision)}>Сохранить</Button></div></div>
+    <div className="section-bar"><div className="players-page__name">
+      <TextField
+        id="player-name"
+        aria-label="Имя"
+        value={profile.name}
+        style={{ font: 'var(--type-display)', fontSize: '1.6rem', minWidth: 220 }}
+        onChange={(event) => set({ name: event.target.value })}
+      />
+    </div><div className="row"><Button tone="danger" icon="trash-2" onClick={() => confirm({ title: `Удалить профиль «${entry.profile.name}»?`, message: 'Профиль исчезнет у всех мастеров. Игроки в кампаниях останутся, но без связи со справочником.', confirmLabel: 'Удалить', cancelLabel: 'Отмена', tone: 'danger', onConfirm: () => { void directory.remove(entry.profile.id).then(close) } })}>Удалить</Button><Button variant="primary" icon="check" disabled={!dirty || !profile.name.trim()} onClick={() => void directory.save(profile, draft.revision)}>Сохранить</Button></div></div>
     <div className="players-page__grid">
       {field('contacts', 'Контакты', 'Телеграм, телефон, почта')}
       {field('preferences', 'Предпочтения в игре', 'Интриги, бои, исследование…')}
       {field('limits', 'Табу и границы', 'Темы, которых не касаемся, и что только за кадром')}
-      <fieldset className="players-page__days"><legend>Доступность по дням</legend><div className="row">{WEEKDAYS.map((day) => { const on = profile.availability.days.includes(day); return <label key={day} className={`home-chip${on ? ' on' : ''}`}><input type="checkbox" checked={on} onChange={() => set({ availability: { ...profile.availability, days: on ? profile.availability.days.filter((item) => item !== day) : [...profile.availability.days, day] } })} />{day}</label> })}</div><input aria-label="Когда удобно" value={profile.availability.note} placeholder="Вечером после 19, раз в две недели" onChange={(event) => set({ availability: { ...profile.availability, note: event.target.value } })} /></fieldset>
+      <fieldset className="players-page__days"><legend>Доступность по дням</legend><div className="row">{WEEKDAYS.map((day) => { const on = profile.availability.days.includes(day); return <label key={day} className={`home-chip${on ? ' on' : ''}`}><input type="checkbox" checked={on} onChange={() => set({ availability: { ...profile.availability, days: on ? profile.availability.days.filter((item) => item !== day) : [...profile.availability.days, day] } })} />{day}</label> })}</div>
+        <TextField
+          aria-label="Когда удобно"
+          value={profile.availability.note}
+          placeholder="Вечером после 19, раз в две недели"
+          onChange={(event) => set({ availability: { ...profile.availability, note: event.target.value } })}
+        />
+      </fieldset>
       {field('notes', 'Заметки мастеров', 'Видят все мастера')}
-      <label htmlFor="player-my-note" className="players-page__mine">Моя заметка <small>— видна только вам</small><textarea className="auto-grow" id="player-my-note" rows={2} value={note} onChange={(event) => setNote(event.target.value)} /><Button size="sm" disabled={note === entry.myNote} onClick={() => void directory.note(entry.profile.id, note)}>Сохранить заметку</Button></label>
+      <div className="players-page__mine">
+        <TextField
+          multiline
+          rows={2}
+          label="Моя заметка — видна только вам"
+          className="auto-grow"
+          id="player-my-note"
+          value={note}
+          onChange={(event) => setNote(event.target.value)}
+        />
+        <Button
+          size="sm"
+          disabled={note === entry.myNote}
+          onClick={() => void directory.note(entry.profile.id, note)}
+        >
+          Сохранить заметку
+        </Button>
+      </div>
+
     </div>
     <h3>Персонажи по кампаниям</h3>
     {played.length ? <ul className="players-page__played">{played.map((item) => <li key={item.campaignId}><Link to={`/local/campaign/${item.campaignId}/team`}>{item.campaign}</Link>: {item.characters.join(', ') || <span className="muted">персонаж не указан</span>}</li>)}</ul> : <p className="muted">Не играет ни в одной из ваших кампаний. Добавить можно в кампании: «Команда» → «Из справочника».</p>}
