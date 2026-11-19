@@ -962,45 +962,6 @@
   gap: var(--space-1);
 }
 
-/* ---- .inbox-list ------------------------------------------------------- */
-.inbox-list {
-  display: grid;
-  gap: var(--space-2);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-.inbox-list li {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  gap: var(--space-3);
-  padding: var(--space-4);
-  border-left: 3px solid var(--accent);
-  background: var(--surface-2);
-}
-.inbox-list p {
-  margin: 0;
-  line-height: 1.5;
-}
-.inbox-list li > div:last-child, .inbox-list footer {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-}
-.inbox-list footer {
-  margin-top: var(--space-2);
-}
-.inbox-list time {
-  color: var(--muted);
-  font-size: .78rem;
-}
-@media (max-width: 900px) {
-  .inbox-list li {
-    grid-template-columns: 1fr;
-  }
-}
-
 /* ---- .control-form ----------------------------------------------------- */
 .control-form__row {
   display: grid;
@@ -1167,22 +1128,7 @@
   text-decoration: line-through;
 }
 
-/* ---- .target-inbox ----------------------------------------------------- */
-.target-inbox {
-  list-style: none;
-  margin: 0;
-  padding: 0;
-  display: grid;
-  gap: var(--space-2);
-  margin-top: var(--space-3);
-}
-.target-inbox li {
-  display: flex;
-  justify-content: space-between;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--border);
-}
+/* ---- .target-inbox--triage ------------------------------------------- */
 .target-inbox--triage {
   display: grid;
   gap: var(--space-2);
@@ -1589,11 +1535,34 @@
 .publish-section__composer > button {
   flex: 0 0 auto;
 }
-.publish-section__actions {
+/* The steps of a batch sit on top and stay there while the queue scrolls (ТЗ-3, этап 13, В3). */
+.publish-section__bar {
+  position: sticky;
+  top: 0;
+  z-index: var(--z-sticky);
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   gap: var(--space-2);
   margin: var(--space-3) 0;
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+}
+.publish-item__warning {
+  color: var(--warning);
+}
+@media (max-width: 600px) {
+  .publish-section__bar {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .publish-section__bar > * {
+    flex: none;
+  }
 }
 .publish-section__queue {
   display: grid;
@@ -2685,4 +2654,17 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
+}
+
+/* ---- .inbox-panel (ТЗ-3, этап 13, В5) ---------------------------------- */
+.inbox-panel {
+  display: grid;
+  gap: var(--space-2);
+}
+.inbox-panel > button {
+  justify-self: start;
+}
+.inbox-row__text time {
+  color: var(--muted);
+  font: var(--type-meta);
 }

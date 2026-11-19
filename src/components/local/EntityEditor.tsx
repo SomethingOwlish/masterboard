@@ -4,7 +4,7 @@ import { ENTITY_FIELDS, blockingPlans, entityUsages, newEntity, removeEntity, re
 import { extraFields } from './EntityDetails'
 import type { LocalCampaignEntity, LocalCampaignEntityType, LocalCampaignRecord } from '../../local/types'
 import { Editor } from './shared'
-import { ROLE_LABEL, SYSTEM_LABEL, WRITABLE_ROLES, entityRoles, linkedRole, rulesFor } from '../../local/integration'
+import { ROLE_LABEL, SYSTEM_LABEL, WRITABLE_ROLES, entityRoles, linkedRole, rulesFor, sameForPublishing } from '../../local/integration'
 import { enqueueByRoles } from '../../local/publishing'
 import { baseFields } from '../../local/bulk'
 import { useBaseSchema } from '../../local/useExternal'
@@ -28,7 +28,9 @@ export function EntityEditor({ campaign, persist, entity, defaultType = 'npc', c
     const { dead: _dead, ...rest } = draft
     const saved: LocalCampaignEntity = { ...rest, ...(draft.type === 'npc' && draft.dead ? { dead: true } : {}), name: draft.name.trim(), description: draft.description.trim(), fields, tags: draft.tags.map((tag) => tag.trim().toLocaleLowerCase()).filter(Boolean), id: entity === 'new' ? `entity-${crypto.randomUUID()}` : entity.id }
     const next = { ...campaign, entities: entity === 'new' ? [...campaign.entities, saved] : campaign.entities.map((item) => item.id === saved.id ? saved : item) }
-    persist(entityRoles(next, saved).length ? enqueueByRoles(next, saved.id, new Date().toISOString()) : next)
+    // Saving without changes does not queue it again (ТЗ-3, этап 13).
+    const changed = entity === 'new' || !sameForPublishing(saved, entity)
+    persist(changed && entityRoles(next, saved).length ? enqueueByRoles(next, saved.id, new Date().toISOString()) : next)
     if (entity === 'new') onCreated?.(saved)
     close()
   }

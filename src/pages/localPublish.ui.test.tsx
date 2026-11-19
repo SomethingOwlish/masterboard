@@ -16,12 +16,12 @@ describe('publishing to lorebook and lovegame', () => {
     await waitFor(() => expect(screen.getByLabelText('Тип там')).toHaveValue('character'))
     await user.click(screen.getByRole('button', { name: 'В очередь' }))
     bridge.failing.add(LOREBOOK)
-    await user.click(screen.getByRole('button', { name: '1. Проверить черновики' }))
+    await user.click(screen.getByRole('button', { name: '1. Проверить' }))
     const queue = await screen.findByRole('list', { name: 'Очередь публикации' })
     const pick = await within(queue).findByLabelText('Выбрать: Олан → Мир · Лорбук · Лунный порт')
     await waitFor(() => expect(pick).toBeEnabled())
     await user.click(pick)
-    await user.click(screen.getByRole('button', { name: '2. Подтвердить выбранные' }))
+    await user.click(screen.getByRole('button', { name: /^2\. Подтвердить / }))
     await user.click(screen.getByRole('button', { name: '3. Отправить подтверждённые (1)' }))
     const sendDialog = await screen.findByRole('dialog')
     expect(sendDialog).toHaveTextContent('Отправить 1 операцию?')
@@ -32,7 +32,7 @@ describe('publishing to lorebook and lovegame', () => {
 
     bridge.failing.clear()
     await user.click(within(queue).getByLabelText('Выбрать: Олан → Мир · Лорбук · Лунный порт'))
-    await user.click(screen.getByRole('button', { name: 'Повторить выбранные' }))
+    await user.click(screen.getByRole('button', { name: /^Повторить / }))
     await user.click(screen.getByRole('button', { name: '3. Отправить подтверждённые (1)' }))
     await user.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Отправить' }))
     expect(await screen.findByText('Отправлено: 1. Ошибок: 0.')).toBeInTheDocument()
@@ -50,10 +50,10 @@ describe('publishing to lorebook and lovegame', () => {
     await user.click(screen.getByRole('button', { name: 'В очередь' }))
     const queue = await screen.findByRole('list', { name: 'Очередь публикации' })
     expect(within(queue).getByRole('checkbox')).toHaveAttribute('title', 'Сначала проверьте черновики — шаг 1')
-    await user.click(screen.getByRole('button', { name: '1. Проверить черновики' }))
+    await user.click(screen.getByRole('button', { name: '1. Проверить' }))
     await waitFor(() => expect(within(queue).getByRole('checkbox')).toBeEnabled())
     await user.click(within(queue).getByRole('checkbox'))
-    await user.click(screen.getByRole('button', { name: '2. Подтвердить выбранные' }))
+    await user.click(screen.getByRole('button', { name: /^2\. Подтвердить / }))
     expect(await within(queue).findByText('Подтверждено')).toBeInTheDocument()
     await user.click(within(queue).getByRole('button', { name: 'Снять подтверждение: Олан' }))
     expect(await within(queue).findByText('Готово к отправке')).toBeInTheDocument()
@@ -63,9 +63,9 @@ describe('publishing to lorebook and lovegame', () => {
     await user.click(screen.getByRole('button', { name: 'В очередь' }))
     // A passport the check cannot read: the error is said, the button comes back.
     bridge.getPassport = async (connectionId) => ({ connectionId }) as unknown as Awaited<ReturnType<FakeBridge['getPassport']>>
-    await user.click(screen.getByRole('button', { name: '1. Проверить черновики' }))
+    await user.click(screen.getByRole('button', { name: '1. Проверить' }))
     expect(await screen.findByText(/^Проверка не удалась: .*Попробуйте ещё раз\.$/)).toBeInTheDocument()
-    expect(screen.getByRole('button', { name: '1. Проверить черновики' })).toBeEnabled()
+    expect(screen.getByRole('button', { name: '1. Проверить' })).toBeEnabled()
   })
 
   it('says when the door to lorebridge is not configured', async () => {
