@@ -1,5 +1,5 @@
 import { useEffect, useState, type ReactNode } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { Badge, Button, Icon, Modal } from '../../ds'
 import { LocalThemeControl } from '../LocalThemeControl'
 import { ActingMasterSelect } from './ActingMasterSelect'
@@ -9,6 +9,7 @@ import { conflictPlace, conflictValue } from '../../local/merge'
 import type { LocalCampaignRecord } from '../../local/types'
 import { searchShortcut, usePeek } from '../../local/peekContext'
 import { plural } from '../../local/labels'
+import { downloadText } from '../../local/download'
 
 export type Persist = (next: LocalCampaignRecord) => void
 export interface SectionProps { campaign: LocalCampaignRecord; persist: Persist }
@@ -34,7 +35,6 @@ type SectionId = typeof CAMPAIGN_SECTIONS[number]['id']
 export const NAV_GROUPS = [
   { id: 'prep', label: 'Подготовка', sections: ['overview', 'session', 'arcs', 'control'] },
   { id: 'world', label: 'Мир', sections: ['library', 'map', 'world', 'improv'] },
-  { id: 'team', label: 'Команда', sections: ['team'] },
   { id: 'exchange', label: 'Обмен', sections: ['import', 'integrations', 'publish', 'print'] },
 ] as const satisfies ReadonlyArray<{ id: string; label: string; sections: readonly SectionId[] }>
 
@@ -90,7 +90,10 @@ export function CampaignHeader({ campaign, section, onboarding = false }: { camp
       {' '}
       <span className="campaign-topbar__back-label">Кампании</span>
     </Link>
-    <strong className="campaign-topbar__name">{campaign.name}</strong>
+    <CampaignMenu
+      campaign={campaign}
+      current={section}
+    />
     <CampaignNav
       campaignId={campaign.id}
       section={section}
@@ -102,6 +105,79 @@ export function CampaignHeader({ campaign, section, onboarding = false }: { camp
       <LocalThemeControl />
     </div>
   </header>
+}
+
+/**
+ * The campaign's own menu (ТЗ-3, этап 15, В6): its name opens «Команда»,
+ * «Редактировать кампанию» and «Экспорт» — things about the campaign itself,
+ * not sections of the work, so they left the section menu.
+ */
+/** `compact` — an icon button, where the bar already names the campaign (the sessions workspace). */
+export function CampaignMenu({ campaign, current, compact = false }: { campaign: LocalCampaignRecord; current?: string; compact?: boolean }) {
+  const [open, setOpen] = useState(false)
+  const catalog = useLocalCatalog()
+  const navigate = useNavigate()
+  useEffect(() => {
+    if (!open) return
+    const onDown = (event: MouseEvent) => { if (!(event.target as HTMLElement).closest?.('.campaign-menu')) setOpen(false) }
+    const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') setOpen(false) }
+    window.addEventListener('mousedown', onDown)
+    window.addEventListener('keydown', onKey)
+    return () => {
+      window.removeEventListener('mousedown', onDown)
+      window.removeEventListener('keydown', onKey)
+    }
+  }, [open])
+  const base = `/local/campaign/${campaign.id}`
+  const exportCampaign = async () => {
+    setOpen(false)
+    downloadText(`${campaign.name.replace(/[^\p{L}\p{N}]+/gu, '-')}.masterboard.json`, await catalog.exportCampaign(campaign.id))
+  }
+  return <div className={`campaign-menu${current === 'team' ? ' active' : ''}`}>
+    <button
+      type="button"
+      className={`campaign-menu__toggle${compact ? ' campaign-menu__toggle--icon' : ' campaign-topbar__name'}`}
+      aria-haspopup="menu"
+      aria-expanded={open}
+      aria-label={`Меню кампании «${campaign.name}»`}
+      title={campaign.name}
+      onClick={() => setOpen(!open)}
+    >
+      {compact ? <Icon name="ellipsis" size={16} /> : <>
+        <span>{campaign.name}</span>
+        <Icon name="chevron-down" size={14} />
+      </>}
+    </button>
+    {open && <div
+      className="campaign-nav__menu campaign-menu__list"
+      role="menu"
+      aria-label="Кампания"
+    >
+      <Link
+        role="menuitem"
+        className={current === 'team' ? 'active' : ''}
+        aria-current={current === 'team' ? 'page' : undefined}
+        to={`${base}/team`}
+        onClick={() => setOpen(false)}
+      >
+        <Icon name="users" size={16} /> Команда
+      </Link>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => { setOpen(false); navigate(`${base}/overview?edit=1`) }}
+      >
+        <Icon name="pencil" size={16} /> Редактировать кампанию
+      </button>
+      <button
+        type="button"
+        role="menuitem"
+        onClick={() => void exportCampaign()}
+      >
+        <Icon name="download" size={16} /> Экспорт
+      </button>
+    </div>}
+  </div>
 }
 
 /** The same as `StorageBadge`, as an icon for the compact campaign bar. */

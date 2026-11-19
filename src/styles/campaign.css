@@ -2030,7 +2030,7 @@
   background: var(--surface);
   box-shadow: var(--shadow-lg);
 }
-.campaign-nav__menu a {
+.campaign-nav__menu a, .campaign-menu__list button {
   display: flex;
   align-items: center;
   gap: 8px;
@@ -2039,7 +2039,7 @@
   color: var(--text);
   text-decoration: none;
 }
-.campaign-nav__menu a:hover, .campaign-nav__menu a:focus-visible {
+.campaign-nav__menu a:hover, .campaign-nav__menu a:focus-visible, .campaign-menu__list button:hover, .campaign-menu__list button:focus-visible {
   background: var(--surface-2);
 }
 .campaign-nav__menu a.active {
@@ -2629,4 +2629,59 @@
 .inbox-row__text time {
   color: var(--muted);
   font: var(--type-meta);
+}
+
+/* ---- .campaign-menu (ТЗ-3, этап 15, В6) -------------------------------- */
+/* The campaign name opens «Команда», «Редактировать кампанию», «Экспорт». */
+.campaign-menu {
+  position: relative;
+  min-width: 0;
+}
+.campaign-menu__toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  max-width: 100%;
+  padding: 4px 8px;
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text);
+  font-weight: 700;
+  cursor: pointer;
+}
+.campaign-menu__toggle > span {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.campaign-menu__toggle:hover, .campaign-menu.active > .campaign-menu__toggle {
+  background: var(--surface-2);
+}
+.campaign-menu__toggle--icon {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 1px solid var(--border);
+}
+.campaign-menu__list {
+  min-width: 250px;
+}
+.campaign-menu__list > * {
+  white-space: nowrap;
+}
+.campaign-menu__list button {
+  width: 100%;
+  border: 0;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+.sessions-workspace__top .campaign-menu__list {
+  right: 0;
+  left: auto;
 }

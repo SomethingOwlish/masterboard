@@ -154,7 +154,7 @@ export function LocalCampaignsPage() {
         </ul>
       </section>
     )}
-    {shared ? <p className="campaign-workspace__boundary"><Icon name="cloud" size={15} /> Кампании хранятся на сервере и видны всем их мастерам. Со-мастера добавляются по почте в разделе «Команда».</p> : null}
+    {shared ? <p className="campaign-workspace__boundary"><Icon name="cloud" size={15} /> Кампании хранятся на сервере и видны всем их мастерам. Со-мастера добавляются по почте в «Команде» (меню кампании).</p> : null}
     <p className="campaign-workspace__version" aria-label="Версия сборки">Версия <code>{__BUILD_HASH__}</code> · собрана {new Date(__BUILD_TIME__).toLocaleString('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</p>
     {creating && (
       <Modal
