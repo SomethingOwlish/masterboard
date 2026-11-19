@@ -32,10 +32,18 @@ export function PublishSection({ campaign, persist }: SectionProps) {
   const [message, setMessage] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)
   const [resultsOf, setResultsOf] = useState('')
+  /** Destination filter of the queue: `''` — every destination. */
+  const [filterId, setFilterId] = useState('')
   const destinationId = destinations.some((item) => item.id === connectionId) ? connectionId : destinations[0]?.id ?? ''
   const queue = campaign.publications.filter((item) => item.state !== 'succeeded')
   const history = campaign.publications.filter((item) => item.state === 'succeeded')
   const confirmed = queue.filter((item) => item.state === 'ready' && item.confirmedAt)
+  const queueDestinations = [...new Set(queue.map((item) => item.connectionId))]
+  const filter = queueDestinations.includes(filterId) ? filterId : ''
+  const shown = filter ? queue.filter((item) => item.connectionId === filter) : queue
+  const readyShown = shown.filter((item) => item.state === 'ready' && !item.confirmedAt)
+  const toConfirm = selected.filter((id) => queue.find((item) => item.id === id && item.state === 'ready' && !item.confirmedAt))
+  const toRetry = selected.filter((id) => queue.find((item) => item.id === id && item.state === 'failed'))
   const passports = usePassports([destinationId, ...queue.map((item) => item.connectionId)].filter(Boolean))
   const entity = campaign.entities.find((item) => item.id === entityId)
   const typeOptions = (connection: string, type: LocalCampaignRecord['entities'][number]['type']) => targetTypes(passports[connection], parseConnectionKey(connection).system, type)
@@ -60,9 +68,10 @@ export function PublishSection({ campaign, persist }: SectionProps) {
       setBusy(false)
     }
   }
-  const confirmChosen = () => { persist(confirmSelected(campaign, selected, now())); setSelected([]) }
+  const confirmChosen = () => { persist(confirmSelected(campaign, toConfirm, now())); setSelected([]) }
+  const selectReady = () => setSelected([...new Set([...selected, ...readyShown.map((item) => item.id)])])
   const send = () => confirm({ title: `Отправить ${confirmed.length} ${plural(confirmed.length, 'операцию', 'операции', 'операций')}?`, message: 'Изменения уйдут в подключённые мир и стол и станут видны там по их правилам доступа. Результат каждой операции сохранится здесь.', confirmLabel: 'Отправить', cancelLabel: 'Отмена', tone: 'accent', onConfirm: () => { setBusy(true); void sendConfirmed(campaign, port, now()).then((result) => { persist(result.campaign); setMessage(`Отправлено: ${result.succeeded}. Ошибок: ${result.failed}.${result.blocked ? ` Заблокировано: ${result.blocked} — подключение отвязано.` : ''}`) }, (error: unknown) => setMessage(error instanceof Error ? error.message : 'Не удалось отправить')).finally(() => setBusy(false)) } })
-  const retry = () => { persist(retrySelected(campaign, selected, now())); setSelected([]) }
+  const retry = () => { persist(retrySelected(campaign, toRetry, now())); setSelected([]) }
   const remove = (id: string) => persist(removeQueued(campaign, id))
   const sessions = liveSessions(campaign).sort((a, b) => a.number - b.number)
   const resultsSession = sessions.find((item) => item.id === resultsOf)
@@ -73,6 +82,55 @@ export function PublishSection({ campaign, persist }: SectionProps) {
 
   return <section className="campaign-section publish-section">
     <div className="section-bar"><div><span className="panel-kicker">Обмен</span><h2>Публикация</h2></div><p className="muted">Очередь → проверка → подтверждение → отправка. Куда что уходит — в <Link to={`/local/campaign/${campaign.id}/integrations`}>«Интеграциях»</Link>.</p></div>
+
+    <div
+      className="publish-section__bar"
+      role="toolbar"
+      aria-label="Шаги публикации"
+    >
+      <Button
+        disabled={busy || !queue.some((item) => item.state === 'draft' || item.state === 'blocked')}
+        onClick={() => void check()}
+      >
+        1. Проверить
+      </Button>
+      <Button
+        icon="list-checks"
+        disabled={!readyShown.length}
+        onClick={selectReady}
+      >
+        Выбрать все готовые ({readyShown.length})
+      </Button>
+      <Button
+        disabled={!toConfirm.length}
+        onClick={confirmChosen}
+      >
+        2. Подтвердить ({toConfirm.length})
+      </Button>
+      <Button
+        variant="primary"
+        icon="upload"
+        disabled={busy || !confirmed.length}
+        onClick={send}
+      >
+        3. Отправить подтверждённые ({confirmed.length})
+      </Button>
+      {queue.some((item) => item.state === 'failed') && <Button
+        disabled={!toRetry.length}
+        onClick={retry}
+      >
+        Повторить ({toRetry.length})
+      </Button>}
+      {queueDestinations.length > 1 && <Select
+        aria-label="Назначение в очереди"
+        value={filter}
+        onChange={(e) => setFilterId(e.target.value)}
+      >
+        <option value="">Все назначения</option>
+        {queueDestinations.map((id) => <option key={id} value={id}>{connectionName(id)}</option>)}
+      </Select>}
+    </div>
+    {message && <p className="muted" role="status">{message}</p>}
 
     <div className="publish-section__rules" role="group" aria-label="Результаты сессий для ИИ">
       <span><strong>Результаты сессий для ИИ</strong> — журнал, разбор, секреты, часы и новое в мире одним JSON.</span>
@@ -103,10 +161,8 @@ export function PublishSection({ campaign, persist }: SectionProps) {
     </div> : <p className="muted">Кампания пока не подключена к миру или столу. <Link to={`/local/campaign/${campaign.id}/integrations`}>Подключить</Link></p>}
     {entity?.visibility === 'master' && <p className="local-session-error">Эта сущность видна только мастерам. В Лорбуке она будет скрытой, в ЛавГеймс — не видна игрокам.</p>}
 
-    <div className="publish-section__actions"><Button disabled={busy || !queue.some((item) => item.state === 'draft' || item.state === 'blocked')} onClick={() => void check()}>1. Проверить черновики</Button><Button disabled={!selected.some((id) => queue.find((item) => item.id === id)?.state === 'ready')} onClick={confirmChosen}>2. Подтвердить выбранные</Button><Button variant="primary" icon="upload" disabled={busy || !confirmed.length} onClick={send}>3. Отправить подтверждённые ({confirmed.length})</Button><Button disabled={!selected.some((id) => queue.find((item) => item.id === id)?.state === 'failed')} onClick={retry}>Повторить выбранные</Button></div>
-    {message && <p className="muted" role="status">{message}</p>}
 
-    {queue.length ? <ul className="publish-section__queue" aria-label="Очередь публикации">{queue.map((item) => {
+    {shown.length ? <ul className="publish-section__queue" aria-label="Очередь публикации">{shown.map((item) => {
       const itemEntity = campaign.entities.find((candidate) => candidate.id === item.entityId)
       const editableType = item.operation === 'create' && (item.state === 'draft' || item.state === 'blocked') && itemEntity
       return <li key={item.id} className={`publish-item publish-item--${item.state}`}>
@@ -118,7 +174,7 @@ export function PublishSection({ campaign, persist }: SectionProps) {
           disabled={Boolean(pickHint(item))}
           onChange={() => toggle(item.id)}
         />
-        <div><strong>{entityName(item.entityId)}</strong><small>{OPERATION_LABEL[item.operation]} → {connectionName(item.connectionId)}{item.targetType && !editableType ? ` · ${typeLabel(item)}` : ''}</small>{editableType && <Select containerStyle={{ maxWidth: '16rem' }} aria-label={`Тип там: ${entityName(item.entityId)}`} value={item.targetType ?? ''} onChange={(e) => setItemType(item.id, e.target.value)}>{typeOptions(item.connectionId, itemEntity.type).map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</Select>}{item.error && <small className="local-session-error">{reasonLabel(item.error)}</small>}</div>
+        <div><strong>{entityName(item.entityId)}</strong><small>{OPERATION_LABEL[item.operation]} → {connectionName(item.connectionId)}{item.targetType && !editableType ? ` · ${typeLabel(item)}` : ''}</small>{editableType && <Select containerStyle={{ maxWidth: '16rem' }} aria-label={`Тип там: ${entityName(item.entityId)}`} value={item.targetType ?? ''} onChange={(e) => setItemType(item.id, e.target.value)}>{typeOptions(item.connectionId, itemEntity.type).map((option) => <option key={option.id} value={option.id}>{option.label}</option>)}</Select>}{item.error && <small className="local-session-error">{reasonLabel(item.error)}</small>}{itemEntity?.visibility === 'master' && <small className="publish-item__warning">Только мастерам: в Лорбуке будет скрытой, в ЛавГеймс — не видна игрокам.</small>}</div>
         <Badge size="sm" tone={TONE[item.state]}>{item.state === 'ready' && item.confirmedAt ? 'Подтверждено' : STATE_LABEL[item.state]}</Badge>
         {item.state === 'ready' && item.confirmedAt && (
           <Button

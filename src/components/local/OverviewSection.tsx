@@ -1,3 +1,4 @@
+import { InboxList } from './InboxList'
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Badge, Button, Card, Icon } from '../../ds'
@@ -9,17 +10,13 @@ import type { LocalDashboardLayout, LocalWidgetId } from '../../local/types'
 import { useLocalCatalog } from '../../local/useLocalCampaign'
 import { Editor, type SectionProps } from './shared'
 import { liveSessions } from '../../local/sessions'
-import { SECRET_STATUS, sessionStatusText, ENTITY_TYPES, VISIBILITY_LABEL, IDEA_PLACEHOLDER, TIME_PLACEHOLDER, INBOX_ACTIONS, INBOX_CAPTURE } from '../../local/labels'
+import { SECRET_STATUS, sessionStatusText, VISIBILITY_LABEL, IDEA_PLACEHOLDER, TIME_PLACEHOLDER } from '../../local/labels'
 import { PeekLink } from './Peek'
 import { ROLE_LABEL, SYSTEM_LABEL, linkedRole } from '../../local/integration'
-import { consumeInbox, newInboxItem, type InboxTarget } from '../../local/inbox'
-import type { LocalCampaignEntityType, LocalInboxItem } from '../../local/types'
-import { removeWithUndo } from '../toast'
 
 export function OverviewSection({ campaign, persist }: SectionProps) {
   const navigate = useNavigate()
   const catalog = useLocalCatalog()
-  const [capture, setCapture] = useState('')
   const [editing, setEditing] = useState(false)
   const [customizing, setCustomizing] = useState(false)
   const acting = useActing(campaign)
@@ -34,7 +31,6 @@ export function OverviewSection({ campaign, persist }: SectionProps) {
   const nextLabel = nextPath === 'review' ? 'Разобрать сессию' : nextPath === 'play' ? 'Открыть проведение' : 'Открыть сессию'
   const activeArcs = campaign.storyArcs.filter((arc) => arc.status === 'active')
   const toggleTask = (id: string) => persist({ ...campaign, tasks: campaign.tasks.map((task) => task.id === id ? { ...task, done: !task.done } : task) })
-  const addCapture = () => { const text = capture.trim(); if (!text) return; persist({ ...campaign, inbox: [...campaign.inbox, newInboxItem(text, new Date().toISOString())] }); setCapture('') }
   const openEditor = () => { setDetails({ name: campaign.name, idea: campaign.idea, activeTime: campaign.activeTime }); setEditing(true) }
   const saveCampaign = () => { if (!details.name.trim()) return; persist({ ...campaign, name: details.name.trim(), idea: details.idea.trim(), activeTime: details.activeTime.trim() || 'Время ещё не задано' }); setEditing(false) }
   const exportCampaign = async () => downloadText(`${campaign.name.replace(/[^\p{L}\p{N}]+/gu, '-')}.masterboard.json`, await catalog.exportCampaign(campaign.id))
@@ -45,7 +41,18 @@ export function OverviewSection({ campaign, persist }: SectionProps) {
     clocks: <Card className="target-panel"><div className="panel-heading"><div><span className="panel-kicker">Давление</span><h2 className="section-title">Часы</h2></div><Button size="sm" onClick={() => go('control')}>Все</Button></div>{campaign.clocks.length ? campaign.clocks.slice(0, 3).map((clock) => <div className="target-clock" key={clock.id}><div className="row"><strong><PeekLink target={{ kind: 'clock', id: clock.id }}>{clock.title}</PeekLink></strong><span className="mb-data">{clock.value}/{clock.segments}</span></div><div className="target-clock__track"><span style={{ width: `${(clock.value / clock.segments) * 100}%` }} /></div><small>{VISIBILITY_LABEL[clock.visibility]}</small></div>) : <button className="local-dashboard-empty" onClick={() => go('control')}><Icon name="plus" size={18} /> Создать часы</button>}</Card>,
     secrets: <Card className="target-panel"><div className="panel-heading"><div><span className="panel-kicker">Знание</span><h2 className="section-title">Секреты</h2></div><span className="panel-state">{SECRET_STATUS.hidden}: {campaign.secrets.filter((secret) => secret.status === 'hidden').length}</span></div>{campaign.secrets.length ? campaign.secrets.slice(0, 2).map((secret) => <article className="target-secret" key={secret.id}><Badge tone={secret.status === 'hidden' ? 'warning' : 'neutral'} icon="shield" size="sm">{SECRET_STATUS[secret.status]}</Badge><h3><PeekLink target={{ kind: 'secret', id: secret.id }}>{secret.title}</PeekLink></h3><p>{secret.truth}</p><small>{secret.publicVersion ? `Для игроков: ${secret.publicVersion}` : 'Публичная версия не подготовлена'}</small></article>) : <button className="local-dashboard-empty" onClick={() => go('control')}><Icon name="plus" size={18} /> Добавить секрет</button>}</Card>,
     tasks: <Card className="target-panel"><div className="panel-heading"><div><span className="panel-kicker">Личное</span><h2 className="section-title">Задачи</h2></div><span className="panel-state">{campaign.tasks.filter((task) => !task.done).length} открыто</span></div>{campaign.tasks.length ? <ul className="target-checklist">{campaign.tasks.slice(0, 5).map((task) => <li key={task.id}><input id={`overview-${task.id}`} type="checkbox" checked={task.done} onChange={() => toggleTask(task.id)} /><label htmlFor={`overview-${task.id}`}>{task.text}</label><Badge tone={task.done ? 'neutral' : 'accent'} size="sm">{task.done ? 'готово' : task.source === 'inbox' ? 'входящие' : 'дело'}</Badge></li>)}</ul> : <button className="local-dashboard-empty" onClick={() => go('control')}><Icon name="plus" size={18} /> Добавить задачу</button>}</Card>,
-    inbox: <Card className="target-panel"><div className="panel-heading"><div><span className="panel-kicker">Быстрая запись</span><h2 className="section-title">Входящие</h2></div><span className="panel-state">{campaign.inbox.length}</span></div><div className="target-capture"><input aria-label="Быстрая запись" value={capture} placeholder="Запишите идею, не разбирая её…" onChange={(event) => setCapture(event.target.value)} onKeyDown={(event) => { if (event.key === 'Enter') addCapture() }} /><Button variant="primary" icon="plus" disabled={!capture.trim()} onClick={addCapture}>{INBOX_CAPTURE}</Button></div>{campaign.inbox.length > 0 && <ol className="target-inbox target-inbox--triage" aria-label="Разобрать входящие">{campaign.inbox.slice(-6).reverse().map((item) => <InboxRow key={item.id} item={item} consume={(target, type) => persist(consumeInbox(campaign, item, target, type))} remove={() => removeWithUndo(persist, campaign, { ...campaign, inbox: campaign.inbox.filter((entry) => entry.id !== item.id) }, `Запись «${item.text}»`)} />)}</ol>}{campaign.inbox.length > 6 && <Button size="sm" onClick={() => go('control?tab=inbox')}>Все входящие · {campaign.inbox.length}</Button>}</Card>,
+    inbox: <Card className="target-panel">
+      <div className="panel-heading">
+        <div><span className="panel-kicker">Быстрая запись</span><h2 className="section-title">Входящие</h2></div>
+        <span className="panel-state">{campaign.inbox.length}</span>
+      </div>
+      <InboxList
+        campaign={campaign}
+        persist={persist}
+        limit={6}
+        showAll={() => go('control?tab=inbox')}
+      />
+    </Card>,
   }
   const layout = layoutFor(campaign, acting.master.id)
   const visible = layout.order.filter((id) => !layout.hidden.includes(id))
@@ -61,19 +68,3 @@ export function OverviewSection({ campaign, persist }: SectionProps) {
   </>
 }
 
-/** One quick note with ways to turn it into a record (ТЗ-2, R6): an entity of a chosen type, a task, a clock, a secret. */
-function InboxRow({ item, consume, remove }: { item: LocalInboxItem; consume: (target: InboxTarget, type?: LocalCampaignEntityType) => void; remove: () => void }) {
-  const [type, setType] = useState<LocalCampaignEntityType>('npc')
-  return <li className="inbox-row"><div className="inbox-row__text"><span>{item.text}</span>{item.tags.map((tag) => <Badge key={tag} tone="neutral" size="sm">#{tag}</Badge>)}</div>
-    <div className="inbox-row__actions" role="group" aria-label={`Разобрать: ${item.text}`}>
-      {INBOX_ACTIONS.map(([target, label]) => target === 'entity'
-        ? <span key={target} className="inbox-row__library">
-          <select aria-label={`Тип для «${item.text}»`} value={type} onChange={(event) => setType(event.target.value as LocalCampaignEntityType)}>
-            {ENTITY_TYPES.map((option) => <option key={option.value} value={option.value}>{option.label}</option>)}
-          </select>
-          <Button size="sm" onClick={() => consume(target, type)}>{label}</Button>
-        </span>
-        : <Button key={target} size="sm" onClick={() => consume(target)}>{label}</Button>)}
-      <Button size="sm" tone="danger" icon="trash-2" aria-label={`Удалить: ${item.text}`} onClick={remove} />
-    </div></li>
-}

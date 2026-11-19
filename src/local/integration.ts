@@ -242,6 +242,16 @@ export const fieldsByLabel = (entity: Pick<LocalCampaignEntity, 'type' | 'fields
 export const snapshotOf = (entity: LocalCampaignEntity): EntitySnapshot =>
   ({ name: entity.name, description: entity.description, tags: [...entity.tags], fields: { ...entity.fields }, visibility: entity.visibility })
 
+/** Whether a save changed nothing that publishing sends or routes: content, visibility and places. */
+export function sameForPublishing(a: LocalCampaignEntity, b: LocalCampaignEntity): boolean {
+  const stable = (entity: LocalCampaignEntity) => {
+    const snapshot = snapshotOf(entity)
+    const fields = Object.fromEntries(Object.entries(snapshot.fields).sort(([x], [y]) => x.localeCompare(y)))
+    return JSON.stringify({ ...snapshot, fields, destinations: [...(entity.destinations ?? [])].sort() })
+  }
+  return stable(a) === stable(b)
+}
+
 export function snapshotFromItem(item: ExternalItem, type: LocalCampaignEntityType): EntitySnapshot {
   return {
     name: item.name, description: item.summary, tags: item.tags.map((tag) => tag.toLocaleLowerCase()),
