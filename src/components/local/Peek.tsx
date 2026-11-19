@@ -6,7 +6,7 @@ import { ARC_STATUS, SECRET_STATUS, ENTITY_STATUS_LABEL, ENTITY_LABEL, VISIBILIT
 import { PeekContext, usePeek, type PeekApi } from '../../local/peekContext'
 import { SEARCH_GROUP, searchCampaign, type PeekTarget, type SearchHit } from '../../local/search'
 import { liveSessions } from '../../local/sessions'
-import { masterName, recipientsLabel } from '../../local/team'
+import { arcOwnerName, masterName, recipientsLabel } from '../../local/team'
 import type { LocalCampaignRecord } from '../../local/types'
 import { EntityDetails } from './EntityDetails'
 import { EntityEditor } from './EntityEditor'
@@ -144,7 +144,7 @@ function PeekDrawer({ campaign, persist, target, back, close }: { campaign: Loca
       return {
         kicker: arc.mode === 'background' ? 'Фоновая линия' : 'Линия', title: arc.title, badges: [ARC_STATUS[arc.status], `${arc.progress}%`],
         body: <>
-          <dl className="peek-fields">{[['Направление', arc.direction], ['Ставки', arc.stakes], ['Владелец', arc.owner], ['Причина', arc.statusReason]].filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
+          <dl className="peek-fields">{[['Направление', arc.direction], ['Ставки', arc.stakes], ['Владелец', arcOwnerName(campaign, arc)], ['Причина', arc.statusReason]].filter(([, value]) => value).map(([label, value]) => <div key={label}><dt>{label}</dt><dd>{value}</dd></div>)}</dl>
           {clocks.length > 0 && <PeekSection title="Часы линии"><PeekList items={clocks.map((clock) => ({ target: { kind: 'clock' as const, id: clock.id }, name: clock.title }))} /></PeekSection>}
         </>,
         actions: <Button size="sm" variant="primary" icon="arrow-up-right" onClick={() => go('arcs')}>Открыть в сюжете</Button>,

@@ -98,9 +98,13 @@ export interface LocalStoryArc {
   /** Why the arc was paused or cancelled. */
   statusReason: string
   progress: number
+  /** Who leads the arc: a master or a player of the campaign (ТЗ-3, этап 17, В9б). */
+  ownerRef?: LocalArcOwnerRef
+  /** Free text when the owner is neither («прочее»): an NPC, a faction, an old name that matched no one. */
   owner: string
   mode: 'background' | 'foreground'
 }
+export interface LocalArcOwnerRef { kind: 'master' | 'player'; id: string }
 
 export interface LocalClockChange { id: string; delta: number; reason: string; createdAt: string; note?: string }
 export interface LocalClockThreshold { id: string; at: number; consequence: string; reachedAt?: string }

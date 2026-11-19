@@ -1,4 +1,4 @@
-import type { LocalCampaignRecord, LocalGroup, LocalMaster, LocalPlayer, LocalSessionRecord } from './types'
+import type { LocalCampaignRecord, LocalGroup, LocalMaster, LocalPlayer, LocalSessionRecord, LocalStoryArc } from './types'
 
 export const newMaster = (name: string, role: LocalMaster['role'] = 'co-master'): LocalMaster => ({ id: `master-${crypto.randomUUID()}`, name: name.trim(), role })
 export const newPlayer = (name: string): LocalPlayer => ({ id: `player-${crypto.randomUUID()}`, name: name.trim(), characterIds: [], note: '' })
@@ -90,3 +90,10 @@ export function recipientsLabel(campaign: LocalCampaignRecord, ids: string[], ex
 
 /** Characters (library entities) that belong to a player. */
 export const playerCharacters = (campaign: LocalCampaignRecord, player: LocalPlayer) => campaign.entities.filter((entity) => player.characterIds.includes(entity.id))
+
+/** The arc owner as text: the linked master or player, or the free text («прочее»). */
+export function arcOwnerName(campaign: LocalCampaignRecord, arc: LocalStoryArc): string {
+  if (arc.ownerRef?.kind === 'master') return campaign.masters.find((master) => master.id === arc.ownerRef!.id)?.name ?? arc.owner
+  if (arc.ownerRef?.kind === 'player') return campaign.players.find((player) => player.id === arc.ownerRef!.id)?.name ?? arc.owner
+  return arc.owner
+}

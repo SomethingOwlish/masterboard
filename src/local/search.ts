@@ -2,6 +2,7 @@
 
 import { ENTITY_FIELDS } from './domain'
 import { liveSessions } from './sessions'
+import { arcOwnerName } from './team'
 import type { LocalCampaignRecord } from './types'
 
 /** Records a name can open in the side panel (R9). */
@@ -43,7 +44,7 @@ export function searchCampaign(campaign: LocalCampaignRecord, query: string, lim
   }
   for (const secret of campaign.secrets) add('secret', secret.id, secret.title, secret.publicVersion || secret.truth, [secret.truth, secret.publicVersion, secret.revealCondition])
   for (const clock of campaign.clocks) add('clock', clock.id, clock.title, `${clock.value}/${clock.segments}`, [clock.trigger, clock.advanceCondition, clock.rollbackCondition])
-  for (const arc of campaign.storyArcs) add('arc', arc.id, arc.title, arc.direction, [arc.direction, arc.stakes, arc.owner])
+  for (const arc of campaign.storyArcs) add('arc', arc.id, arc.title, arc.direction, [arc.direction, arc.stakes, arcOwnerName(campaign, arc)])
   for (const session of liveSessions(campaign)) {
     add('session', session.id, `№${session.number} ${session.title}`, session.focus || session.idea, [session.idea, session.focus, session.opening])
     for (const item of session.planItems) {
