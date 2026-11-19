@@ -323,7 +323,6 @@ export interface LocalCampaignRecord {
   importLog?: LocalImportRecord[]
   /** Where each type goes by default (ТЗ-2, R3/R10); missing types use `DEFAULT_RULES`. */
   publishRules?: Partial<Record<LocalCampaignEntityType, Array<'world' | 'table'>>>
-  notes: string[]
   sessionRecords: LocalSessionRecord[]
   activeSessionId?: string
   entities: LocalCampaignEntity[]

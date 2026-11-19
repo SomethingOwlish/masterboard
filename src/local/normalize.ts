@@ -1,4 +1,4 @@
-import { newArc, newClock, newEntity, newSecret } from './domain'
+import { newArc, newClock, newEntity, newNote, newSecret } from './domain'
 import { newGroup, parseMasters } from './team'
 import { IDEA_PLACEHOLDER, TIME_PLACEHOLDER, WIDGETS } from './labels'
 import { validSessionDate } from './sessions'
@@ -261,10 +261,9 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     ...(isObject(value.savedFilters) ? { savedFilters: Object.fromEntries(Object.entries(value.savedFilters).map(([id, items]) => [id, list<Raw>(items).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.name === 'string' && isObject(item.filter)).map((item) => ({ id: item.id as string, name: item.name as string, filter: item.filter as Record<string, unknown> }))])) } : {}),
     publications: list<Raw>(value.publications).filter((item) => isObject(item) && typeof item.id === 'string' && typeof item.entityId === 'string') as unknown as LocalCampaignRecord['publications'],
     dashboardLayouts: isObject(value.dashboardLayouts) ? Object.fromEntries(Object.entries(value.dashboardLayouts).filter(([, layout]) => isObject(layout)).map(([id, layout]) => [id, normalizeLayout(layout as Raw)])) : {},
-    notes: list<unknown>(value.notes).filter((note): note is string => typeof note === 'string'),
     sessionRecords,
     activeSessionId,
-    entities: list<Raw>(value.entities).filter((entity) => isObject(entity) && typeof entity.id === 'string').map(normalizeEntity),
+    entities: withLegacyNotes(list<Raw>(value.entities).filter((entity) => isObject(entity) && typeof entity.id === 'string').map(normalizeEntity), value.notes),
     relations: list<Raw>(value.relations).filter((relation) => isObject(relation) && typeof relation.id === 'string').map((relation) => ({
       id: relation.id as string, fromId: text(relation.fromId), toId: text(relation.toId), label: text(relation.label),
       type: oneOf(relation.type, ['alliance', 'enmity', 'debt', 'kin', 'belongs', 'other'] as const, 'other'),
@@ -302,6 +301,20 @@ export function withLocalSessions(campaign: LocalCampaignRecord, sessions: Local
 }
 
 /** The campaign dashboard opens once the first session exists. */
+/**
+ * Old campaigns kept notes as plain strings (`campaign.notes`); each becomes a
+ * `note` entity (ТЗ-3, этап 14). The id comes from the text and its place, so
+ * two loads (or two masters) migrate to the same records, not to duplicates.
+ */
+function withLegacyNotes(entities: LocalCampaignEntity[], raw: unknown): LocalCampaignEntity[] {
+  const notes = list<unknown>(raw).filter((note): note is string => typeof note === 'string' && Boolean(note.trim()))
+  if (!notes.length) return entities
+  const known = new Set(entities.map((entity) => entity.id))
+  const migrated = notes.map((note, index) => newNote(note, { id: `note-legacy-${index}-${textHash(note)}`, origin: { kind: 'manual' } })).filter((entity) => !known.has(entity.id))
+  return [...entities, ...migrated]
+}
+const textHash = (value: string) => { let hash = 0; for (const char of value) hash = (hash * 31 + char.codePointAt(0)!) | 0; return (hash >>> 0).toString(36) }
+
 export const isCampaignReady = (campaign: LocalCampaignRecord): boolean => campaign.sessionRecords.length > 0
 
 /**
@@ -309,4 +322,4 @@ export const isCampaignReady = (campaign: LocalCampaignRecord): boolean => campa
  * the library — say, records taken from the base — that is not archived.
  */
 export const worldStarted = (campaign: LocalCampaignRecord): boolean =>
-  campaign.notes.length > 0 || campaign.entities.some((entity) => entity.status !== 'archived')
+  campaign.entities.some((entity) => entity.status !== 'archived')

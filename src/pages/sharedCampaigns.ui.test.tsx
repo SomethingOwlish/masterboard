@@ -6,6 +6,10 @@ import { MemoryStorageGateway } from '../adapters/memoryStorageGateway'
 import { createLocalCampaignCatalog, type LocalCampaignCatalog } from '../local/catalog'
 import { SharedConflictError, type CampaignCatalog } from '../local/remote'
 import { readyCampaign, renderApp } from '../test/renderApp'
+import { newNote } from '../local/domain'
+import type { LocalCampaignRecord } from '../local/types'
+
+const noteNames = (campaign?: LocalCampaignRecord | null) => campaign?.entities.filter((entity) => entity.type === 'note').map((entity) => entity.name)
 
 const OWNER = 'owl@example.com'
 
@@ -86,13 +90,13 @@ describe('shared campaigns', () => {
     let offline = true
     const flaky: LocalCampaignCatalog = { ...server, update: (campaign) => offline ? Promise.reject(new Error('Failed to fetch')) : server.update(campaign) }
     renderApp(`/local/campaign/${id}/world`, signedIn(flaky, browser, { drafts: browser.drafts, saveDelayMs: 0 }))
-    await user.type(await screen.findByLabelText('Новая опорная точка'), 'Факт{Enter}')
+    await user.type(await screen.findByLabelText('Новая заметка'), 'Факт{Enter}')
     expect(await screen.findByRole('alert')).toHaveTextContent('Правки сохранены в этом браузере')
-    await waitFor(async () => expect((await browser.drafts.get(id))?.campaign.notes).toEqual(['Факт']))
-    expect((await server.find(id))?.notes).toEqual([])
+    await waitFor(async () => expect(noteNames((await browser.drafts.get(id))?.campaign)).toEqual(['Факт']))
+    expect(noteNames(await server.find(id))).toEqual([])
     offline = false
     await user.click(screen.getByRole('button', { name: 'Синхронизировать' }))
-    await waitFor(async () => expect((await server.find(id))?.notes).toEqual(['Факт']))
+    await waitFor(async () => expect(noteNames(await server.find(id))).toEqual(['Факт']))
     await waitFor(async () => expect(await browser.drafts.get(id)).toBeNull())
     expect(screen.queryByRole('alert')).not.toBeInTheDocument()
   })
@@ -101,10 +105,10 @@ describe('shared campaigns', () => {
     const { catalog: server, id } = await readyCampaign()
     const browser = createLocalCampaignCatalog(new MemoryStorageGateway(), { seed: false })
     const campaign = (await server.find(id))!
-    await browser.drafts.set({ campaign: { ...campaign, notes: ['Из черновика'] }, baseRevision: 0, base: null, savedAt: campaign.updatedAt })
+    await browser.drafts.set({ campaign: { ...campaign, entities: [newNote('Из черновика', { id: 'n-draft' })] }, baseRevision: 0, base: null, savedAt: campaign.updatedAt })
     renderApp(`/local/campaign/${id}/world`, signedIn(server, browser, { drafts: browser.drafts, saveDelayMs: 0 }))
     expect(await screen.findByText('Из черновика')).toBeInTheDocument()
-    await waitFor(async () => expect((await server.find(id))?.notes).toEqual(['Из черновика']))
+    await waitFor(async () => expect(noteNames(await server.find(id))).toEqual(['Из черновика']))
     await waitFor(async () => expect(await browser.drafts.get(id)).toBeNull())
   })
 
@@ -114,11 +118,11 @@ describe('shared campaigns', () => {
     let writes = 0
     const counting: LocalCampaignCatalog = { ...server, update: (campaign) => { writes += 1; return server.update(campaign) } }
     renderApp(`/local/campaign/${id}/world`, signedIn(counting, undefined, { saveDelayMs: 300 }))
-    const input = await screen.findByLabelText('Новая опорная точка')
+    const input = await screen.findByLabelText('Новая заметка')
     await user.type(input, 'Раз{Enter}')
     await user.type(input, 'Два{Enter}')
     await user.type(input, 'Три{Enter}')
-    await waitFor(async () => expect((await server.find(id))?.notes).toEqual(['Раз', 'Два', 'Три']))
+    await waitFor(async () => expect(noteNames(await server.find(id))).toEqual(['Раз', 'Два', 'Три']))
     expect(writes).toBe(1)
   })
 
@@ -133,13 +137,13 @@ describe('shared campaigns', () => {
       return { revision: version, data: (await server.find(campaignId))! }
     }
     renderApp(`/local/campaign/${id}/world`, signedIn(server, undefined, { poll, pollMs: 30, saveDelayMs: 400 }))
-    await screen.findByLabelText('Новая опорная точка')
-    await server.update({ ...(await server.find(id))!, notes: ['От Лиса'] })
+    await screen.findByLabelText('Новая заметка')
+    await server.update({ ...(await server.find(id))!, entities: [newNote('От Лиса', { id: 'n-fox-1' })] })
     version = 2
     expect(await screen.findByText('От Лиса')).toBeInTheDocument()
 
-    await user.type(screen.getByLabelText('Новая опорная точка'), 'Моя{Enter}')
-    await server.update({ ...(await server.find(id))!, notes: ['От Лиса', 'Ещё от Лиса'] })
+    await user.type(screen.getByLabelText('Новая заметка'), 'Моя{Enter}')
+    await server.update({ ...(await server.find(id))!, entities: [newNote('От Лиса', { id: 'n-fox-1' }), newNote('Ещё от Лиса', { id: 'n-fox-2' })] })
     version = 3
     await new Promise((resolve) => setTimeout(resolve, 120))
     expect(screen.getByText('Моя')).toBeInTheDocument()
@@ -156,21 +160,22 @@ describe('shared campaigns', () => {
       async update(campaign) {
         if (!clashes) return server.update(campaign)
         clashes -= 1
-        const saved = await server.update({ ...campaign, notes: ['Версия Лиса'] })
-        throw Object.assign(new SharedConflictError([{ path: 'notes', mine: campaign.notes, theirs: ['Версия Лиса'] }], FOX), { saved })
+        const theirs = [newNote('Версия Лиса', { id: 'n-fox' })]
+        const saved = await server.update({ ...campaign, entities: theirs })
+        throw Object.assign(new SharedConflictError([{ path: 'entities', mine: campaign.entities, theirs }], FOX), { saved })
       },
     }
     renderApp(`/local/campaign/${id}/world`, signedIn(clashing, undefined, { saveDelayMs: 0 }))
-    await user.type(await screen.findByLabelText('Новая опорная точка'), 'Моя версия{Enter}')
+    await user.type(await screen.findByLabelText('Новая заметка'), 'Моя версия{Enter}')
     const notice = await screen.findByText(/Правки объединены/)
     expect(notice.closest('[role=status]')).toHaveTextContent('Вы и мастер Лис изменили одно и то же — 1 место')
     expect(await screen.findByText('Версия Лиса')).toBeInTheDocument()
     await user.click(screen.getByRole('button', { name: 'Разобрать' }))
     const dialog = screen.getByRole('dialog', { name: 'Изменено у вас и у мастера Лис' })
-    expect(dialog).toHaveTextContent('Опорные точки')
+    expect(dialog).toHaveTextContent('Библиотека')
     await user.click(within(dialog).getByRole('radio', { name: /Ваша/ }))
     await user.click(within(dialog).getByRole('button', { name: 'Применить' }))
-    await waitFor(async () => expect((await server.find(id))?.notes).toEqual(['Моя версия']))
+    await waitFor(async () => expect(noteNames(await server.find(id))).toEqual(['Моя версия']))
     expect(screen.queryByText(/Правки объединены/)).not.toBeInTheDocument()
   })
 })

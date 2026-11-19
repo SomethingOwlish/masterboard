@@ -3,9 +3,12 @@ import { screen, waitFor, within } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it } from 'vitest'
 import type { LocalCampaignCatalog } from '../local/catalog'
+import { newNote } from '../local/domain'
+import type { LocalCampaignRecord } from '../local/types'
 import { readyCampaign as ready, renderApp } from '../test/renderApp'
 
-const readyCampaign = (notes: string[] = []) => ready({ notes })
+const readyCampaign = (notes: string[] = []) => ready({ entities: notes.map((note, index) => newNote(note, { id: `note-${index}` })) })
+const noteNames = (campaign?: LocalCampaignRecord | null) => campaign?.entities.filter((entity) => entity.type === 'note').map((entity) => entity.name)
 
 describe('local campaign workspace', () => {
   it('creates a campaign and reaches the dashboard after the first session', async () => {
@@ -35,10 +38,11 @@ describe('local campaign workspace', () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign(['Единственный факт'])
     renderApp(`/local/campaign/${id}/world`, catalog)
-    await user.click(await screen.findByRole('button', { name: 'Удалить: Единственный факт' }))
+    await user.click(await screen.findByRole('button', { name: 'Редактировать: Единственный факт' }))
+    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Удалить' }))
     expect(screen.getByRole('navigation', { name: 'Разделы кампании' })).toBeInTheDocument()
     expect(screen.queryByText('Единственный факт')).not.toBeInTheDocument()
-    await waitFor(async () => expect((await catalog.find(id))?.notes).toEqual([]))
+    await waitFor(async () => expect(noteNames(await catalog.find(id))).toEqual([]))
   })
 
   it('redirects an unknown section to the overview', async () => {
@@ -83,12 +87,12 @@ describe('local campaign workspace', () => {
     let fail = true
     const flaky: LocalCampaignCatalog = { ...catalog, update: (campaign) => fail ? Promise.reject(new Error('Диск переполнен')) : catalog.update(campaign) }
     renderApp(`/local/campaign/${id}/world`, flaky)
-    await user.type(await screen.findByLabelText('Новая опорная точка'), 'Факт{Enter}')
+    await user.type(await screen.findByLabelText('Новая заметка'), 'Факт{Enter}')
     expect(await screen.findByRole('alert')).toHaveTextContent('Диск переполнен')
     expect(screen.getByText('Факт')).toBeInTheDocument()
     fail = false
     await user.click(screen.getByRole('button', { name: 'Повторить' }))
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument())
-    expect((await catalog.find(id))?.notes).toEqual(['Факт'])
+    expect(noteNames(await catalog.find(id))).toEqual(['Факт'])
   })
 })

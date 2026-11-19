@@ -16,7 +16,8 @@ const STATUS_LABEL = { active: 'Активные', inactive: 'Неактивны
  * tags, visibility, state, source and sorting in a panel; active conditions as
  * removable chips; personal saved sets of filters.
  */
-export function LibraryFilters({ campaign, persist, filter, setFilter, total, shown, extra }: { campaign: LocalCampaignRecord; persist: Persist; filter: EntityFilter; setFilter: (next: EntityFilter) => void; total: number; shown: number; extra?: React.ReactNode }) {
+/** `lockType` — the type is fixed by the section (the «Заметки» section): no type choice. */
+export function LibraryFilters({ campaign, persist, filter, setFilter, total, shown, extra, lockType = false }: { campaign: LocalCampaignRecord; persist: Persist; filter: EntityFilter; setFilter: (next: EntityFilter) => void; total: number; shown: number; extra?: React.ReactNode; lockType?: boolean }) {
   const acting = useActing(campaign)
   const [open, setOpen] = useState(false)
   const [naming, setNaming] = useState<string | null>(null)
@@ -40,7 +41,7 @@ export function LibraryFilters({ campaign, persist, filter, setFilter, total, sh
   return <div className="library-filters">
     <div className="library-filters__row">
       <div className="campaign-local-library__search"><Icon name="search" size={17} /><input value={filter.query} aria-label="Поиск по библиотеке" placeholder="Найти по названию, описанию, тегу или полю…" onChange={(event) => setFilter({ ...filter, query: event.target.value })} /></div>
-      <Select aria-label="Тип сущности" value={filter.type} onChange={(event) => setFilter({ ...filter, type: event.target.value as EntityFilter['type'], fate: 'all' })}><option value="all">Все типы</option>{ENTITY_TYPES.filter((item) => typeCounts[item.value]).map((item) => <option key={item.value} value={item.value}>{item.label} · {typeCounts[item.value]}</option>)}</Select>
+      {!lockType && <Select aria-label="Тип сущности" value={filter.type} onChange={(event) => setFilter({ ...filter, type: event.target.value as EntityFilter['type'], fate: 'all' })}><option value="all">Все типы</option>{ENTITY_TYPES.filter((item) => typeCounts[item.value]).map((item) => <option key={item.value} value={item.value}>{item.label} · {typeCounts[item.value]}</option>)}</Select>}
       <Button icon="list-filter" aria-expanded={open} onClick={() => setOpen(!open)}>Фильтры{count ? ` · ${count}` : ''}</Button>
       <Select aria-label="Сортировка" value={filter.sort ?? 'added'} onChange={(event) => setFilter({ ...filter, sort: event.target.value as EntityFilter['sort'] })}>{Object.entries(SORT_LABEL).map(([value, label]) => <option key={value} value={value}>{label}</option>)}</Select>
       {extra}
@@ -54,9 +55,9 @@ export function LibraryFilters({ campaign, persist, filter, setFilter, total, sh
       <label className="library-filters__check"><input type="checkbox" checked={filter.showArchived} onChange={(event) => setFilter({ ...filter, showArchived: event.target.checked })} /> Показать архив ({campaign.entities.filter((entity) => entity.status === 'archived').length})</label>
     </div>}
     <div className="library-filters__status">
-      <span className="muted">{shown === total ? `Записей: ${total}` : `Показано ${shown} из ${total}`}{filter.type !== 'all' ? ` · ${ENTITY_LABEL[filter.type]}` : ''}</span>
+      <span className="muted">{shown === total ? `Записей: ${total}` : `Показано ${shown} из ${total}`}{filter.type !== 'all' && !lockType ? ` · ${ENTITY_LABEL[filter.type]}` : ''}</span>
       {chips.map((chip) => <button key={chip.label} type="button" className="library-filters__chip" onClick={() => setFilter(chip.clear)} aria-label={`Убрать фильтр: ${chip.label}`}>{chip.label} <Icon name="x" size={12} /></button>)}
-      {(chips.length > 0 || filter.query || filter.type !== 'all') && <button type="button" className="home-chips__reset" onClick={() => setFilter({ ...EMPTY_FILTER, sort: filter.sort })}>Сбросить</button>}
+      {(chips.length > 0 || filter.query || (filter.type !== 'all' && !lockType)) && <button type="button" className="home-chips__reset" onClick={() => setFilter({ ...EMPTY_FILTER, sort: filter.sort })}>Сбросить</button>}
       <span className="library-filters__saved" role="group" aria-label="Мои подборки">
         {saved.map((item) => <span key={item.id} className="library-filters__preset"><button type="button" onClick={() => setFilter({ ...EMPTY_FILTER, ...item.filter })}><Icon name="bookmark" size={13} /> {item.name}</button><button type="button" aria-label={`Удалить подборку: ${item.name}`} onClick={() => setSaved(saved.filter((entry) => entry.id !== item.id))}><Icon name="x" size={12} /></button></span>)}
         {naming === null ? <button type="button" className="home-chips__reset" onClick={() => setNaming('')}>Сохранить подборку</button> : <form className="library-filters__name" onSubmit={(event) => { event.preventDefault(); saveCurrent() }}><input autoFocus aria-label="Название подборки" value={naming} placeholder="NPC для сессии 3" onChange={(event) => setNaming(event.target.value)} onKeyDown={(event) => { if (event.key === 'Escape') setNaming(null) }} /><Button size="sm" type="submit" disabled={!naming.trim()}>Сохранить</Button></form>}

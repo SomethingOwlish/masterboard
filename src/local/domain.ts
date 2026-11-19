@@ -43,6 +43,18 @@ export function retypeEntity<T extends Pick<LocalCampaignEntity, 'type' | 'field
   return { ...(type === 'npc' ? entity : rest), type, fields } as T
 }
 
+/**
+ * A note is a library entity of type `note` (ТЗ-3, этап 14, В4). A long text
+ * keeps a short name and the whole text as the description.
+ */
+export const NOTE_NAME_LIMIT = 80
+export function newNote(text: string, input: Partial<LocalCampaignEntity> = {}): LocalCampaignEntity {
+  const trimmed = text.trim()
+  const short = trimmed.length <= NOTE_NAME_LIMIT
+  const name = short ? trimmed : `${trimmed.slice(0, NOTE_NAME_LIMIT - 1).trimEnd()}…`
+  return newEntity({ type: 'note', name, description: short ? '' : trimmed, ...input })
+}
+
 export function newEntity(input: Partial<LocalCampaignEntity> & Pick<LocalCampaignEntity, 'type' | 'name'>): LocalCampaignEntity {
   return { id: `entity-${crypto.randomUUID()}`, description: '', tags: [], visibility: 'master', status: 'active', fields: {}, origin: { kind: 'manual' }, sources: [], ...input }
 }

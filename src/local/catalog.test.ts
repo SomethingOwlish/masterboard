@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest'
 import { MemoryStorageGateway } from '../adapters/memoryStorageGateway'
 import { LEGACY_BACKUP_KEY, LEGACY_KEY, createLocalCampaignCatalog, type KeyValueStorage } from './catalog'
 import { blankSession, isCampaignReady, withLocalSessions } from './normalize'
+import { newNote } from './domain'
 
 const memory = (seed: Record<string, string> = {}): KeyValueStorage & { data: Map<string, string> } => {
   const data = new Map(Object.entries(seed))
@@ -21,7 +22,7 @@ describe('local campaign catalog', () => {
     const gateway = new MemoryStorageGateway()
     const created = await createLocalCampaignCatalog(gateway, { now: () => '2026-09-26T08:00:00.000Z' }).create(' Город под стеклом ', '')
     const loaded = await createLocalCampaignCatalog(gateway).find(created.id)
-    expect(loaded).toMatchObject({ name: 'Город под стеклом', notes: [], sessionRecords: [], entities: [], clocks: [], secrets: [], tasks: [], inbox: [] })
+    expect(loaded).toMatchObject({ name: 'Город под стеклом', sessionRecords: [], entities: [], clocks: [], secrets: [], tasks: [], inbox: [] })
     expect(isCampaignReady(loaded!)).toBe(false)
   })
 
@@ -47,8 +48,8 @@ describe('local campaign catalog', () => {
   it('stays ready after the last world note is deleted', async () => {
     const catalog = createLocalCampaignCatalog(new MemoryStorageGateway())
     const campaign = await catalog.create('Заметки', '')
-    const ready = withLocalSessions({ ...campaign, notes: ['Одна'] }, [{ ...blankSession(1, '', campaign.createdAt), title: 'Старт' }])
-    await catalog.update({ ...ready, notes: [] })
+    const ready = withLocalSessions({ ...campaign, entities: [newNote('Одна')] }, [{ ...blankSession(1, '', campaign.createdAt), title: 'Старт' }])
+    await catalog.update({ ...ready, entities: [] })
     expect(isCampaignReady((await catalog.find(campaign.id))!)).toBe(true)
   })
 
@@ -94,11 +95,12 @@ describe('local campaign catalog', () => {
   it('exports and imports a campaign, copying on id collision', async () => {
     const catalog = createLocalCampaignCatalog(new MemoryStorageGateway())
     const campaign = await catalog.create('Экспорт', 'Проверка')
-    await catalog.update({ ...campaign, notes: ['Факт'] })
+    await catalog.update({ ...campaign, entities: [newNote('Факт', { id: 'note-fact' })] })
     const file = await catalog.exportCampaign(campaign.id)
     const copy = await catalog.importCampaign(file)
     expect(copy.id).not.toBe(campaign.id)
-    expect(copy).toMatchObject({ name: 'Экспорт (копия)', notes: ['Факт'] })
+    expect(copy).toMatchObject({ name: 'Экспорт (копия)' })
+    expect(copy.entities.map((entity) => [entity.type, entity.name])).toEqual([['note', 'Факт']])
 
     const fresh = createLocalCampaignCatalog(new MemoryStorageGateway())
     expect((await fresh.importCampaign(file)).id).toBe(campaign.id)
