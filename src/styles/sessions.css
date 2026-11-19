@@ -491,7 +491,7 @@
   color: var(--muted);
   font: var(--type-data);
 }
-.session-live-panel .control-center__tabs {
+.session-live-panel .campaign-tabs {
   margin-top: var(--space-3);
 }
 .session-live-panel ol.session-live-panel__log {
@@ -616,10 +616,6 @@
 }
 .session-live-layout .session-live-panel__capture > button {
   grid-column: 1 / -1;
-}
-.session-live-layout .session-live-panel .control-center__tabs {
-  flex-wrap: wrap;
-  width: auto;
 }
 .session-live-layout ol.session-live-panel__log {
   max-height: none;

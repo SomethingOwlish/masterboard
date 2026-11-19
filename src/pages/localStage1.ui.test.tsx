@@ -89,7 +89,7 @@ describe('stage 1: secrets', () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign({ secrets: [newSecret({ id: 's1', title: 'Цена', truth: 'Имена' })] })
     renderApp(`/local/campaign/${id}/control`, catalog)
-    await user.click(await screen.findByRole('button', { name: /Секреты/ }))
+    await user.click(await screen.findByRole('tab', { name: /Секреты/ }))
     await user.click(screen.getByRole('button', { name: 'Раскрыть…' }))
     await user.selectOptions(screen.getByLabelText('Новое состояние'), 'selected')
     await user.type(screen.getByLabelText('Кому ещё известно'), 'Ира')

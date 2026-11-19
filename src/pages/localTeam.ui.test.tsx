@@ -98,7 +98,7 @@ describe('stage 4: players and groups', () => {
     const user = userEvent.setup()
     const { catalog, id } = await teamCampaign()
     renderApp(`/local/campaign/${id}/control`, catalog)
-    await user.click(await screen.findByRole('button', { name: /Секреты/ }))
+    await user.click(await screen.findByRole('tab', { name: /Секреты/ }))
     await user.click(screen.getByRole('button', { name: 'Раскрыть…' }))
     await user.click(screen.getByLabelText('Группа «Основная»'))
     await user.click(screen.getByRole('button', { name: 'Записать' }))

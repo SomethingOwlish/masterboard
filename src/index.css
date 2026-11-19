@@ -73,12 +73,6 @@ button.primary:hover {
   background: var(--accent);
 }
 
-/* ---- .grid ------------------------------------------------------------- */
-.grid {
-  display: grid;
-  gap: 1rem;
-  grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
-}
 
 /* ---- .muted ------------------------------------------------------------ */
 .muted {
@@ -154,7 +148,8 @@ button.ghost {
 }
 
 /* ---- .dialog-form ------------------------------------------------------ */
-.dialog-form label {
+/* Raw labels only: DS fields render their own labels with `for` and their own spacing. */
+.dialog-form label:not([for]) {
   display: grid;
   gap: var(--space-2);
   margin-top: var(--space-3);

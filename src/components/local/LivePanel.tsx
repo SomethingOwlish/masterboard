@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Badge, Button, Checkbox, Select, TextField } from '../../ds'
+import { Badge, Button, Checkbox, Select, Tabs, TextField } from '../../ds'
 import { changeSecretStatus, moveClock, newEntity, resolveClockTrigger } from '../../local/domain'
 import { SECRET_STATUS, withSession, LOG_KIND, ENTITY_LABEL, ENTITY_TYPES, clockReasonReady } from '../../local/labels'
 import { ClockReasonField } from './ClockReason'
@@ -108,7 +108,22 @@ export function LivePanel({ campaign, session, persist, onClose, canClose = true
       />
       <Button variant="primary" disabled={!text.trim()} onClick={capture}>Сохранить момент</Button>
     </div>
-    <nav className="control-center__tabs" aria-label="Разделы живой панели">{([['log', 'Журнал', session.log.length], ['cards', 'Карточки', planEntities.length], ['clocks', 'Часы', campaign.clocks.length], ['secrets', 'Секреты', campaign.secrets.length], ['new', 'Новое', undefined], ['improv', 'Заготовки', improv.length], ...(table ? [['table', LIVE_TABLE_LABEL[table.system], undefined] as const] : [])] as const).map(([id, label, count]) => <button key={id} className={tab === id ? 'active' : ''} onClick={() => setTab(id)}>{label}{count !== undefined && <span>{count}</span>}</button>)}</nav>
+    <Tabs
+      className="campaign-tabs"
+      aria-label="Разделы живой панели"
+      idPrefix="live-tab"
+      activeId={tab}
+      onSelect={(id) => setTab(id as Tab)}
+      tabs={[
+        { id: 'log', label: 'Журнал', count: session.log.length },
+        { id: 'cards', label: 'Карточки', count: planEntities.length },
+        { id: 'clocks', label: 'Часы', count: campaign.clocks.length },
+        { id: 'secrets', label: 'Секреты', count: campaign.secrets.length },
+        { id: 'new', label: 'Новое' },
+        { id: 'improv', label: 'Заготовки', count: improv.length },
+        ...(table ? [{ id: 'table', label: LIVE_TABLE_LABEL[table.system] }] : []),
+      ]}
+    />
     {tab === 'log' && <ol className="session-live-panel__log">{[...session.log].reverse().map((entry) => <li key={entry.id}><time>{new Date(entry.createdAt).toLocaleTimeString('ru-RU', { hour: '2-digit', minute: '2-digit' })}</time><div><Badge size="sm" tone={entry.kind === 'moment' ? 'neutral' : 'accent'}>{LOG_KIND[entry.kind]}</Badge><span>{entry.text}</span>{sentOf(entry) ? <small>{SENT_LABEL[sentOf(entry)!]}</small> : <div className="row"><Button size="sm" onClick={() => toTask(entry)}>В задачу</Button><Button size="sm" onClick={() => toInbox(entry)}>Во входящие</Button>{entry.kind !== 'entity' && <Button size="sm" onClick={() => toLibrary(entry)}>В библиотеку</Button>}</div>}</div></li>)}{!session.log.length && <li className="muted">Журнал пуст. Записывайте, что произошло фактически.</li>}</ol>}
     {tab === 'cards' && <div className="session-live-panel__list">{planEntities.map((entity) => <article key={entity.id} aria-label={`Карточка: ${entity.name}`}><div className="row"><strong><PeekLink target={{ kind: 'entity', id: entity.id }}>{entity.name}</PeekLink></strong><Badge size="sm" tone="neutral">{ENTITY_LABEL[entity.type]}</Badge></div>{entity.description && <p>{entity.description}</p>}<EntityDetails entity={entity} className="campaign-local-library__fields" /></article>)}{!planEntities.length && <p className="muted">В плане нет сущностей из библиотеки.</p>}</div>}
     {tab === 'clocks' && <div className="session-live-panel__list">{campaign.clocks.map((clock) => { const full = clock.value === clock.segments; return <article key={clock.id} aria-label={`Часы: ${clock.title}`}><div className="row"><strong>{clock.title}</strong><span className="mb-data">{clock.value}/{clock.segments}</span></div>{full && clock.triggerStatus !== 'fired' ? <div className="row"><span className="local-session-error">Заполнены: {clock.trigger || 'событие не описано'}</span><Button size="sm" onClick={() => resolveLiveClock(clock.id, 'deferred')}>Позже</Button><Button size="sm" variant="primary" onClick={() => resolveLiveClock(clock.id, 'fired')}>Сработало</Button></div> : null}<ClockReasonField

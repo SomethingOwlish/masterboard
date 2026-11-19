@@ -10,7 +10,7 @@ describe('library table and bulk actions (ТЗ-2, R7)', () => {
     const user = userEvent.setup()
     const { catalog, id } = await readyCampaign({ entities: [newEntity({ id: 'a', type: 'npc', name: 'Олан' }), newEntity({ id: 'b', type: 'npc', name: 'Мирта' }), newEntity({ id: 'c', type: 'location', name: 'Гавань' })] })
     renderApp(`/local/campaign/${id}/library`, catalog)
-    await user.click(await screen.findByRole('button', { name: /Таблица/ }))
+    await user.click(await screen.findByRole('tab', { name: /Таблица/ }))
     const table = screen.getByRole('table', { name: 'Библиотека таблицей' })
     await user.click(within(table).getByRole('checkbox', { name: 'Выбрать: Олан' }))
     await user.click(within(table).getByRole('checkbox', { name: 'Выбрать: Мирта' }))

@@ -395,7 +395,7 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 - Убрать группу «Команда» из `NAV_GROUPS`; пункт «Команда» — в меню кампании (кнопка у «Вы: …» / названия кампании) вместе с «Экспорт», «Редактировать кампанию».
 - Подсказка поиска `⌘K` на macOS.
 
-### Этап 16 — Переход на DS (В7) 🟡 16а ✅, 16б ⛔ (может потребовать 2 чата: 16а формы, 16б вкладки и чистка)
+### Этап 16 — Переход на DS (В7) ✅ (16а формы, 16б вкладки и чистка)
 - 16а: `<input>/<textarea>/<select>` → DS `TextField`/`Select`, чекбоксы → DS `Checkbox`/`Switch`; убрать `!important` в `.local-checkbox`, `.local-checklist label` и т. п.
 - 16б: вкладки Пульта, панели проведения, видов плана, «Карточки/Таблица» → DS `Tabs` (`role="tablist"`, стрелки); удалить неиспользуемые компоненты DS (`GlassPanel`, `EntityCard`, `StatBlock`, `RelationNode`, `ChronoEvent`, `RecapItem`, `SyncBadge`, `SidebarNav` — сверить перед удалением).
 
@@ -603,6 +603,17 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 - **Этап 16а → 16б:** часть правил вида `.x label` / `.x input` теперь попадает на внутренние элементы DS и
   перебивается инлайном (`.dialog-form label` добавляет отступ сверху подписи DS-полей в окнах, `.scene-tree__select`,
   `.players-page__name input`, `.team-section__list li:has(> .team-section__email)` и др.) — разобрать вместе с чисткой.
+- **Этап 16б (решения):** DS `Tabs` получил клавиатуру по WAI-ARIA (в порядке Tab только активная вкладка; ←/→
+  выбирают соседнюю, Home/End — крайние; `idPrefix` для `aria-labelledby`) и перенос строк. На него переведены
+  вкладки Пульта, живой панели, виды плана и «Карточки/Таблица» в библиотеке (общий класс `.campaign-tabs`);
+  стили `.control-center__tabs` и `.view-toggle` удалены. В тестах эти элементы теперь ищутся как `tab`.
+- **Этап 16б:** удалены неиспользуемые компоненты DS: `GlassPanel`, `SidebarNav`, `Topbar`, `Logo`, `EntityCard`,
+  `StatBlock`, `RelationNode`, `ChronoEvent`, `RecapItem`, `SyncBadge`, `Avatar`, `Tag`, `Drawer`, `Tooltip`.
+  Оставлены `IconButton` (нужен `Modal`) и `Switch` (форма из ТЗ, пригодится). `.dialog-form label` сужено до
+  `:not([for])` — подписи DS-полей больше не получают отступ и серый цвет; удалён мёртвый `.grid`.
+- **Этап 16 → потом:** правила, которые DS перебивает инлайном, но которые ещё матчатся (`.scene-tree__select--*`,
+  `.players-page__name input`, `.bulk-bar__form input` и т. п.), не трогал — они безвредны; можно вычистить, когда
+  будут переделываться эти места.
 
 ## Журнал
 
@@ -624,3 +635,4 @@ text/surface, warning-text/surface, border-strong/surface) и падает ни�
 | 14 | SomethingOwlish/masterboard#107 | 19.11.2026 |
 | 15 | SomethingOwlish/masterboard#108 | 19.11.2026 |
 | 16а | SomethingOwlish/masterboard#109 | 19.11.2026 |
+| 16б | (PR этапа 16б) | 19.11.2026 |
