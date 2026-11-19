@@ -239,7 +239,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
   const sessionRecords = stored.length ? stored : legacySessions(value, updatedAt, team)
   const live = sessionRecords.filter((session) => !session.deletedAt)
   const activeSessionId = typeof value.activeSessionId === 'string' && live.some((session) => session.id === value.activeSessionId) ? value.activeSessionId : live[0]?.id
-  return {
+  return withArcOwners({
     id: value.id,
     name: value.name,
     // Placeholders used to be stored as data; now they live in the interface only (ТЗ-3, этап 6).
@@ -274,6 +274,8 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
       id: arc.id as string, title: text(arc.title), direction: text(arc.direction), stakes: text(arc.stakes),
       status: oneOf(arc.status, ['planned', 'active', 'paused', 'resolved', 'cancelled'] as const, 'planned'), statusReason: text(arc.statusReason),
       progress: typeof arc.progress === 'number' ? arc.progress : 0, owner: text(arc.owner), mode: arc.mode === 'background' ? 'background' : 'foreground',
+      ...(isObject(arc.ownerRef) && (arc.ownerRef.kind === 'master' || arc.ownerRef.kind === 'player') && typeof arc.ownerRef.id === 'string'
+        ? { ownerRef: { kind: arc.ownerRef.kind, id: arc.ownerRef.id } } : {}),
     })),
     clocks: list<Raw>(value.clocks).filter((clock) => isObject(clock) && typeof clock.id === 'string').map((clock) => newClock({
       ...(clock as Partial<LocalCampaignRecord['clocks'][number]>),
@@ -293,7 +295,7 @@ export function normalizeCampaign(value: unknown, now: string): LocalCampaignRec
     relationLayout: isObject(value.relationLayout) ? (value.relationLayout as LocalCampaignRecord['relationLayout']) : {},
     createdAt: text(value.createdAt, updatedAt),
     updatedAt,
-  }
+  })
 }
 
 export function withLocalSessions(campaign: LocalCampaignRecord, sessions: LocalSessionRecord[], activeSessionId?: string): LocalCampaignRecord {
@@ -314,6 +316,30 @@ function withLegacyNotes(entities: LocalCampaignEntity[], raw: unknown): LocalCa
   return [...entities, ...migrated]
 }
 const textHash = (value: string) => { let hash = 0; for (const char of value) hash = (hash * 31 + char.codePointAt(0)!) | 0; return (hash >>> 0).toString(36) }
+
+/**
+ * Arc owners used to be free text (ТЗ-3, этап 17, В9б): a name that matches a
+ * master or a player (case aside) becomes a link; anything else stays as text.
+ * A link to someone who left the campaign falls back to text as well.
+ */
+function withArcOwners(campaign: LocalCampaignRecord): LocalCampaignRecord {
+  const key = (value: string) => value.trim().toLocaleLowerCase()
+  const storyArcs = campaign.storyArcs.map((arc) => {
+    if (arc.ownerRef) {
+      const people = arc.ownerRef.kind === 'master' ? campaign.masters : campaign.players
+      if (people.some((person) => person.id === arc.ownerRef!.id)) return { ...arc, owner: '' }
+      const { ownerRef: _gone, ...rest } = arc
+      return rest
+    }
+    if (!arc.owner.trim()) return arc
+    const master = campaign.masters.find((item) => key(item.name) === key(arc.owner))
+    if (master) return { ...arc, owner: '', ownerRef: { kind: 'master' as const, id: master.id } }
+    const player = campaign.players.find((item) => key(item.name) === key(arc.owner))
+    if (player) return { ...arc, owner: '', ownerRef: { kind: 'player' as const, id: player.id } }
+    return arc
+  })
+  return { ...campaign, storyArcs }
+}
 
 export const isCampaignReady = (campaign: LocalCampaignRecord): boolean => campaign.sessionRecords.length > 0
 

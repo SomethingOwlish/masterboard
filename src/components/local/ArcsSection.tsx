@@ -6,6 +6,7 @@ import type { LocalStoryArc } from '../../local/types'
 import { Editor, type SectionProps } from './shared'
 import { arcRemovalImpact, removeArc } from '../../local/removal'
 import { useConfirm } from '../useConfirm'
+import { useActing } from '../../local/actingContext'
 import { removeWithUndo } from '../toast'
 
 
@@ -21,14 +22,23 @@ type Draft = Omit<LocalStoryArc, 'id'>
 
 export function ArcsSection({ campaign, persist }: SectionProps) {
   const arcs = campaign.storyArcs
-  const masters = [...campaign.masters.map((master) => master.name), ...campaign.players.map((player) => player.name)]
   const [editor, setEditor] = useState<LocalStoryArc | 'new' | null>(null)
   const [draft, setDraft] = useState<Draft>(newArc())
-  const openEditor = (arc: LocalStoryArc | 'new') => { setEditor(arc); const { id: _id, ...rest } = arc === 'new' ? newArc({ owner: masters[0] ?? '' }) : arc; setDraft(rest) }
+  const acting = useActing(campaign)
+  const openEditor = (arc: LocalStoryArc | 'new') => { setEditor(arc); setOtherOwner(false); const { id: _id, ...rest } = arc === 'new' ? newArc({ ownerRef: acting.master ? { kind: 'master', id: acting.master.id } : undefined }) : arc; setDraft(rest) }
+  // Owner (ТЗ-3, этап 17, В9б): a master or a player by link, or free text under «Другое…».
+  const [otherOwner, setOtherOwner] = useState(false)
+  const ownerValue = draft.ownerRef ? `${draft.ownerRef.kind}:${draft.ownerRef.id}` : draft.owner.trim() || otherOwner ? 'other' : ''
+  const setOwner = (value: string) => {
+    const [kind, id] = value.split(':')
+    setOtherOwner(value === 'other')
+    if ((kind === 'master' || kind === 'player') && id) setDraft({ ...draft, ownerRef: { kind, id }, owner: '' })
+    else { const { ownerRef: _gone, ...rest } = draft; setDraft({ ...rest, owner: value === 'other' ? draft.owner : '' }) }
+  }
   const reasonMissing = arcNeedsReason(draft.status) && !draft.statusReason.trim()
   const save = () => {
     if (!draft.title.trim() || reasonMissing || !editor) return
-    const arc: LocalStoryArc = { ...draft, title: draft.title.trim(), direction: draft.direction.trim(), stakes: draft.stakes.trim(), owner: draft.owner.trim(), statusReason: arcNeedsReason(draft.status) ? draft.statusReason.trim() : '', progress: Math.max(0, Math.min(100, draft.progress)), id: editor === 'new' ? `arc-${crypto.randomUUID()}` : editor.id }
+    const arc: LocalStoryArc = { ...draft, title: draft.title.trim(), direction: draft.direction.trim(), stakes: draft.stakes.trim(), owner: draft.ownerRef ? '' : draft.owner.trim(), statusReason: arcNeedsReason(draft.status) ? draft.statusReason.trim() : '', progress: Math.max(0, Math.min(100, draft.progress)), id: editor === 'new' ? `arc-${crypto.randomUUID()}` : editor.id }
     persist({ ...campaign, storyArcs: editor === 'new' ? [...arcs, arc] : arcs.map((item) => item.id === arc.id ? arc : item) })
     setEditor(null)
   }
@@ -78,17 +88,28 @@ export function ArcsSection({ campaign, persist }: SectionProps) {
         onChange={(event) => setDraft({ ...draft, stakes: event.target.value })}
       />
       <div className="campaign-arc-form__row">
-        <TextField
+        <Select
           label="Владелец линии"
           id="arc-owner"
-          list="arc-owner-options"
+          value={ownerValue}
+          onChange={(event) => setOwner(event.target.value)}
+        >
+          <option value="">Не задан</option>
+          <optgroup label="Мастера">
+            {campaign.masters.map((master) => <option key={master.id} value={`master:${master.id}`}>{master.name}</option>)}
+          </optgroup>
+          {campaign.players.length > 0 && <optgroup label="Игроки">
+            {campaign.players.map((player) => <option key={player.id} value={`player:${player.id}`}>{player.name}</option>)}
+          </optgroup>}
+          <option value="other">Другое…</option>
+        </Select>
+        {ownerValue === 'other' && <TextField
+          label="Кто ведёт (не мастер и не игрок)"
+          id="arc-owner-other"
           value={draft.owner}
-          placeholder="Мастер или игрок"
+          placeholder="NPC, фракция…"
           onChange={(event) => setDraft({ ...draft, owner: event.target.value })}
-        />
-        <datalist id="arc-owner-options">
-          {masters.map((name) => <option key={name} value={name} />)}
-        </datalist>
+        />}
         <Select
           label="Режим"
           id="arc-mode"

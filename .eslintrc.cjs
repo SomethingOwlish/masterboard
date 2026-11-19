@@ -13,4 +13,13 @@ module.exports = {
     'react-refresh/only-export-components': ['warn', { allowConstantExport: true }],
     '@typescript-eslint/no-unused-vars': ['warn', { argsIgnorePattern: '^_', varsIgnorePattern: '^_', ignoreRestSiblings: true }],
   },
+  overrides: [
+    {
+      // ТЗ-3, этап 17 (В8): long JSX lines are a warning; files are reformatted when a stage touches them.
+      files: ['*.tsx'],
+      rules: {
+        'max-len': ['warn', { code: 160, ignoreComments: true, ignoreUrls: true, ignoreStrings: false, ignoreTemplateLiterals: false, ignoreRegExpLiterals: true }],
+      },
+    },
+  ],
 }

@@ -14,6 +14,10 @@ type PeekChip = { label: string; target: PeekTarget }
 
 type Draft = Omit<LocalCampaignSecret, 'id' | 'reveals' | 'sessionIds'>
 
+/** One caption in every secret form (ТЗ-3, этап 17, В9а): players and groups above, everyone else here. */
+const OTHERS_LABEL = 'Кому ещё (не игроки)'
+const OTHERS_HINT = 'NPC, фракции, «все в порту»…'
+
 export function SecretsPanel({ campaign, persist }: SectionProps) {
   const confirm = useConfirm()
   const [editor, setEditor] = useState<LocalCampaignSecret | 'new' | null>(null)
@@ -62,15 +66,15 @@ export function SecretsPanel({ campaign, persist }: SectionProps) {
         >
           {Object.entries(SECRET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </Select>
-        <TextField
-          label="Кому ещё известно"
-          id="reveal-recipients"
-          value={reveal.recipients}
-          placeholder="Все, группа, имена героев"
-          onChange={(e) => setReveal({ ...reveal, recipients: e.target.value })}
-        />
       </div>
       <Checklist legend="Кому известно: группы и игроки" options={[...campaign.groups.map((group) => ({ id: group.id, label: `Группа «${group.name}»` })), ...campaign.players.map((player) => ({ id: player.id, label: player.name }))]} value={reveal.recipientIds} onChange={(recipientIds) => setReveal({ ...reveal, recipientIds })} empty="Игроков и групп пока нет — их можно завести в «Команде» (меню кампании)." />
+      <TextField
+        label={OTHERS_LABEL}
+        id="reveal-recipients"
+        value={reveal.recipients}
+        placeholder={OTHERS_HINT}
+        onChange={(e) => setReveal({ ...reveal, recipients: e.target.value })}
+      />
       <Select
         label="В какой сессии"
         id="reveal-session"
@@ -132,15 +136,15 @@ export function SecretsPanel({ campaign, persist }: SectionProps) {
         >
           {Object.entries(SECRET_STATUS).map(([value, label]) => <option key={value} value={value}>{label}</option>)}
         </Select>
-        <TextField
-          label="Кому ещё известно"
-          id="secret-recipients"
-          value={draft.recipients}
-          placeholder="Все, группа, имена героев"
-          onChange={(e) => setDraft({ ...draft, recipients: e.target.value })}
-        />
       </div>}
       {editor === 'new' && <Checklist legend="Кому известно: группы и игроки" options={[...campaign.groups.map((group) => ({ id: group.id, label: `Группа «${group.name}»` })), ...campaign.players.map((player) => ({ id: player.id, label: player.name }))]} value={draft.recipientIds} onChange={(recipientIds) => setDraft({ ...draft, recipientIds })} empty="Игроков и групп пока нет — их можно завести в «Команде» (меню кампании)." />}
+      <TextField
+        label={OTHERS_LABEL}
+        id="secret-recipients"
+        value={draft.recipients}
+        placeholder={OTHERS_HINT}
+        onChange={(e) => setDraft({ ...draft, recipients: e.target.value })}
+      />
       <Checklist legend="Связанные сущности" options={campaign.entities.filter((entity) => entity.status !== 'archived').map((entity) => ({ id: entity.id, label: entity.name }))} value={draft.entityIds} onChange={(entityIds) => setDraft({ ...draft, entityIds })} empty="Библиотека пуста." />
       <Checklist legend="Связанные часы" options={campaign.clocks.map((clock) => ({ id: clock.id, label: clock.title }))} value={draft.clockIds} onChange={(clockIds) => setDraft({ ...draft, clockIds })} empty="Часов пока нет." />
       <footer><Button onClick={() => setEditor(null)}>Отмена</Button><Button variant="primary" icon="check" disabled={!draft.title.trim() || !draft.truth.trim()} onClick={save}>Сохранить</Button></footer>
