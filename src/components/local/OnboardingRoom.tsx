@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { Button, EmptyState, Icon } from '../../ds'
 import { blankSession, withLocalSessions, worldStarted } from '../../local/normalize'
+import { newNote } from '../../local/domain'
 import { ownerOf } from '../../local/team'
 import { CampaignHeader, Capture, type SectionProps } from './shared'
 import { ROLE_LABEL, SYSTEM_LABEL, linkedRole, type CampaignRole } from '../../local/integration'
@@ -22,7 +23,9 @@ export function OnboardingRoom({ campaign, persist }: SectionProps) {
   const base = ROLES.flatMap((role) => { const linked = linkedRole(campaign, role); return linked ? [`${ROLE_LABEL[role]}: ${SYSTEM_LABEL[linked.system]} · ${linked.link.label}`] : [] })
   const started = worldStarted(campaign)
   const entities = campaign.entities.filter((entity) => entity.status !== 'archived').length
-  const addNote = () => { const text = note.trim(); if (!text) return; persist({ ...campaign, notes: [...campaign.notes, text] }); setNote('') }
+  // Notes are library entities of type «Заметка» (ТЗ-3, этап 14).
+  const notes = campaign.entities.filter((entity) => entity.type === 'note' && entity.status !== 'archived')
+  const addNote = () => { const text = note.trim(); if (!text) return; persist({ ...campaign, entities: [...campaign.entities, newNote(text)] }); setNote('') }
   const createSession = () => {
     if (!title.trim()) return
     const session = { ...blankSession(1, ownerOf(campaign).id, new Date().toISOString()), title: title.trim() }
@@ -56,7 +59,7 @@ export function OnboardingRoom({ campaign, persist }: SectionProps) {
     </section>
     <div className="new-campaign-room__layout">
       <section className="new-campaign-room__main">
-        {!campaign.notes.length
+        {!notes.length
           ? <EmptyState
             icon="book-open"
             title={entities ? 'Заметок пока нет' : 'Мир пока пуст'}
@@ -71,10 +74,10 @@ export function OnboardingRoom({ campaign, persist }: SectionProps) {
               </div>
             </div>
             <ol className="new-campaign-room__notes">
-              {campaign.notes.map((item, index) => (
-                <li key={`${item}-${index}`}>
+              {notes.map((item, index) => (
+                <li key={item.id}>
                   <span>{String(index + 1).padStart(2, '0')}</span>
-                  <p>{item}</p>
+                  <p>{item.description || item.name}</p>
                 </li>
               ))}
             </ol>

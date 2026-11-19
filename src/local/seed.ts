@@ -1,4 +1,4 @@
-import { newArc, newClock, newEntity, newSecret } from './domain'
+import { newArc, newClock, newEntity, newNote, newSecret } from './domain'
 import type { LocalCampaignRecord } from './types'
 
 const STAMP = '2026-09-01T12:00:00.000Z'
@@ -24,7 +24,6 @@ export const MOON_PORT: LocalCampaignRecord = {
   dashboardLayouts: {},
   publications: [],
   integrations: {},
-  notes: ['Красный прилив поднимается каждую ночь фестиваля.', 'Гильдия фонарщиков хранит старый договор с луной.'],
   sessionRecords: [{
     id: 'session-moon-1', number: 1, title: 'Первая ночь в Лунном порту', status: 'draft', masterId: 'master-owl', handovers: [], arcId: 'arc-moon-pact', backgroundArcIds: [],
     groupId: 'group-main', guestPlayerIds: [], participants: '', date: '', inGameTime: 'Третья ночь фестиваля', timelinePosition: '',
@@ -38,6 +37,8 @@ export const MOON_PORT: LocalCampaignRecord = {
   }],
   activeSessionId: 'session-moon-1',
   entities: [
+    newNote('Красный прилив поднимается каждую ночь фестиваля.', { id: 'note-red-tide' }),
+    newNote('Гильдия фонарщиков хранит старый договор с луной.', { id: 'note-lamp-pact' }),
     newEntity({ id: 'entity-moon-keeper', type: 'npc', name: 'Смотритель Олан', description: 'Старый фонарщик, помнит прошлую сделку.', tags: ['гильдия'], fields: { motive: 'Не дать гильдии повторить ошибку' } }),
     newEntity({ id: 'entity-moon-harbor', type: 'location', name: 'Гавань фонарей', description: 'Причалы, где идёт фестиваль.', tags: ['порт'], visibility: 'public', fields: { mood: 'Шум праздника и запах соли' } }),
   ],

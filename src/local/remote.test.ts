@@ -27,10 +27,10 @@ describe('shared catalog polling', () => {
     expect(asked).toEqual(['revisions/localCampaigns/c1'])
 
     doc.revision = 2
-    doc.data = { ...campaign, notes: ['От Лиса'] }
+    doc.data = { ...campaign, idea: 'От Лиса' }
     const fresh = await catalog.shared.poll!('c1')
     expect(fresh?.revision).toBe(2)
-    expect(fresh?.data.notes).toEqual(['От Лиса'])
+    expect(fresh?.data.idea).toBe('От Лиса')
     expect(catalog.shared.baseline!('c1')?.revision).toBe(1)
     expect(await catalog.shared.poll!('unknown')).toBeNull()
   })
